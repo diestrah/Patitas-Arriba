@@ -3,26 +3,16 @@ package model.atencion;
 import model.producto.Articulo;
 
 public class AtencionTratamiento {
-    private String nombreResponsable;
     private Tratamiento tratamiento;
     private Articulo articulo;
 
 
-    public AtencionTratamiento(String nombreResponsable, Tratamiento tratamiento, Articulo articulo) {
-        this.nombreResponsable = nombreResponsable;
+    public AtencionTratamiento(Tratamiento tratamiento, Articulo articulo) {
         this.tratamiento = tratamiento;
         this.articulo = articulo;
     }
 
     // Getters y Setters
-    public String getNombreResponsable() {
-        return nombreResponsable;
-    }
-
-    public void setNombreResponsable(String nombreResponsable) {
-        this.nombreResponsable = nombreResponsable;
-    }
-
     public Tratamiento getTratamiento() {
         return tratamiento;
     }
@@ -42,8 +32,7 @@ public class AtencionTratamiento {
     @Override
     public String toString() {
         return "AtencionTratamiento{" +
-                "nombreResponsable='" + nombreResponsable + '\'' +
-                ", tratamiento=" + tratamiento +
+                "tratamiento=" + tratamiento +
                 ", articulo=" + (articulo != null ? articulo.getNombre() : null) +
                 '}';
     }
