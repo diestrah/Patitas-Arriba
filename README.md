@@ -7,3 +7,4 @@ Repositorio de la TA para programación 3
 ## Contenido:  
     - Listado de requerimientos  
     - Diagrama de clases
+    - Diagrama SQL
