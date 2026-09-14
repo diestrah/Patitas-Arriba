@@ -8,3 +8,9 @@
 1. Descargar el diagrama
 2. Abrir a MySQL Workbench
 3. Ir a file / Open Model y abrir el archivo
+ 
+ 
+## Sobre el ddl 
+- Se generó el ddl en base al DER con la función Forward Engineer SQL Script de MySQL Workbench 
+
+ 
