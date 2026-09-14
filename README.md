@@ -1,4 +1,6 @@
 # Patitas-Arriba
+Patitas arriba es un proyecto que responde a la necesidad de tener un sistema que sea capaz de dar soporte en las distintas 
+operaciones realizadas en una veterinaria.
 Repositorio de la TA para programación 3
 
 ## Recursos
