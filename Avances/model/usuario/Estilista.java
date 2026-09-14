@@ -5,7 +5,7 @@ import model.mascota.TipoMascota;
 
 import java.util.List;
 
-public class Estilista extends Personal {
+public class Estilista extends PersonalAtencion {
     private String certificacionGrooming;
     private TipoMascota especialidadAnimal;
 

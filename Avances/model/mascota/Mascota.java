@@ -104,15 +104,20 @@ public class Mascota {
 
     @Override
     public String toString() {
+        String dniCliente = null;
+        if (cliente != null) {
+            dniCliente = cliente.getDni();
+        }
+
         return "Mascota{" +
                 "idMascota=" + idMascota +
-                ", nombre='" + nombre + '\'' +
+                ", nombre='" + nombre + "'" +
                 ", sexo=" + sexo +
                 ", peso=" + peso +
                 ", fechaNacimiento=" + fechaNacimiento +
                 ", tipoMascota=" + tipoMascota +
-                ", raza='" + raza + '\'' +
-                ", cliente=" + (cliente != null ? cliente.getDni() : null) +
+                ", raza='" + raza + "'" +
+                ", cliente=" + dniCliente +
                 ", atencionesMedicas=" + atencionesMedicas +
                 '}';
     }

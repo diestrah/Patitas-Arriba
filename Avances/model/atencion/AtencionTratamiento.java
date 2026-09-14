@@ -1,15 +1,15 @@
 package model.atencion;
 
-import model.producto.Articulo;
+import java.util.List;
 
 public class AtencionTratamiento {
     private Tratamiento tratamiento;
-    private Articulo articulo;
+    private List<InsumoUtilizado> insumosUtilizados;
 
 
-    public AtencionTratamiento(Tratamiento tratamiento, Articulo articulo) {
+    public AtencionTratamiento(Tratamiento tratamiento, List<InsumoUtilizado> insumosUtilizados) {
         this.tratamiento = tratamiento;
-        this.articulo = articulo;
+        this.insumosUtilizados = insumosUtilizados;
     }
 
     // Getters y Setters
@@ -21,19 +21,19 @@ public class AtencionTratamiento {
         this.tratamiento = tratamiento;
     }
 
-    public Articulo getArticulo() {
-        return articulo;
+    public List<InsumoUtilizado> getInsumosUtilizados() {
+        return insumosUtilizados;
     }
 
-    public void setArticulo(Articulo articulo) {
-        this.articulo = articulo;
+    public void setInsumosUtilizados(List<InsumoUtilizado> insumosUtilizados) {
+        this.insumosUtilizados = insumosUtilizados;
     }
 
     @Override
     public String toString() {
         return "AtencionTratamiento{" +
                 "tratamiento=" + tratamiento +
-                ", articulo=" + (articulo != null ? articulo.getNombre() : null) +
+                ", insumosUtilizados=" + insumosUtilizados +
                 '}';
     }
 }

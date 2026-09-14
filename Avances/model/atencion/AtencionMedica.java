@@ -104,14 +104,31 @@ public class AtencionMedica {
 
     @Override
     public String toString() {
+        String dniVeterinario = null;
+        if (veterinario != null) {
+            dniVeterinario = veterinario.getDni();
+        }
+
+        int idReceta = -1;
+        if (receta != null) {
+            idReceta = receta.getIdReceta();
+        }
+
+        String textoReceta;
+        if (idReceta == -1) {
+            textoReceta = "ninguna";
+        } else {
+            textoReceta = String.valueOf(idReceta);
+        }
+
         return "AtencionMedica{" +
                 "idAtencion=" + idAtencion +
                 ", fechaHora=" + fechaHora +
-                ", motivoConsulta='" + motivoConsulta + '\'' +
+                ", motivoConsulta='" + motivoConsulta + "'" +
                 ", pesoFisico=" + pesoFisico +
-                ", observaciones='" + observaciones + '\'' +
-                ", veterinario=" + (veterinario != null ? veterinario.getDni() : null) +
-                ", receta=" + (receta != null ? receta.getIdReceta() : null) +
+                ", observaciones='" + observaciones + "'" +
+                ", veterinario=" + dniVeterinario +
+                ", receta=" + textoReceta +
                 ", tratamientos=" + tratamientos +
                 ", diagnosticos=" + diagnosticos +
                 '}';

@@ -84,14 +84,35 @@ public class Boleta {
 
     @Override
     public String toString() {
-        return "Boleta{" +
-                "idBoleta=" + idBoleta +
-                ", fecha=" + fecha +
-                ", total=" + total +
-                ", metodoPago=" + metodoPago +
-                ", cliente=" + (cliente != null ? cliente.getDni() : null) +
-                ", cita=" + (cita != null ? cita.getIdCita() : null) +
-                ", detalles=" + detalles +
-                '}';
+        String dniCliente = null;
+        if (cliente != null) {
+            dniCliente = cliente.getDni();
+        }
+
+        int idCita = -1;
+        if (cita != null) {
+            idCita = cita.getIdCita();
+        }
+
+        String textoCita;
+        if (idCita == -1) {
+            textoCita = "ninguna";
+        } else {
+            textoCita = String.valueOf(idCita);
+        }
+
+        String textoDetalles = "";
+        for (DetalleBoleta detalle : detalles) {
+            textoDetalles = textoDetalles + detalle.toString() + "\n";
+        }
+
+        return "Boleta\n" +
+                "idBoleta: " + idBoleta + "\n" +
+                "fecha: " + fecha + "\n" +
+                "total: " + total + "\n" +
+                "metodoPago: " + metodoPago + "\n" +
+                "cliente: " + dniCliente + "\n" +
+                "cita: " + textoCita + "\n" +
+                "detalles:\n" + textoDetalles;
     }
 }

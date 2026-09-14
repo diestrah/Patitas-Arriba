@@ -51,11 +51,11 @@ public class DetalleBoleta {
 
     @Override
     public String toString() {
-        return "DetalleBoleta{" +
-                "idDetalleBoleta=" + idDetalleBoleta +
-                ", cantidad=" + cantidad +
-                ", subTotal=" + subTotal +
-                ", producto=" + producto +
-                '}';
+        String nombreProducto = null;
+        if (producto != null) {
+            nombreProducto = producto.getNombre();
+        }
+
+        return "  - Producto: " + nombreProducto + " | Cantidad: " + cantidad + " | Subtotal: " + subTotal;
     }
 }
