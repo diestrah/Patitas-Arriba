@@ -24,7 +24,7 @@ USE `mydb` ;
 -- Table `mydb`.`CUENTA`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`CUENTA` (
-  `idCuenta` INT NULL,
+  `idCuenta` INT NOT NULL,
   `password` VARCHAR(60) NOT NULL,
   `correo` VARCHAR(100) NOT NULL,
   `fechaCreacion` DATE NULL,
@@ -120,7 +120,6 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `mydb`.`ESTILISTA` (
   `idEstilista` INT NOT NULL AUTO_INCREMENT,
   `idCuenta` INT NOT NULL,
-  `idCuenta` INT NOT NULL,
   `dni` INT NULL,
   `nombres` VARCHAR(45) NULL,
   `apellidoPaterno` VARCHAR(45) NULL,
@@ -131,7 +130,6 @@ CREATE TABLE IF NOT EXISTS `mydb`.`ESTILISTA` (
   `especialidadAnimal` CHAR(1) NULL,
   PRIMARY KEY (`idEstilista`),
   INDEX `fk_ESTILISTA_CUENTA1_idx` (`idCuenta` ASC) VISIBLE,
-  UNIQUE INDEX `idCuenta_UNIQUE` (`idCuenta` ASC) VISIBLE,
   UNIQUE INDEX `idCuenta_UNIQUE` (`idCuenta` ASC) VISIBLE,
   CONSTRAINT `fk_ESTILISTA_CUENTA1`
     FOREIGN KEY (`idCuenta`)
@@ -463,7 +461,7 @@ ENGINE = InnoDB;
 -- Table `mydb`.`DETALLE_CITA_ESTETICA`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`DETALLE_CITA_ESTETICA` (
-  `idDetalleCitaEstetica` INT NULL,
+  `idDetalleCitaEstetica` INT NOT NULL,
   `idServicioEstetico` INT NOT NULL,
   `idCita` INT NOT NULL,
   `observaciones` VARCHAR(200) NULL,
@@ -575,14 +573,6 @@ CREATE TABLE IF NOT EXISTS `mydb`.`ATENCION_TRATAMIENTO` (
     REFERENCES `mydb`.`ATENCION_MEDICA` (`idAtencionMedica`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`PERSONAL_ADMINISTRADOR`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `mydb`.`PERSONAL_ADMINISTRADOR` (
-)
 ENGINE = InnoDB;
 
 
