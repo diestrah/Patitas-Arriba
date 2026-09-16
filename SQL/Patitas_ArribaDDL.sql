@@ -24,7 +24,7 @@ USE `mydb` ;
 -- Table `mydb`.`CUENTA`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`CUENTA` (
-  `idCuenta` INT NULL,
+  `idCuenta` INT NOT NULL,
   `password` VARCHAR(60) NOT NULL,
   `correo` VARCHAR(100) NOT NULL,
   `fechaCreacion` DATE NULL,
@@ -463,7 +463,7 @@ ENGINE = InnoDB;
 -- Table `mydb`.`DETALLE_CITA_ESTETICA`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `mydb`.`DETALLE_CITA_ESTETICA` (
-  `idDetalleCitaEstetica` INT NULL,
+  `idDetalleCitaEstetica` INT NOT NULL,
   `idServicioEstetico` INT NOT NULL,
   `idCita` INT NOT NULL,
   `observaciones` VARCHAR(200) NULL,
