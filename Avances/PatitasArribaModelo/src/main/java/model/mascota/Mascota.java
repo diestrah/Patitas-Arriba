@@ -102,6 +102,10 @@ public class Mascota {
         this.atencionesMedicas = atencionesMedicas;
     }
 
+    public void agregarAtencionMedica(AtencionMedica atencionMedica) {
+        atencionesMedicas.add(atencionMedica);
+    }
+
     @Override
     public String toString() {
         String dniCliente = null;

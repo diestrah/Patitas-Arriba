@@ -1,6 +1,7 @@
 package model.boleta;
 
 import model.cita.Cita;
+import model.producto.Producto;
 import model.usuario.Cliente;
 
 import java.time.LocalDate;
@@ -80,6 +81,10 @@ public class Boleta {
 
     public void setDetalles(List<DetalleBoleta> detalles) {
         this.detalles = detalles;
+    }
+
+    public void agregarDetalle(int idDetalleBoleta, int cantidad, double subTotal, Producto producto) {
+        detalles.add(new DetalleBoleta(idDetalleBoleta, cantidad, subTotal, producto));
     }
 
     @Override

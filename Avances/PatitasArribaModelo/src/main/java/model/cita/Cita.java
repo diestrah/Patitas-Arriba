@@ -1,6 +1,7 @@
 package model.cita;
 
 import model.mascota.Mascota;
+import model.producto.Servicio;
 import model.usuario.PersonalAtencion;
 
 import java.time.LocalDateTime;
@@ -70,6 +71,10 @@ public class Cita {
 
     public void setDetalles(List<DetalleCita> detalles) {
         this.detalles = detalles;
+    }
+
+    public void agregarDetalle(int idDetalleCita, String observaciones, Servicio servicio) {
+        detalles.add(new DetalleCita(idDetalleCita, observaciones, servicio));
     }
 
     @Override

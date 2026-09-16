@@ -1,5 +1,7 @@
 package model.atencion;
 
+import model.producto.Articulo;
+
 import java.util.List;
 
 public class AtencionTratamiento {
@@ -27,6 +29,10 @@ public class AtencionTratamiento {
 
     public void setInsumosUtilizados(List<InsumoUtilizado> insumosUtilizados) {
         this.insumosUtilizados = insumosUtilizados;
+    }
+
+    public void agregarInsumo(Articulo articulo, int cantidadUtilizada, String unidadMedida) {
+        insumosUtilizados.add(new InsumoUtilizado(articulo, cantidadUtilizada, unidadMedida));
     }
 
     @Override

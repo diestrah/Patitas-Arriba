@@ -30,3 +30,7 @@
   password=<tu_password>
   ```
 
+## Notas de diseño
+
+- `DBManager` usa el patrón Singleton (`getInstance()`), como se enseñó en clase.
+- Versión de Java estandarizada para todo el equipo: **25** (revisar que todos tengan este JDK instalado).

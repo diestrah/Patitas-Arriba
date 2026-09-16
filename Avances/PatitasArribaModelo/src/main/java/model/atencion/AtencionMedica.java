@@ -4,6 +4,7 @@ import model.receta.Receta;
 import model.usuario.Veterinario;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AtencionMedica {
@@ -100,6 +101,17 @@ public class AtencionMedica {
 
     public void setDiagnosticos(List<AtencionDiagnostico> diagnosticos) {
         this.diagnosticos = diagnosticos;
+    }
+
+    public void agregarDiagnostico(String nivelGravedad, String detalleDiagnostico, Diagnostico diagnostico) {
+        diagnosticos.add(new AtencionDiagnostico(nivelGravedad, detalleDiagnostico, diagnostico));
+    }
+
+    // Retorna el tratamiento creado para poder agregarle insumos despues
+    public AtencionTratamiento agregarTratamiento(Tratamiento tratamiento) {
+        AtencionTratamiento atencionTratamiento = new AtencionTratamiento(tratamiento, new ArrayList<>());
+        tratamientos.add(atencionTratamiento);
+        return atencionTratamiento;
     }
 
     @Override

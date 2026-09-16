@@ -1,5 +1,7 @@
 package model.receta;
 
+import model.producto.Articulo;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -57,6 +59,10 @@ public class Receta {
 
     public void setDetalles(List<DetalleReceta> detalles) {
         this.detalles = detalles;
+    }
+
+    public void agregarDetalle(int idDetalleReceta, String dosis, String frecuencia, int duracionDias, int cantidadTotal, Articulo producto) {
+        detalles.add(new DetalleReceta(idDetalleReceta, dosis, frecuencia, duracionDias, cantidadTotal, producto));
     }
 
     @Override
