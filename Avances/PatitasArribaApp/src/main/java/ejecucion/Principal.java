@@ -88,7 +88,7 @@ public class Principal {
         detallesBoleta.add(new DetalleBoleta(1, 1, 50.0, consulta));
         detallesBoleta.add(new DetalleBoleta(2, 2, 50.0, amoxicilina));
 
-        System.out.println("========== DATOS DE LA BOLETA ==========");
+        System.out.println("========== DATOS DE LA BOLETA =========");
         System.out.println("idBoleta: " + boleta1.getIdBoleta());
         System.out.println("fecha: " + boleta1.getFecha());
         System.out.println("cliente: " + cliente1.getNombres() + " " + cliente1.getApellidoPaterno());

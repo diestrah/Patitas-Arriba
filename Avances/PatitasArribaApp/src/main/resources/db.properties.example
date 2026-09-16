@@ -1,0 +1,5 @@
+servidor=localhost
+puerto=3306
+esquema=patitas_arriba
+usuario=<tu_usuario>
+password=<tu_password>
