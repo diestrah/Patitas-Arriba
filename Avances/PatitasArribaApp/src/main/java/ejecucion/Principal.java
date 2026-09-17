@@ -1,13 +1,13 @@
 package ejecucion;
 
-import model.atencion.*;
-import model.boleta.*;
-import model.cita.*;
-import model.horario.*;
-import model.mascota.*;
-import model.producto.*;
-import model.receta.*;
-import model.usuario.*;
+import patitasarriba.modelo.atencion.*;
+import patitasarriba.modelo.boleta.*;
+import patitasarriba.modelo.cita.*;
+import patitasarriba.modelo.horario.*;
+import patitasarriba.modelo.mascota.*;
+import patitasarriba.modelo.producto.*;
+import patitasarriba.modelo.receta.*;
+import patitasarriba.modelo.usuario.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,27 +18,28 @@ public class Principal {
     public static void main(String[] args) {
 
         Cuenta cuentaCliente = new Cuenta(1, "pass123", "juan@gmail.com", LocalDate.of(2026, 1, 10), "juanp");
-        Cliente cliente1 = new Cliente("Juan", "Perez", "Gomez", "987654321", "12345678", cuentaCliente, new ArrayList<>());
+        Cliente cliente1 = new Cliente(1, "Juan", "Perez", "Gomez", "987654321", "12345678", cuentaCliente, new ArrayList<>());
 
         Cuenta cuentaVet = new Cuenta(2, "vet123", "carlos@patasarriba.com", LocalDate.of(2025, 3, 15), "carlosr");
-        Veterinario vet1 = new Veterinario("Carlos", "Ramirez", "Soto", "955444333", "11223344", cuentaVet, true,
+        Veterinario vet1 = new Veterinario(2, "Carlos", "Ramirez", "Soto", "955444333", "11223344", cuentaVet, true,
                 new ArrayList<>(), "CMVP-4521");
 
         // Agrega horario al veterinario
         vet1.agregarHorario(new Horario(1, DiaSemana.LUNES, LocalTime.of(9, 0), LocalTime.of(13, 0)));
 
         Mascota firulais = new Mascota(1, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
-                TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>());
+                TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>(), new ArrayList<>());
         // Agrega mascota al cliente
         cliente1.agregarMascota(firulais);
 
         // Catalogo de servicio, sin veterinario fijo
-        ServicioMedico consulta = new ServicioMedico(1, "Consulta General", 50.0, "Revision general",
-                true, 30, true, TipoServicioMedico.CONSULTA_MEDICA, false, false);
+        Servicio consulta = new Servicio(1, "Consulta General", 50.0, "Revision general",
+                true, TipoServicio.CONSULTA_MEDICA, true, false, 30);
 
         // Catalogo de inventario, con stock propio
+        CategoriaArticulo categoria1 = new CategoriaArticulo(1, "Farmacología", "Agrupa a todos los medicamentos y sustancias químicas destinados al diagnóstico y tratamiento de enfermedades.");
         Articulo amoxicilina = new Articulo(2, "Amoxicilina 250mg", 25.0, "Antibiotico", true, 40, 10,
-                "VetPharma", CategoriaArticulo.FARMACOLOGIA);
+                "VetPharma", categoria1);
 
         // Se agenda la cita, sin detalles aun
         Cita cita1 = new Cita(1, LocalDateTime.of(2026, 9, 15, 10, 0), EstadoCita.AGENDADA, firulais, vet1, new ArrayList<>());
