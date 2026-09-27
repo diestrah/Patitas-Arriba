@@ -1,6 +1,7 @@
 package patitasarriba.modelo.usuario;
 
 import patitasarriba.modelo.horario.Horario;
+import patitasarriba.modelo.horario.HorarioPersonal;
 
 import java.util.List;
 
@@ -11,8 +12,8 @@ public class Administrador extends Personal {
 
     public Administrador(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
                          String telefono, String dni,
-                         Cuenta cuenta, List<Horario> horarios) {
-        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horarios);
+                         Cuenta cuenta, List<HorarioPersonal> horariosPersonal) {
+        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horariosPersonal);
     }
 
     // Constructor de copia

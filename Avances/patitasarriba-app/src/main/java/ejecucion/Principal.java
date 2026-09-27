@@ -24,7 +24,8 @@ public class Principal {
         Veterinario vet1 = new Veterinario(2, true, "Carlos", "Ramirez", "Soto", "955444333", "11223344", cuentaVet, new ArrayList<>(), "CMVP-4521");
 
         // Agrega horario al veterinario
-        vet1.agregarHorario(new Horario(1, true, DiaSemana.LUNES, LocalTime.of(9, 0), LocalTime.of(13, 0)));
+        Horario horario1 = new Horario(1, true, DiaSemana.LUNES, LocalTime.of(9, 0), LocalTime.of(18, 0));
+        vet1.agregarHorarioPersonal(1, true, horario1);
 
         Mascota firulais = new Mascota(1, true, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
                 TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>(), new ArrayList<>());

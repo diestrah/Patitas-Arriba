@@ -1,6 +1,7 @@
 package patitasarriba.modelo.usuario;
 
 import patitasarriba.modelo.horario.Horario;
+import patitasarriba.modelo.horario.HorarioPersonal;
 
 import java.util.List;
 
@@ -12,9 +13,9 @@ public class Veterinario extends Personal {
 
     public Veterinario(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
                        String telefono, String dni,
-                       Cuenta cuenta, List<Horario> horarios,
+                       Cuenta cuenta, List<HorarioPersonal> horariosPersonal,
                        String numeroColegiatura) {
-        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horarios);
+        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horariosPersonal);
         setNumeroColegiatura(numeroColegiatura);
     }
 
