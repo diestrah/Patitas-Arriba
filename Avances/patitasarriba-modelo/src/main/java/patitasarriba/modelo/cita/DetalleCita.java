@@ -1,39 +1,32 @@
 package patitasarriba.modelo.cita;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Servicio;
 
-public class DetalleCita {
-    private int idDetalleCita;
+public class DetalleCita extends Registro {
     private String observaciones;
     private Servicio servicio;
 
-    public DetalleCita(int idDetalleCita, String observaciones, Servicio servicio) {
-        setIdDetalleCita(idDetalleCita);
+    public DetalleCita() {
+    }
+
+    public DetalleCita(int id, boolean activo, String observaciones, Servicio servicio) {
+        super(id, activo);
         setObservaciones(observaciones);
         setServicio(servicio);
     }
 
     // Constructor de copia
-    public DetalleCita(DetalleCita detalleCita) {
+    public DetalleCita(final DetalleCita detalleCita) {
         if (detalleCita == null) {
-            throw new IllegalArgumentException("detalleCita no puede ser nulo");
+            throw new IllegalArgumentException("DetalleCita no puede ser nulo");
         }
-        setIdDetalleCita(detalleCita.getIdDetalleCita());
+        super(detalleCita);
         setObservaciones(detalleCita.getObservaciones());
         setServicio(detalleCita.getServicio());
     }
 
     // Getters y Setters
-    public int getIdDetalleCita() {
-        return idDetalleCita;
-    }
-
-    public void setIdDetalleCita(int idDetalleCita) {
-        if (idDetalleCita < 0) {
-            throw new IllegalArgumentException("idDetalleCita no puede ser negativo");
-        }
-        this.idDetalleCita = idDetalleCita;
-    }
 
     public String getObservaciones() {
         return observaciones;
@@ -58,7 +51,7 @@ public class DetalleCita {
     @Override
     public String toString() {
         return "DetalleCita{" +
-                "idDetalleCita=" + idDetalleCita +
+                super.toString() +
                 ", observaciones='" + observaciones + '\'' +
                 ", servicio=" + servicio +
                 '}';

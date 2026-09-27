@@ -6,9 +6,12 @@ public class Articulo extends Producto {
     private String marca;
     private CategoriaArticulo categoria;
 
-    public Articulo(int idProducto, String nombre, double precioBase, String descripcion, boolean estado,
+    public Articulo() {
+    }
+
+    public Articulo(int id, boolean activo, String nombre, double precioBase, String descripcion, boolean estado,
                     int stockActual, int stockMinimo, String marca, CategoriaArticulo categoria) {
-        super(idProducto, nombre, precioBase, descripcion, estado);
+        super(id, activo, nombre, precioBase, descripcion, estado);
         setStockActual(stockActual);
         setStockMinimo(stockMinimo);
         setMarca(marca);
@@ -16,7 +19,7 @@ public class Articulo extends Producto {
     }
 
     // Constructor de copia
-    public Articulo(Articulo articulo) {
+    public Articulo(final Articulo articulo) {
         super(articulo);
         setStockActual(articulo.getStockActual());
         setStockMinimo(articulo.getStockMinimo());
@@ -72,8 +75,7 @@ public class Articulo extends Producto {
     @Override
     public String toString() {
         return "Articulo{" +
-                "idProducto=" + getIdProducto() +
-                ", nombre='" + getNombre() + '\'' +
+                super.toString() +
                 ", stockActual=" + stockActual +
                 ", stockMinimo=" + stockMinimo +
                 ", marca='" + marca + '\'' +

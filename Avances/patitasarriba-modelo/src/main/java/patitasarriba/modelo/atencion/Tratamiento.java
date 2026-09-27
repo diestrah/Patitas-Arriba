@@ -1,38 +1,31 @@
 package patitasarriba.modelo.atencion;
 
-public class Tratamiento {
-    private int idTratamiento;
+import patitasarriba.modelo.Registro;
+
+public class Tratamiento extends Registro {
     private String nombreProcedimiento;
     private String descripcion;
 
+    public Tratamiento() {
+    }
 
-    public Tratamiento(int idTratamiento, String nombreProcedimiento, String descripcion) {
-        setIdTratamiento(idTratamiento);
+    public Tratamiento(int id, boolean activo, String nombreProcedimiento, String descripcion) {
+        super(id, activo);
         setNombreProcedimiento(nombreProcedimiento);
         setDescripcion(descripcion);
     }
 
     // Constructor de copia
-    public Tratamiento(Tratamiento tratamiento) {
+    public Tratamiento(final Tratamiento tratamiento) {
         if (tratamiento == null) {
             throw new IllegalArgumentException("tratamiento no puede ser nulo");
         }
-        setIdTratamiento(tratamiento.getIdTratamiento());
+        super(tratamiento);
         setNombreProcedimiento(tratamiento.getNombreProcedimiento());
         setDescripcion(tratamiento.getDescripcion());
     }
 
     // Getters y Setters
-    public int getIdTratamiento() {
-        return idTratamiento;
-    }
-
-    public void setIdTratamiento(int idTratamiento) {
-        if (idTratamiento < 0) {
-            throw new IllegalArgumentException("idTratamiento no puede ser negativo");
-        }
-        this.idTratamiento = idTratamiento;
-    }
 
     public String getNombreProcedimiento() {
         return nombreProcedimiento;
@@ -59,7 +52,7 @@ public class Tratamiento {
     @Override
     public String toString() {
         return "Tratamiento{" +
-                "idTratamiento=" + idTratamiento +
+                super.toString() +
                 ", nombreProcedimiento='" + nombreProcedimiento + '\'' +
                 ", descripcion='" + descripcion + '\'' +
                 '}';

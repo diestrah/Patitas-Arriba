@@ -1,5 +1,6 @@
 package patitasarriba.modelo.cita;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.mascota.Mascota;
 import patitasarriba.modelo.producto.Servicio;
 import patitasarriba.modelo.usuario.Veterinario;
@@ -9,16 +10,19 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Cita {
-    private int idCita;
+public class Cita extends Registro {
     private LocalDateTime fechaHora;
     private EstadoCita estado;
     private Mascota mascota;
     private Veterinario veterinario;
     private List<DetalleCita> detalles;
 
-    public Cita(int idCita, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Veterinario veterinario, List<DetalleCita> detalles) {
-        setIdCita(idCita);
+    public Cita(){
+        this.detalles = new ArrayList<>();
+    }
+
+    public Cita(int id, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Veterinario veterinario, List<DetalleCita> detalles) {
+        super(id, activo);
         setFechaHora(fechaHora);
         setEstado(estado);
         setMascota(mascota);
@@ -27,11 +31,11 @@ public class Cita {
     }
 
     // Constructor de copia
-    public Cita(Cita cita) {
+    public Cita(final Cita cita) {
         if (cita == null) {
-            throw new IllegalArgumentException("cita no puede ser nula");
+            throw new IllegalArgumentException("Cita no puede ser nula");
         }
-        setIdCita(cita.getIdCita());
+        super(cita);
         setFechaHora(cita.getFechaHora());
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
@@ -40,16 +44,6 @@ public class Cita {
     }
 
     // Getters y Setters
-    public int getIdCita() {
-        return idCita;
-    }
-
-    public void setIdCita(int idCita) {
-        if (idCita < 0) {
-            throw new IllegalArgumentException("idCita no puede ser negativo");
-        }
-        this.idCita = idCita;
-    }
 
     public LocalDateTime getFechaHora() {
         return fechaHora;
@@ -106,8 +100,8 @@ public class Cita {
         this.detalles = new ArrayList<>(detalles);
     }
 
-    public void agregarDetalle(int idDetalleCita, String observaciones, Servicio servicio) {
-        detalles.add(new DetalleCita(idDetalleCita, observaciones, servicio));
+    public void agregarDetalle(int id, boolean activo, String observaciones, Servicio servicio) {
+        detalles.add(new DetalleCita(id, activo, observaciones, servicio));
     }
 
     @Override
@@ -123,7 +117,7 @@ public class Cita {
         }
 
         return "Cita{" +
-                "idCita=" + idCita +
+                super.toString() +
                 ", fechaHora=" + fechaHora +
                 ", estado=" + estado +
                 ", mascota=" + nombreMascota +

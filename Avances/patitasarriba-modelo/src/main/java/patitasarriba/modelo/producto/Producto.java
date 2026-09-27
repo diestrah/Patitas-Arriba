@@ -1,14 +1,18 @@
 package patitasarriba.modelo.producto;
 
-public abstract class Producto {
-    private int idProducto;
+import patitasarriba.modelo.Registro;
+
+public abstract class Producto extends Registro {
     private String nombre;
     private double precioBase;
     private String descripcion;
     private boolean estado;
 
-    public Producto(int idProducto, String nombre, double precioBase, String descripcion, boolean estado) {
-        setIdProducto(idProducto);
+    public Producto() {
+    }
+
+    public Producto(int id, boolean activo, String nombre, double precioBase, String descripcion, boolean estado) {
+        super(id, activo);
         setNombre(nombre);
         setPrecioBase(precioBase);
         setDescripcion(descripcion);
@@ -16,11 +20,11 @@ public abstract class Producto {
     }
 
     // Constructor de copia
-    protected Producto(Producto producto) {
+    protected Producto(final Producto producto) {
         if (producto == null) {
             throw new IllegalArgumentException("producto no puede ser nulo");
         }
-        setIdProducto(producto.getIdProducto());
+        super(producto);
         setNombre(producto.getNombre());
         setPrecioBase(producto.getPrecioBase());
         setDescripcion(producto.getDescripcion());
@@ -28,17 +32,6 @@ public abstract class Producto {
     }
 
     // getters y setters
-
-    public int getIdProducto() {
-        return idProducto;
-    }
-
-    public void setIdProducto(int idProducto) {
-        if (idProducto < 0) {
-            throw new IllegalArgumentException("idProducto no puede ser negativo");
-        }
-        this.idProducto = idProducto;
-    }
 
     public String getNombre() {
         return nombre;
@@ -84,7 +77,7 @@ public abstract class Producto {
     @Override
     public String toString() {
         return "Producto{" +
-                "idProducto=" + idProducto +
+                super.toString() +
                 ", nombre='" + nombre + '\'' +
                 ", precioBase=" + precioBase +
                 ", descripcion='" + descripcion + '\'' +

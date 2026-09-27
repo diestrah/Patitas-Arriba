@@ -1,38 +1,31 @@
 package patitasarriba.modelo.producto;
 
-public class CategoriaArticulo {
-    private int idCategoriaArticulo;
+import patitasarriba.modelo.Registro;
+
+public class CategoriaArticulo extends Registro {
     private String nombre;
     private String descripcion;
 
-    public CategoriaArticulo(int idCategoriaArticulo, String nombre, String descripcion) {
-        setIdCategoriaArticulo(idCategoriaArticulo);
+    public CategoriaArticulo() {
+    }
+
+    public CategoriaArticulo(int id, boolean activo, String nombre, String descripcion) {
+        super(id, activo);
         setNombre(nombre);
         setDescripcion(descripcion);
     }
 
     // Constructor de copia
-    public CategoriaArticulo(CategoriaArticulo categoriaArticulo) {
+    public CategoriaArticulo(final CategoriaArticulo categoriaArticulo) {
         if (categoriaArticulo == null) {
             throw new IllegalArgumentException("categoriaArticulo no puede ser nulo");
         }
-        setIdCategoriaArticulo(categoriaArticulo.getIdCategoriaArticulo());
+        super(categoriaArticulo);
         setNombre(categoriaArticulo.getNombre());
         setDescripcion(categoriaArticulo.getDescripcion());
     }
 
     // setter y getters
-
-    public int getIdCategoriaArticulo() {
-        return idCategoriaArticulo;
-    }
-
-    public void setIdCategoriaArticulo(int idCategoriaArticulo) {
-        if (idCategoriaArticulo < 0) {
-            throw new IllegalArgumentException("idCategoriaArticulo no puede ser negativo");
-        }
-        this.idCategoriaArticulo = idCategoriaArticulo;
-    }
 
     public String getNombre() {
         return nombre;

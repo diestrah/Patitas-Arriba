@@ -7,17 +7,22 @@ import java.util.List;
 public class Veterinario extends Personal {
     private String numeroColegiatura;
 
+    public Veterinario() {
+    }
 
-    public Veterinario(int idPersona, String nombres, String apellidoPaterno, String apellidoMaterno,
+    public Veterinario(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
                        String telefono, String dni,
-                       Cuenta cuenta, boolean estado, List<Horario> horarios,
+                       Cuenta cuenta, List<Horario> horarios,
                        String numeroColegiatura) {
-        super(idPersona, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, estado, horarios);
+        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horarios);
         setNumeroColegiatura(numeroColegiatura);
     }
 
     // Constructor de copia
-    public Veterinario(Veterinario veterinario) {
+    public Veterinario(final Veterinario veterinario) {
+        if (veterinario == null) {
+            throw new IllegalArgumentException("Veterinario no puede ser nulo");
+        }
         super(veterinario);
         setNumeroColegiatura(veterinario.getNumeroColegiatura());
     }
@@ -37,9 +42,7 @@ public class Veterinario extends Personal {
     @Override
     public String toString() {
         return "Veterinario{" +
-                "IdPersona='" + getIdPersona() + '\'' +
-                "nombres='" + getNombres() + '\'' +
-                ", apellidoPaterno='" + getApellidoPaterno() + '\'' +
+                super.toString() +
                 ", numeroColegiatura='" + numeroColegiatura + '\'' +
                 '}';
     }

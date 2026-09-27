@@ -1,38 +1,31 @@
 package patitasarriba.modelo.atencion;
 
-public class Diagnostico {
-    private int idDiagnostico;
+import patitasarriba.modelo.Registro;
+
+public class Diagnostico extends Registro {
     private String nombreEnfermedad;
     private String descripcion;
 
+    public Diagnostico() {
+    }
 
-    public Diagnostico(int idDiagnostico, String nombreEnfermedad, String descripcion) {
-        setIdDiagnostico(idDiagnostico);
+    public Diagnostico(int id, boolean activo, String nombreEnfermedad, String descripcion) {
+        super(id, activo);
         setNombreEnfermedad(nombreEnfermedad);
         setDescripcion(descripcion);
     }
 
     // Constructor de copia
-    public Diagnostico(Diagnostico diagnostico) {
+    public Diagnostico(final Diagnostico diagnostico) {
         if (diagnostico == null) {
             throw new IllegalArgumentException("diagnostico no puede ser nulo");
         }
-        setIdDiagnostico(diagnostico.getIdDiagnostico());
+        super(diagnostico);
         setNombreEnfermedad(diagnostico.getNombreEnfermedad());
         setDescripcion(diagnostico.getDescripcion());
     }
 
     // Getters y Setters
-    public int getIdDiagnostico() {
-        return idDiagnostico;
-    }
-
-    public void setIdDiagnostico(int idDiagnostico) {
-        if (idDiagnostico < 0) {
-            throw new IllegalArgumentException("idDiagnostico no puede ser negativo");
-        }
-        this.idDiagnostico = idDiagnostico;
-    }
 
     public String getNombreEnfermedad() {
         return nombreEnfermedad;
@@ -59,7 +52,7 @@ public class Diagnostico {
     @Override
     public String toString() {
         return "Diagnostico{" +
-                "idDiagnostico=" + idDiagnostico +
+                super.toString() +
                 ", nombreEnfermedad='" + nombreEnfermedad + '\'' +
                 ", descripcion='" + descripcion + '\'' +
                 '}';

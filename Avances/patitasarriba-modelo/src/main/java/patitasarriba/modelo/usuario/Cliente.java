@@ -9,14 +9,21 @@ import java.util.List;
 public class Cliente extends Persona {
     private List<Mascota> mascotas;
 
-    public Cliente(int idPersona, String nombres, String apellidoPaterno, String apellidoMaterno, String telefono, String dni,
+    public Cliente() {
+        mascotas = new ArrayList<>();
+    }
+
+    public Cliente(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno, String telefono, String dni,
                    Cuenta cuenta, List<Mascota> mascotas) {
-        super(idPersona, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta);
+        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta);
         setMascotas(mascotas);
     }
 
     // Constructor de copia
-    public Cliente(Cliente cliente) {
+    public Cliente(final Cliente cliente) {
+        if(cliente == null){
+            throw new IllegalArgumentException("Cliente no puede ser nulo");
+        }
         super(cliente);
         setMascotas(cliente.getMascotas());
     }
@@ -44,9 +51,7 @@ public class Cliente extends Persona {
     @Override
     public String toString() {
         return "Cliente{" +
-                "idPersona='" + getIdPersona() + '\'' +
-                "nombres='" + getNombres() + '\'' +
-                ", apellidoPaterno='" + getApellidoPaterno() + '\'' +
+                super.toString() + '\'' +
                 ", mascotas=" + mascotas +
                 '}';
     }

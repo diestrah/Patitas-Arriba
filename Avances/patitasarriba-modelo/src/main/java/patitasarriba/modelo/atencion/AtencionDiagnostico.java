@@ -1,22 +1,28 @@
 package patitasarriba.modelo.atencion;
 
-public class AtencionDiagnostico {
+import patitasarriba.modelo.Registro;
+
+public class AtencionDiagnostico extends Registro {
     private NivelGravedad nivelGravedad;
     private String detalleDiagnostico;
     private Diagnostico diagnostico;
 
+    public AtencionDiagnostico() {
+    }
 
-    public AtencionDiagnostico(NivelGravedad nivelGravedad, String detalleDiagnostico, Diagnostico diagnostico) {
+    public AtencionDiagnostico(int id, boolean activo, NivelGravedad nivelGravedad, String detalleDiagnostico, Diagnostico diagnostico) {
+        super(id, activo);
         setNivelGravedad(nivelGravedad);
         setDetalleDiagnostico(detalleDiagnostico);
         setDiagnostico(diagnostico);
     }
 
     // Constructor de copia
-    public AtencionDiagnostico(AtencionDiagnostico atencionDiagnostico) {
+    public AtencionDiagnostico(final AtencionDiagnostico atencionDiagnostico) {
         if (atencionDiagnostico == null) {
             throw new IllegalArgumentException("atencionDiagnostico no puede ser nulo");
         }
+        super(atencionDiagnostico);
         setNivelGravedad(atencionDiagnostico.getNivelGravedad());
         setDetalleDiagnostico(atencionDiagnostico.getDetalleDiagnostico());
         setDiagnostico(atencionDiagnostico.getDiagnostico());
@@ -59,6 +65,7 @@ public class AtencionDiagnostico {
     @Override
     public String toString() {
         return "AtencionDiagnostico{" +
+                super.toString() +
                 "nivelGravedad='" + nivelGravedad + '\'' +
                 ", detalleDiagnostico='" + detalleDiagnostico + '\'' +
                 ", diagnostico=" + diagnostico +
