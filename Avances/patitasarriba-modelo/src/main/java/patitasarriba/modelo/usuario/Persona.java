@@ -1,7 +1,8 @@
 package patitasarriba.modelo.usuario;
 
-public abstract class Persona {
-    private int idPersona;
+import patitasarriba.modelo.Registro;
+
+public abstract class Persona extends Registro {
     private String nombres;
     private String apellidoPaterno;
     private String apellidoMaterno;
@@ -10,9 +11,11 @@ public abstract class Persona {
     private Cuenta cuenta;
 
 
-    public Persona(int idPersona, String nombres, String apellidoPaterno, String apellidoMaterno,
+    public Persona(){}
+
+    public Persona(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
                    String telefono, String dni, Cuenta cuenta) {
-        setIdPersona(idPersona);
+        super(id, activo);
         setNombres(nombres);
         setApellidoPaterno(apellidoPaterno);
         setApellidoMaterno(apellidoMaterno);
@@ -22,11 +25,11 @@ public abstract class Persona {
     }
 
     // Constructor de copia
-    protected Persona(Persona persona) {
+    public Persona(final Persona persona) {
         if (persona == null) {
             throw new IllegalArgumentException("persona no puede ser nula");
         }
-        setIdPersona(persona.getIdPersona());
+        super(persona);
         setNombres(persona.getNombres());
         setApellidoPaterno(persona.getApellidoPaterno());
         setApellidoMaterno(persona.getApellidoMaterno());
@@ -36,17 +39,6 @@ public abstract class Persona {
     }
 
     // Getters y Setters
-
-    public int getIdPersona() {
-        return idPersona;
-    }
-
-    public void setIdPersona(int idPersona) {
-        if (idPersona < 0) {
-            throw new IllegalArgumentException("idPersona no puede ser negativo");
-        }
-        this.idPersona = idPersona;
-    }
 
     public String getNombres() {
         return nombres;
@@ -117,7 +109,7 @@ public abstract class Persona {
     @Override
     public String toString() {
         return "Persona{" +
-                "idPersona=" + idPersona +
+                super.toString() +
                 "nombres='" + nombres + '\'' +
                 ", apellidoPaterno='" + apellidoPaterno + '\'' +
                 ", apellidoMaterno='" + apellidoMaterno + '\'' +
