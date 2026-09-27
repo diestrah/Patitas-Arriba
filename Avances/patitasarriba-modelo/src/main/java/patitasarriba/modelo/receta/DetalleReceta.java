@@ -1,18 +1,21 @@
 package patitasarriba.modelo.receta;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Articulo;
 
-public class DetalleReceta {
-    private int idDetalleReceta;
+public class DetalleReceta extends Registro {
     private String dosis;
     private String frecuencia;
     private int duracionDias;
     private int cantidadTotal;
     private Articulo producto;
 
+    public DetalleReceta() {
+        // Constructor vacío
+    }
 
-    public DetalleReceta(int idDetalleReceta, String dosis, String frecuencia, int duracionDias, int cantidadTotal, Articulo producto) {
-        setIdDetalleReceta(idDetalleReceta);
+    public DetalleReceta(int id, boolean activo, String dosis, String frecuencia, int duracionDias, int cantidadTotal, Articulo producto) {
+        super(id, activo);
         setDosis(dosis);
         setFrecuencia(frecuencia);
         setDuracionDias(duracionDias);
@@ -21,11 +24,11 @@ public class DetalleReceta {
     }
 
     // Constructor de copia
-    public DetalleReceta(DetalleReceta detalleReceta) {
+    public DetalleReceta(final DetalleReceta detalleReceta) {
         if (detalleReceta == null) {
-            throw new IllegalArgumentException("detalleReceta no puede ser nulo");
+            throw new IllegalArgumentException("DetalleReceta no puede ser nulo");
         }
-        setIdDetalleReceta(detalleReceta.getIdDetalleReceta());
+        super(detalleReceta);
         setDosis(detalleReceta.getDosis());
         setFrecuencia(detalleReceta.getFrecuencia());
         setDuracionDias(detalleReceta.getDuracionDias());
@@ -34,17 +37,6 @@ public class DetalleReceta {
     }
 
     // Getters y Setters
-    public int getIdDetalleReceta() {
-        return idDetalleReceta;
-    }
-
-    public void setIdDetalleReceta(int idDetalleReceta) {
-        if (idDetalleReceta < 0) {
-            throw new IllegalArgumentException("idDetalleReceta no puede ser negativo");
-        }
-        this.idDetalleReceta = idDetalleReceta;
-    }
-
     public String getDosis() {
         return dosis;
     }
@@ -103,7 +95,7 @@ public class DetalleReceta {
     @Override
     public String toString() {
         return "DetalleReceta{" +
-                "idDetalleReceta=" + idDetalleReceta +
+                super.toString() +
                 ", dosis='" + dosis + '\'' +
                 ", frecuencia='" + frecuencia + '\'' +
                 ", duracionDias=" + duracionDias +

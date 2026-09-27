@@ -1,23 +1,29 @@
 package patitasarriba.modelo.atencion;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Articulo;
 
-public class InsumoUtilizado {
+public class InsumoUtilizado extends Registro {
     private Articulo articulo;
     private int cantidadUtilizada;
     private String unidadMedida;
 
-    public InsumoUtilizado(Articulo articulo, int cantidadUtilizada, String unidadMedida) {
+    public InsumoUtilizado() {
+    }
+
+    public InsumoUtilizado(int id, boolean activo, Articulo articulo, int cantidadUtilizada, String unidadMedida) {
+        super(id, activo);
         setArticulo(articulo);
         setCantidadUtilizada(cantidadUtilizada);
         setUnidadMedida(unidadMedida);
     }
 
     // Constructor de copia
-    public InsumoUtilizado(InsumoUtilizado insumoUtilizado) {
+    public InsumoUtilizado(final InsumoUtilizado insumoUtilizado) {
         if (insumoUtilizado == null) {
             throw new IllegalArgumentException("insumoUtilizado no puede ser nulo");
         }
+        super(insumoUtilizado);
         setArticulo(insumoUtilizado.getArticulo());
         setCantidadUtilizada(insumoUtilizado.getCantidadUtilizada());
         setUnidadMedida(insumoUtilizado.getUnidadMedida());
@@ -65,6 +71,7 @@ public class InsumoUtilizado {
         }
 
         return "InsumoUtilizado{" +
+                super.toString() +
                 "articulo=" + nombreArticulo +
                 ", cantidadUtilizada=" + cantidadUtilizada +
                 ", unidadMedida='" + unidadMedida + "'" +

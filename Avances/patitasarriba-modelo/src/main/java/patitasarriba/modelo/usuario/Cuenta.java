@@ -1,17 +1,20 @@
 package patitasarriba.modelo.usuario;
 
+import patitasarriba.modelo.Registro;
+
 import java.time.LocalDate;
 
-public class Cuenta {
-    private int idCuenta;
+public class Cuenta extends Registro {
     private String password;
     private String correo;
     private LocalDate fechaCreacion;
     private String nombreUsuario;
 
+    public Cuenta(){
+    }
 
-    public Cuenta(int idCuenta, String password, String correo, LocalDate fechaCreacion, String nombreUsuario) {
-        setIdCuenta(idCuenta);
+    public Cuenta(int id, boolean activo, String password, String correo, LocalDate fechaCreacion, String nombreUsuario) {
+        super(id, activo);
         setPassword(password);
         setCorreo(correo);
         setFechaCreacion(fechaCreacion);
@@ -19,11 +22,11 @@ public class Cuenta {
     }
 
     // Constructor de copia
-    public Cuenta(Cuenta cuenta) {
+    public Cuenta(final Cuenta cuenta) {
         if (cuenta == null) {
             throw new IllegalArgumentException("cuenta no puede ser nula");
         }
-        setIdCuenta(cuenta.getIdCuenta());
+        super(cuenta);
         setPassword(cuenta.getPassword());
         setCorreo(cuenta.getCorreo());
         setFechaCreacion(cuenta.getFechaCreacion());
@@ -31,16 +34,6 @@ public class Cuenta {
     }
 
     // Getters y Setters
-    public int getIdCuenta() {
-        return idCuenta;
-    }
-
-    public void setIdCuenta(int idCuenta) {
-        if (idCuenta < 0) {
-            throw new IllegalArgumentException("idCuenta no puede ser negativo");
-        }
-        this.idCuenta = idCuenta;
-    }
 
     public String getPassword() {
         return password;
@@ -86,7 +79,7 @@ public class Cuenta {
     @Override
     public String toString() {
         return "Cuenta{" +
-                "idCuenta=" + idCuenta +
+                super.toString() +
                 ", password='" + password + '\'' +
                 ", correo='" + correo + '\'' +
                 ", fechaCreacion=" + fechaCreacion +

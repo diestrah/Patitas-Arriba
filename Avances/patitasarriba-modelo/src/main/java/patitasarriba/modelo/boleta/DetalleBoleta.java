@@ -1,44 +1,35 @@
 package patitasarriba.modelo.boleta;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Producto;
 
-public class DetalleBoleta {
-    private int idDetalleBoleta;
+public class DetalleBoleta extends Registro {
     private int cantidad;
     private double subTotal;
     private Producto producto;
 
+    public DetalleBoleta() {
+    }
 
-    public DetalleBoleta(int idDetalleBoleta, int cantidad, double subTotal, Producto producto) {
-        setIdDetalleBoleta(idDetalleBoleta);
+    public DetalleBoleta(int id, boolean activo, int cantidad, double subTotal, Producto producto) {
+        super(id, activo);
         setCantidad(cantidad);
         setSubTotal(subTotal);
         setProducto(producto);
     }
 
     // Constructor de copia
-    public DetalleBoleta(DetalleBoleta detalleBoleta) {
+    public DetalleBoleta(final DetalleBoleta detalleBoleta) {
         if (detalleBoleta == null) {
             throw new IllegalArgumentException("detalleBoleta no puede ser nulo");
         }
-        setIdDetalleBoleta(detalleBoleta.getIdDetalleBoleta());
+        super(detalleBoleta);
         setCantidad(detalleBoleta.getCantidad());
         setSubTotal(detalleBoleta.getSubTotal());
         setProducto(detalleBoleta.getProducto());
     }
 
     // Getters y Setters
-    public int getIdDetalleBoleta() {
-        return idDetalleBoleta;
-    }
-
-    public void setIdDetalleBoleta(int idDetalleBoleta) {
-        if (idDetalleBoleta < 0) {
-            throw new IllegalArgumentException("idDetalleBoleta no puede ser negativo");
-        }
-        this.idDetalleBoleta = idDetalleBoleta;
-    }
-
     public int getCantidad() {
         return cantidad;
     }

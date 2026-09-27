@@ -1,5 +1,6 @@
 package patitasarriba.modelo.boleta;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.usuario.Cliente;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.producto.Producto;
@@ -9,8 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Boleta {
-    private int idBoleta;
+public class Boleta extends Registro {
     private LocalDate fecha;
     private double total;
     private MetodoPago metodoPago;
@@ -18,8 +18,12 @@ public class Boleta {
     private Cita cita;
     private List<DetalleBoleta> detalles;
 
-    public Boleta(int idBoleta, LocalDate fecha, double total, MetodoPago metodoPago, Cliente cliente, Cita cita, List<DetalleBoleta> detalles) {
-        setIdBoleta(idBoleta);
+    public Boleta() {
+        this.detalles = new ArrayList<>();
+    }
+
+    public Boleta(int id, boolean activo, LocalDate fecha, double total, MetodoPago metodoPago, Cliente cliente, Cita cita, List<DetalleBoleta> detalles) {
+        super(id, activo);
         setFecha(fecha);
         setTotal(total);
         setMetodoPago(metodoPago);
@@ -29,11 +33,11 @@ public class Boleta {
     }
 
     // Constructor de copia
-    public Boleta(Boleta boleta) {
+    public Boleta(final Boleta boleta) {
         if (boleta == null) {
             throw new IllegalArgumentException("boleta no puede ser nula");
         }
-        setIdBoleta(boleta.getIdBoleta());
+        super(boleta);
         setFecha(boleta.getFecha());
         setTotal(boleta.getTotal());
         setMetodoPago(boleta.getMetodoPago());
@@ -43,17 +47,6 @@ public class Boleta {
     }
 
     // Getters y Setters
-    public int getIdBoleta() {
-        return idBoleta;
-    }
-
-    public void setIdBoleta(int idBoleta) {
-        if (idBoleta < 0) {
-            throw new IllegalArgumentException("idBoleta no puede ser negativo");
-        }
-        this.idBoleta = idBoleta;
-    }
-
     public LocalDate getFecha() {
         return fecha;
     }
@@ -115,8 +108,8 @@ public class Boleta {
         this.detalles = new ArrayList<>(detalles);
     }
 
-    public void agregarDetalle(int idDetalleBoleta, int cantidad, double subTotal, Producto producto) {
-        detalles.add(new DetalleBoleta(idDetalleBoleta, cantidad, subTotal, producto));
+    public void agregarDetalle(int idDetalleBoleta, boolean activo, int cantidad, double subTotal, Producto producto) {
+        detalles.add(new DetalleBoleta(idDetalleBoleta, activo, cantidad, subTotal, producto));
     }
 
     @Override
@@ -128,7 +121,7 @@ public class Boleta {
 
         int idCita = -1;
         if (cita != null) {
-            idCita = cita.getIdCita();
+            idCita = cita.getId();
         }
 
         String textoCita;
@@ -144,7 +137,7 @@ public class Boleta {
         }
 
         return "Boleta\n" +
-                "idBoleta: " + idBoleta + "\n" +
+                super.toString() + "\n" +
                 "fecha: " + fecha + "\n" +
                 "total: " + total + "\n" +
                 "metodoPago: " + metodoPago + "\n" +

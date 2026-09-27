@@ -17,55 +17,55 @@ import java.util.ArrayList;
 public class Principal {
     public static void main(String[] args) {
 
-        Cuenta cuentaCliente = new Cuenta(1, "pass123", "juan@gmail.com", LocalDate.of(2026, 1, 10), "juanp");
-        Cliente cliente1 = new Cliente(1, "Juan", "Perez", "Gomez", "987654321", "12345678", cuentaCliente, new ArrayList<>());
+        Cuenta cuentaCliente = new Cuenta(1, true, "pass123", "juan@gmail.com", LocalDate.of(2026, 1, 10), "juanp");
+        Cliente cliente1 = new Cliente(1, true, "Juan", "Perez", "Gomez", "987654321", "12345678", cuentaCliente, new ArrayList<>());
 
-        Cuenta cuentaVet = new Cuenta(2, "vet123", "carlos@patasarriba.com", LocalDate.of(2025, 3, 15), "carlosr");
-        Veterinario vet1 = new Veterinario(2, "Carlos", "Ramirez", "Soto", "955444333", "11223344", cuentaVet, true,
-                new ArrayList<>(), "CMVP-4521");
+        Cuenta cuentaVet = new Cuenta(2, true, "vet123", "carlos@patasarriba.com", LocalDate.of(2025, 3, 15), "carlosr");
+        Veterinario vet1 = new Veterinario(2, true, "Carlos", "Ramirez", "Soto", "955444333", "11223344", cuentaVet, new ArrayList<>(), "CMVP-4521");
 
         // Agrega horario al veterinario
-        vet1.agregarHorario(new Horario(1, DiaSemana.LUNES, LocalTime.of(9, 0), LocalTime.of(13, 0)));
+        Horario horario1 = new Horario(1, true, DiaSemana.LUNES, LocalTime.of(9, 0), LocalTime.of(18, 0));
+        vet1.agregarHorarioPersonal(1, true, horario1);
 
-        Mascota firulais = new Mascota(1, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
+        Mascota firulais = new Mascota(1, true, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
                 TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>(), new ArrayList<>());
         // Agrega mascota al cliente
         cliente1.agregarMascota(firulais);
 
         // Catalogo de servicio, sin veterinario fijo
-        Servicio consulta = new Servicio(1, "Consulta General", 50.0, "Revision general",
+        Servicio consulta = new Servicio(1, true, "Consulta General", 50.0, "Revision general",
                 true, TipoServicio.CONSULTA_MEDICA, true, false, 30);
 
         // Catalogo de inventario, con stock propio
-        CategoriaArticulo categoria1 = new CategoriaArticulo(1, "Farmacología", "Agrupa a todos los medicamentos y sustancias químicas destinados al diagnóstico y tratamiento de enfermedades.");
-        Articulo amoxicilina = new Articulo(2, "Amoxicilina 250mg", 25.0, "Antibiotico", true, 40, 10,
+        CategoriaArticulo categoria1 = new CategoriaArticulo(1, true, "Farmacología", "Agrupa a todos los medicamentos y sustancias químicas destinados al diagnóstico y tratamiento de enfermedades.");
+        Articulo amoxicilina = new Articulo(2, true, "Amoxicilina 250mg", 25.0, "Antibiotico", true, 40, 10,
                 "VetPharma", categoria1);
 
         // Se agenda la cita, sin detalles aun
-        Cita cita1 = new Cita(1, LocalDateTime.of(2026, 9, 15, 10, 0), EstadoCita.AGENDADA, firulais, vet1, new ArrayList<>());
+        Cita cita1 = new Cita(1, true, LocalDateTime.of(2026, 9, 15, 10, 0), EstadoCita.AGENDADA, firulais, vet1, new ArrayList<>());
         // Se confirma el servicio reservado
-        cita1.agregarDetalle(1, "Control por dolor en pata", consulta);
+        cita1.agregarDetalle(1, true, "Control por dolor en pata", consulta);
 
         // Catalogo reutilizable, existe de antemano
-        Tratamiento tratamientoAntibiotico = new Tratamiento(1, "Aplicacion de antibiotico", "Inyeccion IM");
-        Diagnostico diagnosticoOtitis = new Diagnostico(1, "Otitis", "Infeccion en el oido");
+        Tratamiento tratamientoAntibiotico = new Tratamiento(1, true, "Aplicacion de antibiotico", "Inyeccion IM");
+        Diagnostico diagnosticoOtitis = new Diagnostico(1, true, "Otitis", "Infeccion en el oido");
 
         // Se abre la consulta, sin diagnostico/tratamiento/receta aun
-        AtencionMedica atencion1 = new AtencionMedica(1, LocalDateTime.of(2026, 9, 15, 10, 30),
+        AtencionMedica atencion1 = new AtencionMedica(1, true, LocalDateTime.of(2026, 9, 15, 10, 30),
                 "Dolor en el oido", 8.5, "Revision en curso", vet1, null, new ArrayList<>(), new ArrayList<>());
 
         // Se decide el tratamiento, sin insumos aun
-        AtencionTratamiento aplicacionAntibiotico = atencion1.agregarTratamiento(tratamientoAntibiotico);
+        AtencionTratamiento aplicacionAntibiotico = atencion1.agregarTratamiento(1, true, tratamientoAntibiotico);
         // Se registra el insumo usado (relacion N a N)
-        aplicacionAntibiotico.agregarInsumo(amoxicilina, 14, "comprimidos");
+        aplicacionAntibiotico.agregarInsumo(1, true, amoxicilina, 14, "comprimidos");
 
         // Se registra el diagnostico de esta consulta
-        atencion1.agregarDiagnostico(NivelGravedad.LEVE, "Otitis en oido derecho", diagnosticoOtitis);
+        atencion1.agregarDiagnostico(1, true, NivelGravedad.LEVE, "Otitis en oido derecho", diagnosticoOtitis);
 
         // Al terminar, se emite la receta, sin medicamentos aun
-        Receta receta1 = new Receta(1, LocalDate.of(2026, 9, 15), "Administrar con alimento", true, new ArrayList<>());
+        Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", true, new ArrayList<>());
         // Se agrega el medicamento recetado
-        receta1.agregarDetalle(1, "1 comprimido", "Cada 12 horas", 7, 14, amoxicilina);
+        receta1.agregarDetalle(1, true, "1 comprimido", "Cada 12 horas", 7, 14, amoxicilina);
         // Se vincula la receta a la consulta
         atencion1.setReceta(receta1);
 
@@ -73,14 +73,14 @@ public class Principal {
         firulais.agregarAtencionMedica(atencion1);
 
         // Al final de la visita, se emite la boleta, sin productos aun
-        Boleta boleta1 = new Boleta(1, LocalDate.of(2026, 9, 15), 100.0, MetodoPago.TARJETA_DE_CREDITO,
+        Boleta boleta1 = new Boleta(1, true, LocalDate.of(2026, 9, 15), 100.0, MetodoPago.TARJETA_DE_CREDITO,
                 cliente1, cita1, new ArrayList<>());
         // Se factura el servicio y el medicamento
-        boleta1.agregarDetalle(1, 1, 50.0, consulta);
-        boleta1.agregarDetalle(2, 2, 50.0, amoxicilina);
+        boleta1.agregarDetalle(1, true, 1, 50.0, consulta);
+        boleta1.agregarDetalle(2, true, 2, 50.0, amoxicilina);
 
         System.out.println("========== DATOS DE LA BOLETA =========");
-        System.out.println("idBoleta: " + boleta1.getIdBoleta());
+        System.out.println("idBoleta: " + boleta1.getId());
         System.out.println("fecha: " + boleta1.getFecha());
         System.out.println("cliente: " + cliente1.getNombres() + " " + cliente1.getApellidoPaterno());
         System.out.println("mascota: " + firulais.getNombre());

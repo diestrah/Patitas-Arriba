@@ -1,43 +1,36 @@
 package patitasarriba.modelo.horario;
 
+import patitasarriba.modelo.Registro;
+
 import java.time.LocalTime;
 
-public class Horario {
-    private int idHorario;
+public class Horario extends Registro {
     private DiaSemana diaSemana;
     private LocalTime horaInicio;
     private LocalTime horaFin;
 
+    public Horario() {
+    }
 
-    public Horario(int idHorario, DiaSemana diaSemana, LocalTime horaInicio, LocalTime horaFin) {
-        setIdHorario(idHorario);
+    public Horario(int id, boolean activo, DiaSemana diaSemana, LocalTime horaInicio, LocalTime horaFin) {
+        super(id, activo);
         setDiaSemana(diaSemana);
         setHoraInicio(horaInicio);
         setHoraFin(horaFin);
     }
 
     // Constructor de copia
-    public Horario(Horario horario) {
+    public Horario(final Horario horario) {
         if (horario == null) {
             throw new IllegalArgumentException("horario no puede ser nulo");
         }
-        setIdHorario(horario.getIdHorario());
+        super(horario);
         setDiaSemana(horario.getDiaSemana());
         setHoraInicio(horario.getHoraInicio());
         setHoraFin(horario.getHoraFin());
     }
 
     // Getters y Setters
-    public int getIdHorario() {
-        return idHorario;
-    }
-
-    public void setIdHorario(int idHorario) {
-        if (idHorario < 0) {
-            throw new IllegalArgumentException("idHorario no puede ser negativo");
-        }
-        this.idHorario = idHorario;
-    }
 
     public DiaSemana getDiaSemana() {
         return diaSemana;
@@ -75,7 +68,7 @@ public class Horario {
     @Override
     public String toString() {
         return "Horario{" +
-                "idHorario=" + idHorario +
+                super.toString() +
                 ", diaSemana=" + diaSemana +
                 ", horaInicio=" + horaInicio +
                 ", horaFin=" + horaFin +

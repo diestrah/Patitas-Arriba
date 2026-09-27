@@ -1,26 +1,32 @@
 package patitasarriba.modelo.atencion;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Articulo;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class AtencionTratamiento {
+public class AtencionTratamiento extends Registro {
     private Tratamiento tratamiento;
     private List<InsumoUtilizado> insumosUtilizados;
 
+    public AtencionTratamiento() {
+        this.insumosUtilizados = new ArrayList<>();
+    }
 
-    public AtencionTratamiento(Tratamiento tratamiento, List<InsumoUtilizado> insumosUtilizados) {
+    public AtencionTratamiento(int id, boolean activo, Tratamiento tratamiento, List<InsumoUtilizado> insumosUtilizados) {
+        super(id, activo);
         setTratamiento(tratamiento);
         setInsumosUtilizados(insumosUtilizados);
     }
 
     // Constructor de copia
-    public AtencionTratamiento(AtencionTratamiento atencionTratamiento) {
+    public AtencionTratamiento(final AtencionTratamiento atencionTratamiento) {
         if (atencionTratamiento == null) {
             throw new IllegalArgumentException("atencionTratamiento no puede ser nulo");
         }
+        super(atencionTratamiento);
         setTratamiento(atencionTratamiento.getTratamiento());
         setInsumosUtilizados(atencionTratamiento.getInsumosUtilizados());
     }
@@ -48,14 +54,15 @@ public class AtencionTratamiento {
         this.insumosUtilizados = new ArrayList<>(insumosUtilizados);
     }
 
-    public void agregarInsumo(Articulo articulo, int cantidadUtilizada, String unidadMedida) {
-        insumosUtilizados.add(new InsumoUtilizado(articulo, cantidadUtilizada, unidadMedida));
+    public void agregarInsumo(int idInsumo, boolean activo, Articulo articulo, int cantidadUtilizada, String unidadMedida) {
+        insumosUtilizados.add(new InsumoUtilizado(idInsumo, activo, articulo, cantidadUtilizada, unidadMedida));
     }
 
     @Override
     public String toString() {
         return "AtencionTratamiento{" +
-                "tratamiento=" + tratamiento +
+                super.toString() +
+                ", tratamiento=" + tratamiento +
                 ", insumosUtilizados=" + insumosUtilizados +
                 '}';
     }

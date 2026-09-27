@@ -1,5 +1,6 @@
 package patitasarriba.modelo.mascota;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.usuario.Cliente;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.atencion.AtencionMedica;
@@ -9,8 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class Mascota {
-    private int idMascota;
+public class Mascota extends Registro {
     private String nombre;
     private SexoMascota sexo;
     private double peso;
@@ -21,8 +21,13 @@ public class Mascota {
     private List<Cita> citas;
     private List<AtencionMedica> atencionesMedicas;
 
-    public Mascota(int idMascota, String nombre, SexoMascota sexo, double peso, LocalDate fechaNacimiento, TipoMascota tipoMascota, String raza, Cliente cliente, List<Cita> citas, List<AtencionMedica> atencionesMedicas) {
-        setIdMascota(idMascota);
+    public Mascota() {
+        this.citas = new ArrayList<>();
+        this.atencionesMedicas = new ArrayList<>();
+    }
+
+    public Mascota(int id, boolean activo, String nombre, SexoMascota sexo, double peso, LocalDate fechaNacimiento, TipoMascota tipoMascota, String raza, Cliente cliente, List<Cita> citas, List<AtencionMedica> atencionesMedicas) {
+        super(id, activo);
         setNombre(nombre);
         setSexo(sexo);
         setPeso(peso);
@@ -35,11 +40,11 @@ public class Mascota {
     }
 
     // Constructor de copia
-    public Mascota(Mascota mascota) {
+    public Mascota(final Mascota mascota) {
         if (mascota == null) {
             throw new IllegalArgumentException("mascota no puede ser nula");
         }
-        setIdMascota(mascota.getIdMascota());
+        super(mascota);
         setNombre(mascota.getNombre());
         setSexo(mascota.getSexo());
         setPeso(mascota.getPeso());
@@ -52,16 +57,6 @@ public class Mascota {
     }
 
     // Getters y Setters
-    public int getIdMascota() {
-        return idMascota;
-    }
-
-    public void setIdMascota(int idMascota) {
-        if (idMascota < 0) {
-            throw new IllegalArgumentException("idMascota no puede ser negativo");
-        }
-        this.idMascota = idMascota;
-    }
 
     public String getNombre() {
         return nombre;
@@ -168,7 +163,7 @@ public class Mascota {
         }
 
         return "Mascota{" +
-                "idMascota=" + idMascota +
+                super.toString() +
                 ", nombre='" + nombre + "'" +
                 ", sexo=" + sexo +
                 ", peso=" + peso +

@@ -1,5 +1,6 @@
 package patitasarriba.modelo.atencion;
 
+import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.usuario.Veterinario;
 import patitasarriba.modelo.receta.Receta;
 
@@ -8,8 +9,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-public class AtencionMedica {
-    private int idAtencion;
+public class AtencionMedica extends Registro {
     private LocalDateTime fechaHora;
     private String motivoConsulta;
     private double pesoFisico;
@@ -19,8 +19,13 @@ public class AtencionMedica {
     private List<AtencionTratamiento> tratamientos;
     private List<AtencionDiagnostico> diagnosticos;
 
-    public AtencionMedica(int idAtencion, LocalDateTime fechaHora, String motivoConsulta, double pesoFisico, String observaciones, Veterinario veterinario, Receta receta, List<AtencionTratamiento> tratamientos, List<AtencionDiagnostico> diagnosticos) {
-        setIdAtencion(idAtencion);
+    public AtencionMedica() {
+        this.tratamientos = new ArrayList<>();
+        this.diagnosticos = new ArrayList<>();
+    }
+
+    public AtencionMedica(int id, boolean activo, LocalDateTime fechaHora, String motivoConsulta, double pesoFisico, String observaciones, Veterinario veterinario, Receta receta, List<AtencionTratamiento> tratamientos, List<AtencionDiagnostico> diagnosticos) {
+        super(id, activo);
         setFechaHora(fechaHora);
         setMotivoConsulta(motivoConsulta);
         setPesoFisico(pesoFisico);
@@ -32,11 +37,11 @@ public class AtencionMedica {
     }
 
     // Constructor de copia
-    public AtencionMedica(AtencionMedica atencionMedica) {
+    public AtencionMedica(final AtencionMedica atencionMedica) {
         if (atencionMedica == null) {
             throw new IllegalArgumentException("atencionMedica no puede ser nula");
         }
-        setIdAtencion(atencionMedica.getIdAtencion());
+        super(atencionMedica);
         setFechaHora(atencionMedica.getFechaHora());
         setMotivoConsulta(atencionMedica.getMotivoConsulta());
         setPesoFisico(atencionMedica.getPesoFisico());
@@ -48,17 +53,6 @@ public class AtencionMedica {
     }
 
     // Getters y Setters
-    public int getIdAtencion() {
-        return idAtencion;
-    }
-
-    public void setIdAtencion(int idAtencion) {
-        if (idAtencion < 0) {
-            throw new IllegalArgumentException("idAtencion no puede ser negativo");
-        }
-        this.idAtencion = idAtencion;
-    }
-
     public LocalDateTime getFechaHora() {
         return fechaHora;
     }
@@ -140,13 +134,13 @@ public class AtencionMedica {
         this.diagnosticos = new ArrayList<>(diagnosticos);
     }
 
-    public void agregarDiagnostico(NivelGravedad nivelGravedad, String detalleDiagnostico, Diagnostico diagnostico) {
-        diagnosticos.add(new AtencionDiagnostico(nivelGravedad, detalleDiagnostico, diagnostico));
+    public void agregarDiagnostico(int idAtencionDiagnostico, boolean activo, NivelGravedad nivelGravedad, String detalleDiagnostico, Diagnostico diagnostico) {
+        diagnosticos.add(new AtencionDiagnostico(idAtencionDiagnostico, activo, nivelGravedad, detalleDiagnostico, diagnostico));
     }
 
     // Retorna el tratamiento creado para poder agregarle insumos despues
-    public AtencionTratamiento agregarTratamiento(Tratamiento tratamiento) {
-        AtencionTratamiento atencionTratamiento = new AtencionTratamiento(tratamiento, new ArrayList<>());
+    public AtencionTratamiento agregarTratamiento(int idAtencionTratamiento, boolean activo, Tratamiento tratamiento) {
+        AtencionTratamiento atencionTratamiento = new AtencionTratamiento(idAtencionTratamiento, activo, tratamiento, new ArrayList<>());
         tratamientos.add(atencionTratamiento);
         return atencionTratamiento;
     }
@@ -160,7 +154,7 @@ public class AtencionMedica {
 
         int idReceta = -1;
         if (receta != null) {
-            idReceta = receta.getIdReceta();
+            idReceta = receta.getId();
         }
 
         String textoReceta;
@@ -171,7 +165,7 @@ public class AtencionMedica {
         }
 
         return "AtencionMedica{" +
-                "idAtencion=" + idAtencion +
+                super.toString() +
                 ", fechaHora=" + fechaHora +
                 ", motivoConsulta='" + motivoConsulta + "'" +
                 ", pesoFisico=" + pesoFisico +

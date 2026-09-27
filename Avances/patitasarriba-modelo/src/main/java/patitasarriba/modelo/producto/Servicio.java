@@ -6,10 +6,13 @@ public class Servicio extends Producto {
     private boolean requiereVacuna;
     private int duracionEstimada;
 
-    public Servicio(int idProducto, String nombre, double precioBase, String descripcion,
+    public Servicio() {
+    }
+
+    public Servicio(int id, boolean activo, String nombre, double precioBase, String descripcion,
                     boolean estado, TipoServicio tipo, boolean requiereTriaje,
                     boolean requiereVacuna, int duracionEstimada) {
-        super(idProducto, nombre, precioBase, descripcion, estado);
+        super(id, activo, nombre, precioBase, descripcion, estado);
         setTipo(tipo);
         setRequiereTriaje(requiereTriaje);
         setRequiereVacuna(requiereVacuna);
@@ -17,7 +20,10 @@ public class Servicio extends Producto {
     }
 
     // Constructor de copia
-    public Servicio(Servicio servicio) {
+    public Servicio(final Servicio servicio) {
+        if (servicio == null) {
+            throw new IllegalArgumentException("Servicio no puede ser nulo");
+        }
         super(servicio);
         setTipo(servicio.getTipo());
         setRequiereTriaje(servicio.isRequiereTriaje());
@@ -67,10 +73,9 @@ public class Servicio extends Producto {
 
     public String toString() {
         return "Servicio{" +
-                "idProducto=" + getIdProducto() +
-                ", nombre='" + getNombre() + '\'' +
+                super.toString() +
                 ", duracionEstimada=" + duracionEstimada +
-                ", requiereVacuna=" + requiereVacuna+
+                ", requiereVacuna=" + requiereVacuna +
                 ", requiereTriaje=" + requiereTriaje +
                 ", tipoServicio=" + tipo +
                 '}';
