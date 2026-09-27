@@ -4,3 +4,5 @@ out/
 *.class
 target/
 **/db.properties
+
+*.bak
