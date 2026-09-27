@@ -19,4 +19,5 @@
 ## Sobre el ddl 
 - Se generó el ddl en base al DER con la función Forward Engineer SQL Script de MySQL Workbench 
 
- 
+## Sobre los procedures
+- los archivos .sql de los procedures deben llamarse procedimientos-nombre_tabla.sql 
