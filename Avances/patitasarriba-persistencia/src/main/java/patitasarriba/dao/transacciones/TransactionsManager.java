@@ -5,47 +5,72 @@ import conexion.DBManager;
 import java.sql.Connection;
 import java.sql.SQLException;
 
-// Coordina transacciones que escriben en mas de una tabla (maestro-detalle).
-// Regla: se inicia/comitea/revierte desde la capa de negocio (BL), nunca desde un DAO.
-// El DAO solo pide prestada la conexion activa con getConnection().
-public class TransactionsManager {
-    private static final ThreadLocal<Connection> conexionActual = new ThreadLocal<>();
+public final class TransactionsManager {
+    private static final ThreadLocal<Connection> conexion = new ThreadLocal<>();
 
     private TransactionsManager() {
     }
 
-    public static void iniciar() throws SQLException {
-        Connection conn = DBManager.getInstance().getConnection();
-        conn.setAutoCommit(false);
-        conexionActual.set(conn);
-    }
-
-    public static Connection getConnection() throws SQLException {
-        if (!activa()) {
-            throw new IllegalStateException("No hay una transaccion activa");
+    public static void iniciar() {
+        if (activa()) {
+            throw new IllegalStateException("Ya existe una transaccion activa en este hilo");
         }
-        return conexionActual.get();
+
+        Connection conn = null;
+        try {
+            conn = DBManager.getInstance().getConnection();
+            conn.setAutoCommit(false);
+            conexion.set(conn);
+        } catch (SQLException ex) {
+            if (conn != null) {
+                try { conn.close(); } catch (SQLException ignored) { }
+            }
+            throw new RuntimeException("No se pudo iniciar la transaccion", ex);
+        }
     }
 
-    public static void commit() throws SQLException {
+    public static void commit() {
         Connection conn = getConnection();
-        conn.commit();
-        cerrar(conn);
+        try {
+            conn.commit();
+        } catch (SQLException ex) {
+            try { conn.rollback(); } catch (SQLException ignored) { }
+            throw new RuntimeException("No se pudo confirmar la transaccion", ex);
+        } finally {
+            cerrar(conn);
+        }
     }
 
-    public static void rollback() throws SQLException {
+    public static void rollback() {
         Connection conn = getConnection();
-        conn.rollback();
-        cerrar(conn);
+        try {
+            conn.rollback();
+        } catch (SQLException ex) {
+            throw new RuntimeException("No se pudo revertir la transaccion", ex);
+        } finally {
+            cerrar(conn);
+        }
+    }
+
+    public static Connection getConnection() {
+        Connection conn = conexion.get();
+        if (conn == null) {
+            throw new IllegalStateException("No hay una transaccion activa en este hilo");
+        }
+        return conn;
     }
 
     public static boolean activa() {
-        return conexionActual.get() != null;
+        return conexion.get() != null;
     }
 
-    private static void cerrar(Connection conn) throws SQLException {
-        conn.setAutoCommit(true);
-        conn.close();
-        conexionActual.remove();
+    private static void cerrar(Connection conn) {
+        conexion.remove();
+        try {
+            conn.setAutoCommit(true);
+            conn.close();
+        } catch (SQLException ex) {
+            throw new RuntimeException("No se pudo cerrar la conexion", ex);
+        }
     }
 }
