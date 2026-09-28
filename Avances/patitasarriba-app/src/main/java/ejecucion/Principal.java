@@ -28,7 +28,7 @@ public class Principal {
         vet1.agregarHorarioPersonal(1, true, horario1);
 
         Mascota firulais = new Mascota(1, true, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
-                TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>(), new ArrayList<>());
+                TipoMascota.PERRO, "Labrador", cliente1);
         // Agrega mascota al cliente
         cliente1.agregarMascota(firulais);
 
@@ -70,7 +70,6 @@ public class Principal {
         atencion1.setReceta(receta1);
 
         // Se registra la consulta en el historial de la mascota
-        firulais.agregarAtencionMedica(atencion1);
 
         // Al final de la visita, se emite la boleta, sin productos aun
         Boleta boleta1 = new Boleta(1, true, LocalDate.of(2026, 9, 15), 100.0, MetodoPago.TARJETA_DE_CREDITO,
