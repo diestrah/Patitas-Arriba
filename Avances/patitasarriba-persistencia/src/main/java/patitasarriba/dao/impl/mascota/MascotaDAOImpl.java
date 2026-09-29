@@ -69,7 +69,10 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
             cmd.setBoolean("p_activo", mascota.isActivo());
             cmd.registerOutParameter("p_id", Types.INTEGER);
 
-            cmd.execute();
+            if(cmd.executeUpdate() == 0) {
+                throw new SQLException("No se pudo insertar la mascota");
+            }
+
             mascota.setId(cmd.getInt("p_id"));
         }
     }
@@ -164,7 +167,9 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
         try (Connection conn = DBManager.getInstance().getConnection();
              CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id_cliente", idCliente);
-            cmd.executeUpdate();
+            if (cmd.executeUpdate() == 0) {
+                throw new SQLException("No se pudieron eliminar las mascotas del cliente");
+            }
         }
     }
 
