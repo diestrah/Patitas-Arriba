@@ -4,7 +4,7 @@ import patitasarriba.bl.BLException;
 import patitasarriba.bl.HorarioBL;
 import patitasarriba.modelo.horario.Horario;
 import patitasarriba.dao.HorarioDAO;
-import patitasarriba.dao.impl.horario.HorarioDAO;
+import patitasarriba.dao.impl.horario.HorarioDAOImpl;
 
 import java.util.List;
 
