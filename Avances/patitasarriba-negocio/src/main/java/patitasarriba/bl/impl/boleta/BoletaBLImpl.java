@@ -1,4 +1,4 @@
-package patitasarriba.bl.impl;
+package patitasarriba.bl.impl.boleta;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.BoletaBL;
