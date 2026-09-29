@@ -36,7 +36,6 @@ public class Receta extends Registro {
         super(receta);
         setFechaEmision(receta.getFechaEmision());
         setIndicacionesGenerales(receta.getIndicacionesGenerales());
-        setEstado(receta.isEstado());
         setDetalles(receta.getDetalles());
     }
 
