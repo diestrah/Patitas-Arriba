@@ -25,7 +25,7 @@ public class MascotaBLImpl implements MascotaBL {
         try{
             return mascotaDAO.findById(id);
         } catch (Exception e) {
-            throw new BLException("Error al obtener la mascota con id: " + integer, e);
+            throw new BLException("Error al obtener la mascota con id: " + id, e);
         }
     }
 
@@ -55,7 +55,7 @@ public class MascotaBLImpl implements MascotaBL {
         try{
             mascotaDAO.delete(id);
         } catch (Exception e) {
-            throw new BLException("Error al eliminar la mascota con id: " + integer, e);
+            throw new BLException("Error al eliminar la mascota con id: " + id, e);
         }
     }
 }
