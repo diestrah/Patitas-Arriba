@@ -34,11 +34,11 @@ public class Principal {
 
         // Catalogo de servicio, sin veterinario fijo
         Servicio consulta = new Servicio(1, true, "Consulta General", 50.0, "Revision general",
-                true, TipoServicio.CONSULTA_MEDICA, true, false, 30);
+                TipoServicio.CONSULTA_MEDICA, true, false, 30);
 
         // Catalogo de inventario, con stock propio
         CategoriaArticulo categoria1 = new CategoriaArticulo(1, true, "Farmacología", "Agrupa a todos los medicamentos y sustancias químicas destinados al diagnóstico y tratamiento de enfermedades.");
-        Articulo amoxicilina = new Articulo(2, true, "Amoxicilina 250mg", 25.0, "Antibiotico", true, 40, 10,
+        Articulo amoxicilina = new Articulo(2, true, "Amoxicilina 250mg", 25.0, "Antibiotico", 40, 10,
                 "VetPharma", categoria1);
 
         // Se agenda la cita, sin detalles aun
@@ -63,7 +63,7 @@ public class Principal {
         atencion1.agregarDiagnostico(1, true, NivelGravedad.LEVE, "Otitis en oido derecho", diagnosticoOtitis);
 
         // Al terminar, se emite la receta, sin medicamentos aun
-        Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", true, new ArrayList<>());
+        Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", new ArrayList<>());
         // Se agrega el medicamento recetado
         receta1.agregarDetalle(1, true, "1 comprimido", "Cada 12 horas", 7, 14, amoxicilina);
         // Se vincula la receta a la consulta
