@@ -16,9 +16,6 @@ public class HorarioPersonal extends Registro {
 
     // Constructor de copia
     public HorarioPersonal(final HorarioPersonal horarioPersonal) {
-        if (horarioPersonal == null) {
-            throw new IllegalArgumentException("horarioPersonal no puede ser nulo");
-        }
         super(horarioPersonal);
         setHorario(horarioPersonal.getHorario());
     }

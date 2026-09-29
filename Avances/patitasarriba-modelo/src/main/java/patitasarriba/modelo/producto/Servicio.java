@@ -10,9 +10,9 @@ public class Servicio extends Producto {
     }
 
     public Servicio(int id, boolean activo, String nombre, double precioBase, String descripcion,
-                    boolean estado, TipoServicio tipo, boolean requiereTriaje,
+                    TipoServicio tipo, boolean requiereTriaje,
                     boolean requiereVacuna, int duracionEstimada) {
-        super(id, activo, nombre, precioBase, descripcion, estado);
+        super(id, activo, nombre, precioBase, descripcion);
         setTipo(tipo);
         setRequiereTriaje(requiereTriaje);
         setRequiereVacuna(requiereVacuna);

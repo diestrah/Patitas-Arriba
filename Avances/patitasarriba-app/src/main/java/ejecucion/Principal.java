@@ -28,17 +28,17 @@ public class Principal {
         vet1.agregarHorarioPersonal(1, true, horario1);
 
         Mascota firulais = new Mascota(1, true, "Firulais", SexoMascota.MACHO, 8.5, LocalDate.of(2022, 4, 10),
-                TipoMascota.PERRO, "Labrador", cliente1, new ArrayList<>(), new ArrayList<>());
+                TipoMascota.PERRO, "Labrador", cliente1);
         // Agrega mascota al cliente
         cliente1.agregarMascota(firulais);
 
         // Catalogo de servicio, sin veterinario fijo
         Servicio consulta = new Servicio(1, true, "Consulta General", 50.0, "Revision general",
-                true, TipoServicio.CONSULTA_MEDICA, true, false, 30);
+                 TipoServicio.CONSULTA_MEDICA, true, false, 30);
 
         // Catalogo de inventario, con stock propio
         CategoriaArticulo categoria1 = new CategoriaArticulo(1, true, "Farmacología", "Agrupa a todos los medicamentos y sustancias químicas destinados al diagnóstico y tratamiento de enfermedades.");
-        Articulo amoxicilina = new Articulo(2, true, "Amoxicilina 250mg", 25.0, "Antibiotico", true, 40, 10,
+        Articulo amoxicilina = new Articulo(2, true, "Amoxicilina 250mg", 25.0, "Antibiotico", 40, 10,
                 "VetPharma", categoria1);
 
         // Se agenda la cita, sin detalles aun
@@ -63,14 +63,13 @@ public class Principal {
         atencion1.agregarDiagnostico(1, true, NivelGravedad.LEVE, "Otitis en oido derecho", diagnosticoOtitis);
 
         // Al terminar, se emite la receta, sin medicamentos aun
-        Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", true, new ArrayList<>());
+        Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", new ArrayList<>(), atencion1);
         // Se agrega el medicamento recetado
         receta1.agregarDetalle(1, true, "1 comprimido", "Cada 12 horas", 7, 14, amoxicilina);
         // Se vincula la receta a la consulta
         atencion1.setReceta(receta1);
 
         // Se registra la consulta en el historial de la mascota
-        firulais.agregarAtencionMedica(atencion1);
 
         // Al final de la visita, se emite la boleta, sin productos aun
         Boleta boleta1 = new Boleta(1, true, LocalDate.of(2026, 9, 15), 100.0, MetodoPago.TARJETA_DE_CREDITO,

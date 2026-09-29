@@ -6,29 +6,26 @@ public abstract class Producto extends Registro {
     private String nombre;
     private double precioBase;
     private String descripcion;
-    private boolean estado;
 
     public Producto() {
     }
 
-    public Producto(int id, boolean activo, String nombre, double precioBase, String descripcion, boolean estado) {
+    public Producto(int id, boolean activo, String nombre, double precioBase, String descripcion) {
         super(id, activo);
         setNombre(nombre);
         setPrecioBase(precioBase);
         setDescripcion(descripcion);
-        setEstado(estado);
     }
 
     // Constructor de copia
     protected Producto(final Producto producto) {
-        if (producto == null) {
-            throw new IllegalArgumentException("producto no puede ser nulo");
-        }
+//        if (producto == null) {
+//            throw new IllegalArgumentException("producto no puede ser nulo");
+//        }
         super(producto);
         setNombre(producto.getNombre());
         setPrecioBase(producto.getPrecioBase());
         setDescripcion(producto.getDescripcion());
-        setEstado(producto.isEstado());
     }
 
     // getters y setters
@@ -66,14 +63,6 @@ public abstract class Producto extends Registro {
         this.descripcion = descripcion;
     }
 
-    public boolean isEstado() {
-        return estado;
-    }
-
-    public void setEstado(boolean estado) {
-        this.estado = estado;
-    }
-
     @Override
     public String toString() {
         return "Producto{" +
@@ -81,7 +70,6 @@ public abstract class Producto extends Registro {
                 ", nombre='" + nombre + '\'' +
                 ", precioBase=" + precioBase +
                 ", descripcion='" + descripcion + '\'' +
-                ", estado=" + estado +
                 '}';
     }
 }
