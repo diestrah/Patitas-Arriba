@@ -12,7 +12,6 @@ import java.util.List;
 public class Receta extends Registro {
     private LocalDate fechaEmision;
     private String indicacionesGenerales;
-    private boolean estado;
     private List<DetalleReceta> detalles;
     private AtencionMedica atencionMedica;
 
@@ -20,12 +19,11 @@ public class Receta extends Registro {
         this.detalles = new ArrayList<>();
     }
 
-    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales, boolean estado,
+    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales,
                   List<DetalleReceta> detalles, AtencionMedica atencionMedica) {
         super(id, activo);
         setFechaEmision(fechaEmision);
         setIndicacionesGenerales(indicacionesGenerales);
-        setEstado(estado);
         setDetalles(detalles);
         setAtencionMedica(atencionMedica);
     }
@@ -38,7 +36,6 @@ public class Receta extends Registro {
         super(receta);
         setFechaEmision(receta.getFechaEmision());
         setIndicacionesGenerales(receta.getIndicacionesGenerales());
-        setEstado(receta.isEstado());
         setDetalles(receta.getDetalles());
     }
 
@@ -64,14 +61,6 @@ public class Receta extends Registro {
             throw new IllegalArgumentException("indicacionesGenerales no puede ser nulo o vacío");
         }
         this.indicacionesGenerales = indicacionesGenerales;
-    }
-
-    public boolean isEstado() {
-        return estado;
-    }
-
-    public void setEstado(boolean estado) {
-        this.estado = estado;
     }
 
     public List<DetalleReceta> getDetalles() {
@@ -103,7 +92,6 @@ public class Receta extends Registro {
                 super.toString() +
                 ", fechaEmision=" + fechaEmision +
                 ", indicacionesGenerales='" + indicacionesGenerales + '\'' +
-                ", estado=" + estado +
                 ", detalles=" + detalles +
                 '}';
     }
