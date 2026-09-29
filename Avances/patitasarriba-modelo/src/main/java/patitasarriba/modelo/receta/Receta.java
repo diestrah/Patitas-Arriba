@@ -11,18 +11,16 @@ import java.util.List;
 public class Receta extends Registro {
     private LocalDate fechaEmision;
     private String indicacionesGenerales;
-    private boolean estado;
     private List<DetalleReceta> detalles;
 
     public Receta(){
         this.detalles = new ArrayList<>();
     }
 
-    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales, boolean estado, List<DetalleReceta> detalles) {
+    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales, List<DetalleReceta> detalles) {
         super(id, activo);
         setFechaEmision(fechaEmision);
         setIndicacionesGenerales(indicacionesGenerales);
-        setEstado(estado);
         setDetalles(detalles);
     }
 
@@ -34,7 +32,6 @@ public class Receta extends Registro {
         super(receta);
         setFechaEmision(receta.getFechaEmision());
         setIndicacionesGenerales(receta.getIndicacionesGenerales());
-        setEstado(receta.isEstado());
         setDetalles(receta.getDetalles());
     }
 
@@ -62,14 +59,6 @@ public class Receta extends Registro {
         this.indicacionesGenerales = indicacionesGenerales;
     }
 
-    public boolean isEstado() {
-        return estado;
-    }
-
-    public void setEstado(boolean estado) {
-        this.estado = estado;
-    }
-
     public List<DetalleReceta> getDetalles() {
         return Collections.unmodifiableList(detalles);
     }
@@ -91,7 +80,6 @@ public class Receta extends Registro {
                 super.toString() +
                 ", fechaEmision=" + fechaEmision +
                 ", indicacionesGenerales='" + indicacionesGenerales + '\'' +
-                ", estado=" + estado +
                 ", detalles=" + detalles +
                 '}';
     }

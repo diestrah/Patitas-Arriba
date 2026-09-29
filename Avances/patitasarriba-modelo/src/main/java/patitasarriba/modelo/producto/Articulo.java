@@ -9,9 +9,9 @@ public class Articulo extends Producto {
     public Articulo() {
     }
 
-    public Articulo(int id, boolean activo, String nombre, double precioBase, String descripcion, boolean estado,
+    public Articulo(int id, boolean activo, String nombre, double precioBase, String descripcion,
                     int stockActual, int stockMinimo, String marca, CategoriaArticulo categoria) {
-        super(id, activo, nombre, precioBase, descripcion, estado);
+        super(id, activo, nombre, precioBase, descripcion);
         setStockActual(stockActual);
         setStockMinimo(stockMinimo);
         setMarca(marca);
