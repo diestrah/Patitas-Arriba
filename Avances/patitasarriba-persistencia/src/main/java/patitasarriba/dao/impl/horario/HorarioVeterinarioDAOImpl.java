@@ -17,84 +17,26 @@ class HorarioVeterinarioDAOImpl extends RegistroDAOImpl<HorarioPersonal>
         implements HorarioVeterinarioDAO {
 
     @Override
-    public void insert(int idVeterinario, HorarioPersonal horarioPersonal) throws SQLException {
-        if (horarioPersonal == null) {
-            throw new IllegalArgumentException("El horario personal no puede ser nulo");
+    public void insertarPorVeterinario(int idVeterinario, List<HorarioPersonal> horarios) throws SQLException {
+        if (horarios == null) {
+            throw new IllegalArgumentException("La lista de horarios no puede ser nula");
         }
 
         Connection conn = TransactionsManager.getConnection();
-
         String sql = "{call insertar_horario_veterinario(?,?,?,?)}";
+
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_veterinario", idVeterinario);
-            cmd.setInt("p_id_horario", horarioPersonal.getHorario().getId());
-            cmd.setBoolean("p_activo", horarioPersonal.isActivo());
-            cmd.registerOutParameter("p_id", Types.INTEGER);
+            for (HorarioPersonal horarioPersonal : horarios) {
+                cmd.setInt("p_id_veterinario", idVeterinario);
+                cmd.setInt("p_id_horario", horarioPersonal.getHorario().getId());
+                cmd.setBoolean("p_activo", true);
+                cmd.registerOutParameter("p_id", Types.INTEGER);
 
-            cmd.execute();
-            horarioPersonal.setId(cmd.getInt("p_id"));
-        }
-    }
-
-    @Override
-    public void update(int idVeterinario, HorarioPersonal horarioPersonal) throws SQLException {
-        if (horarioPersonal == null) {
-            throw new IllegalArgumentException("El horario personal no puede ser nulo");
-        }
-
-        Connection conn = TransactionsManager.getConnection();
-
-        String sql = "{call modificar_horario_veterinario(?,?,?,?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_veterinario", idVeterinario);
-            cmd.setInt("p_id_horario", horarioPersonal.getHorario().getId());
-            cmd.setBoolean("p_activo", horarioPersonal.isActivo());
-            cmd.setInt("p_id", horarioPersonal.getId());
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo modificar el horario del veterinario");
+                if (cmd.executeUpdate() == 0) {
+                    throw new SQLException("No se pudo insertar la línea de la orden de venta");
+                }
+                horarioPersonal.setId(cmd.getInt("p_id"));
             }
-        }
-    }
-
-    @Override
-    public void delete(int idHorarioVeterinario) throws SQLException {
-        Connection conn = TransactionsManager.getConnection();
-
-        String sql = "{call eliminar_horario_veterinario(?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", idHorarioVeterinario);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo eliminar el horario del veterinario");
-            }
-        }
-    }
-
-    @Override
-    public HorarioPersonal findById(int idHorarioVeterinario) throws SQLException {
-        String sql = "{call buscar_horario_veterinario_por_id(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", idHorarioVeterinario);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new HorarioPersonal()) : null;
-            }
-        }
-    }
-
-    @Override
-    public List<HorarioPersonal> findAll() throws SQLException {
-        String sql = "{call listar_horarios_veterinario()}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql);
-             ResultSet rs = cmd.executeQuery()) {
-            List<HorarioPersonal> horarios = new ArrayList<>();
-            while (rs.next()) {
-                horarios.add(mapear(rs, new HorarioPersonal()));
-            }
-            return horarios;
         }
     }
 

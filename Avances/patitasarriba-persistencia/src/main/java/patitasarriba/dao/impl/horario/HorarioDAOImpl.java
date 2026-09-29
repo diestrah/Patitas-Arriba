@@ -63,7 +63,10 @@ public class HorarioDAOImpl extends RegistroDAOImpl<Horario> implements HorarioD
             cmd.setBoolean("p_activo", horario.isActivo());
             cmd.registerOutParameter("p_id", Types.INTEGER);
 
-            cmd.execute();
+            if(cmd.executeUpdate() == 0) {
+                throw new SQLException("No se pudo insertar el horario");
+            }
+
             horario.setId(cmd.getInt("p_id"));
         }
     }
