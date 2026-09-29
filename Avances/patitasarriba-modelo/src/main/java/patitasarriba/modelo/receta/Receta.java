@@ -1,6 +1,7 @@
 package patitasarriba.modelo.receta;
 
 import patitasarriba.modelo.Registro;
+import patitasarriba.modelo.atencion.AtencionMedica;
 import patitasarriba.modelo.producto.Articulo;
 
 import java.time.LocalDate;
@@ -12,16 +13,19 @@ public class Receta extends Registro {
     private LocalDate fechaEmision;
     private String indicacionesGenerales;
     private List<DetalleReceta> detalles;
+    private AtencionMedica atencionMedica;
 
     public Receta(){
         this.detalles = new ArrayList<>();
     }
 
-    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales, List<DetalleReceta> detalles) {
+    public Receta(int id, boolean activo, LocalDate fechaEmision, String indicacionesGenerales,
+                  List<DetalleReceta> detalles, AtencionMedica atencionMedica) {
         super(id, activo);
         setFechaEmision(fechaEmision);
         setIndicacionesGenerales(indicacionesGenerales);
         setDetalles(detalles);
+        setAtencionMedica(atencionMedica);
     }
 
     // Constructor de copia
@@ -32,6 +36,7 @@ public class Receta extends Registro {
         super(receta);
         setFechaEmision(receta.getFechaEmision());
         setIndicacionesGenerales(receta.getIndicacionesGenerales());
+        setEstado(receta.isEstado());
         setDetalles(receta.getDetalles());
     }
 
@@ -72,6 +77,14 @@ public class Receta extends Registro {
 
     public void agregarDetalle(int idDetalleReceta, boolean activo, String dosis, String frecuencia, int duracionDias, int cantidadTotal, Articulo producto) {
         detalles.add(new DetalleReceta(idDetalleReceta, activo, dosis, frecuencia, duracionDias, cantidadTotal, producto));
+    }
+
+    public AtencionMedica getAtencionMedica() {
+        return atencionMedica;
+    }
+
+    public void setAtencionMedica(AtencionMedica atencionMedica) {
+        this.atencionMedica = atencionMedica;
     }
 
     @Override

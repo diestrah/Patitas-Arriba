@@ -21,9 +21,6 @@ public class Horario extends Registro {
 
     // Constructor de copia
     public Horario(final Horario horario) {
-        if (horario == null) {
-            throw new IllegalArgumentException("horario no puede ser nulo");
-        }
         super(horario);
         setDiaSemana(horario.getDiaSemana());
         setHoraInicio(horario.getHoraInicio());

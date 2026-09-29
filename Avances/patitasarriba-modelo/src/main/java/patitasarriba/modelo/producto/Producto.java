@@ -19,9 +19,9 @@ public abstract class Producto extends Registro {
 
     // Constructor de copia
     protected Producto(final Producto producto) {
-        if (producto == null) {
-            throw new IllegalArgumentException("producto no puede ser nulo");
-        }
+//        if (producto == null) {
+//            throw new IllegalArgumentException("producto no puede ser nulo");
+//        }
         super(producto);
         setNombre(producto.getNombre());
         setPrecioBase(producto.getPrecioBase());
