@@ -18,7 +18,7 @@ CREATE PROCEDURE insertar_cita (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO cita (fecha_hora, estado, id_mascota, id_veterinario, activo)
+    INSERT INTO CITA (fecha_hora, estado, id_mascota, id_veterinario, activo)
     VALUES (p_fecha_hora, p_estado, p_id_mascota, p_id_veterinario, p_activo);
 
     SET p_id = LAST_INSERT_ID();
@@ -34,7 +34,7 @@ CREATE PROCEDURE modificar_cita (
     IN p_activo TINYINT(1)
 )
 BEGIN
-    UPDATE cita
+    UPDATE CITA
     SET fecha_hora = p_fecha_hora,
         estado = p_estado,
         id_mascota = p_id_mascota,
@@ -46,7 +46,7 @@ END //
 -- Borrado suave: nunca se elimina la fila, solo se desactiva
 CREATE PROCEDURE eliminar_cita (IN p_id INT)
 BEGIN
-    UPDATE cita
+    UPDATE CITA
     SET activo = 0
     WHERE id_cita = p_id;
 END //
@@ -54,7 +54,7 @@ END //
 CREATE PROCEDURE buscar_cita_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM cita
+    FROM CITA
     WHERE id_cita = p_id;
 END //
 
@@ -62,7 +62,7 @@ END //
 CREATE PROCEDURE listar_cita ()
 BEGIN
     SELECT *
-    FROM cita
+    FROM CITA
     WHERE activo = 1;
 END //
 

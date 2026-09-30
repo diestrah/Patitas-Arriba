@@ -21,7 +21,7 @@ CREATE PROCEDURE insertar_articulo (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO articulo (
+    INSERT INTO ARTICULO (
         nombre, precio_base, descripcion, activo,
         stock_actual, stock_minimo, marca, id_categoria_articulo
     )
@@ -46,7 +46,7 @@ CREATE PROCEDURE modificar_articulo (
     IN p_id_categoria_articulo INT
 )
 BEGIN
-    UPDATE articulo
+    UPDATE ARTICULO
     SET nombre = p_nombre,
         precio_base = p_precio_base,
         descripcion = p_descripcion,
@@ -61,7 +61,7 @@ END //
 -- Borrado suave: nunca se elimina la fila, solo se desactiva
 CREATE PROCEDURE eliminar_articulo (IN p_id INT)
 BEGIN
-    UPDATE articulo
+    UPDATE ARTICULO
     SET activo = 0
     WHERE id_articulo = p_id;
 END //
@@ -69,7 +69,7 @@ END //
 CREATE PROCEDURE buscar_articulo_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM articulo
+    FROM ARTICULO
     WHERE id_articulo = p_id;
 END //
 
@@ -77,7 +77,7 @@ END //
 CREATE PROCEDURE listar_articulo ()
 BEGIN
     SELECT *
-    FROM articulo
+    FROM ARTICULO
     WHERE activo = 1;
 END //
 

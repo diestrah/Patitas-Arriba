@@ -78,9 +78,6 @@ public abstract class Persona extends Registro {
     }
 
     public void setTelefono(String telefono) {
-        if (telefono == null || telefono.isEmpty()) {
-            throw new IllegalArgumentException("telefono no puede ser nulo");
-        }
         this.telefono = telefono;
     }
 

@@ -16,7 +16,7 @@ CREATE PROCEDURE insertar_horario_veterinario(
     IN p_activo BOOLEAN,
     OUT p_id INT)
 BEGIN
-    INSERT INTO horario_veterinario (
+    INSERT INTO HORARIO_VETERINARIO (
         id_veterinario,
         id_horario,
         activo)
@@ -34,7 +34,7 @@ CREATE PROCEDURE modificar_horario_veterinario(
     IN p_activo BOOLEAN,
     IN p_id INT)
 BEGIN
-    UPDATE horario_veterinario
+    UPDATE HORARIO_VETERINARIO
     SET
         id_veterinario = p_id_veterinario,
         id_horario = p_id_horario,
@@ -44,33 +44,33 @@ END //
 
 CREATE PROCEDURE eliminar_horario_veterinario(IN p_id INT)
 BEGIN
-    DELETE FROM horario_veterinario
+    DELETE FROM HORARIO_VETERINARIO
     WHERE id_horario_vet = p_id;
 END //
 
 CREATE PROCEDURE buscar_horario_veterinario_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM horario_veterinario
+    FROM HORARIO_VETERINARIO
     WHERE id_horario_vet = p_id;
 END //
 
 CREATE PROCEDURE listar_horarios_veterinario()
 BEGIN
     SELECT *
-    FROM horario_veterinario;
+    FROM HORARIO_VETERINARIO;
 END //
 
 CREATE PROCEDURE listar_horarios_por_veterinario(IN p_id_veterinario INT)
 BEGIN
     SELECT *
-    FROM horario_veterinario
+    FROM HORARIO_VETERINARIO
     WHERE id_veterinario = p_id_veterinario;
 END //
 
 CREATE PROCEDURE eliminar_horarios_por_veterinario(IN p_id_veterinario INT)
 BEGIN
-    DELETE FROM horario_veterinario
+    DELETE FROM HORARIO_VETERINARIO
     WHERE id_veterinario = p_id_veterinario;
 END //
 

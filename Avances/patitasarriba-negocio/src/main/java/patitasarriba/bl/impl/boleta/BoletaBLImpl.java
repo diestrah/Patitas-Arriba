@@ -91,6 +91,9 @@ public class BoletaBLImpl implements BoletaBL {
 
     // Valida integridad de boleta, existencia de productos y recálculo de precios.
     private void validarYCalcular(Boleta boleta) throws BLException {
+        if (boleta == null) {
+            throw new BLException("La boleta no puede ser nula");
+        }
         if (boleta.getCliente() == null) {
             throw new BLException("La boleta debe tener un cliente asociado");
         }
@@ -110,6 +113,9 @@ public class BoletaBLImpl implements BoletaBL {
         double totalCalculado = 0.0;
 
         for (DetalleBoleta detalle : boleta.getDetalles()) {
+            if (detalle == null) {
+                throw new BLException("La boleta no puede contener detalles nulos");
+            }
             if (detalle.getCantidad() < 1) {
                 throw new BLException("La cantidad debe ser al menos 1");
             }
@@ -119,7 +125,7 @@ public class BoletaBLImpl implements BoletaBL {
                 throw new BLException("Cada detalle debe tener un producto");
             }
 
-            double subTotalSeguro = 0.0;
+            double subTotalSeguro;
 
             try {
                 // Enrutamiento polimórfico para búsqueda de producto
@@ -151,13 +157,17 @@ public class BoletaBLImpl implements BoletaBL {
                     throw new BLException("Tipo de producto no reconocido por el sistema");
                 }
 
-                // Actualización segura del subtotal
-                detalle.setSubTotal(subTotalSeguro);
-                totalCalculado += subTotalSeguro;
-
             } catch (SQLException e) {
                 throw new BLException("Error técnico al consultar el catálogo de productos", e);
             }
+
+            if (subTotalSeguro <= 0) {
+                throw new BLException("El subtotal de cada detalle debe ser mayor a 0");
+            }
+
+            // Actualización segura del subtotal
+            detalle.setSubTotal(subTotalSeguro);
+            totalCalculado += subTotalSeguro;
         }
 
         boleta.setTotal(totalCalculado);

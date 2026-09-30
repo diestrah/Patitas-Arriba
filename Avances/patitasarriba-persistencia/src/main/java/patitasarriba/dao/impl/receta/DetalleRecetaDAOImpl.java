@@ -14,7 +14,7 @@ public class DetalleRecetaDAOImpl extends RegistroDAOImpl<DetalleReceta> impleme
     public void insertarDetalles(int idReceta, List<DetalleReceta> detallesReceta) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call insertar_detalle_receta ?, ?, ?, ?, ?, ?,?}";
+        String sql = "{call insertar_detalle_receta (?, ?, ?, ?, ?, ?,?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)){
             for (DetalleReceta detalleReceta : detallesReceta) {
@@ -40,7 +40,7 @@ public class DetalleRecetaDAOImpl extends RegistroDAOImpl<DetalleReceta> impleme
     public void eliminarDetalles(int idReceta) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{eliminar_detalles_por_receta(?)}";
+        String sql = "{call eliminar_detalles_por_receta(?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)){
             cmd.setInt("p_id_receta", idReceta);
             cmd.executeUpdate();

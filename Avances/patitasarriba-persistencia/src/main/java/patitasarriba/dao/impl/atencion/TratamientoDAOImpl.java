@@ -58,7 +58,7 @@ public class TratamientoDAOImpl extends RegistroDAOImpl<Tratamiento> implements 
             throw new IllegalArgumentException("El tratamiento no puede ser nulo");
         }
 
-        String sql = "{call insertar_tratamiento(?, ?, ?, ?}";
+        String sql = "{call insertar_tratamiento(?,?,?,?)}";
 
         try (
                 Connection conn = DBManager.getInstance().getConnection();
@@ -66,12 +66,10 @@ public class TratamientoDAOImpl extends RegistroDAOImpl<Tratamiento> implements 
 
             cmd.setString("p_nombre_procedimiento", modelo.getNombreProcedimiento());
             cmd.setString("p_descripcion", modelo.getDescripcion());
-            cmd.setInt("p_estado", modelo.isActivo() ? 1 : 0);
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.registerOutParameter("p_id", java.sql.Types.INTEGER);
 
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insertar el tratamiento");
-            }
-
+            cmd.execute();
             modelo.setId(cmd.getInt("p_id"));
         }
     }
@@ -82,16 +80,16 @@ public class TratamientoDAOImpl extends RegistroDAOImpl<Tratamiento> implements 
             throw new IllegalArgumentException("El tratamiento no puede ser nulo");
         }
 
-        String sql = "{call actualizar_tratamiento (?, ?, ?, ?)}";
+        String sql = "{call actualizar_tratamiento(?,?,?,?)}";
 
         try (
                 Connection conn = DBManager.getInstance().getConnection();
                 CallableStatement cmd = conn.prepareCall(sql)) {
 
-            cmd.setInt("p_id", modelo.getId());
-            cmd.setString("p_nombre", modelo.getNombreProcedimiento());
+            cmd.setString("p_nombre_procedimiento", modelo.getNombreProcedimiento());
             cmd.setString("p_descripcion", modelo.getDescripcion());
-            cmd.setInt("p_estado", modelo.isActivo() ? 1 : 0);
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.setInt("p_id", modelo.getId());
 
             if (cmd.executeUpdate() == 0){
                 throw new SQLException("No se pudo actualizar el tratamiento");

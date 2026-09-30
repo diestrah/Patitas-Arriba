@@ -26,7 +26,11 @@ class AtencionDiagnosticoDAOImpl extends RegistroDAOImpl<AtencionDiagnostico>
             for (AtencionDiagnostico atencionDiagnostico : diagnosticos) {
                 cmd.setInt("p_id_atencion_medica", idAtencionMedica);
                 cmd.setInt("p_id_diagnostico", atencionDiagnostico.getDiagnostico().getId());
-                cmd.setString("p_nivel_gravedad", atencionDiagnostico.getNivelGravedad().name());
+                if (atencionDiagnostico.getNivelGravedad() == null) {
+                    cmd.setNull("p_nivel_gravedad", Types.VARCHAR);
+                } else {
+                    cmd.setString("p_nivel_gravedad", atencionDiagnostico.getNivelGravedad().name());
+                }
                 cmd.setString("p_detalle_diagnostico", atencionDiagnostico.getDetalleDiagnostico());
                 cmd.setBoolean("p_activo", atencionDiagnostico.isActivo());
                 cmd.registerOutParameter("p_id", Types.INTEGER);
@@ -72,7 +76,9 @@ class AtencionDiagnosticoDAOImpl extends RegistroDAOImpl<AtencionDiagnostico>
     protected AtencionDiagnostico mapear(ResultSet rs, AtencionDiagnostico atencionDiagnostico) throws SQLException {
         super.mapear(rs, atencionDiagnostico);
         atencionDiagnostico.setId(rs.getInt("id_atencion_diagnostico"));
-        atencionDiagnostico.setNivelGravedad(NivelGravedad.valueOf(rs.getString("nivel_gravedad")));
+        String nivelGravedad = rs.getString("nivel_gravedad");
+        atencionDiagnostico.setNivelGravedad(
+                nivelGravedad == null ? null : NivelGravedad.valueOf(nivelGravedad));
         atencionDiagnostico.setDetalleDiagnostico(rs.getString("detalle_diagnostico"));
 
         // Diagnostico se carga completo porque ya existe DiagnosticoDAOImpl

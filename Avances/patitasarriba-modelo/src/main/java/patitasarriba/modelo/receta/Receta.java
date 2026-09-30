@@ -37,6 +37,7 @@ public class Receta extends Registro {
         setFechaEmision(receta.getFechaEmision());
         setIndicacionesGenerales(receta.getIndicacionesGenerales());
         setDetalles(receta.getDetalles());
+        setAtencionMedica(receta.getAtencionMedica());
     }
 
     // Getters y Setters

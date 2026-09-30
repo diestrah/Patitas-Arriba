@@ -4,7 +4,7 @@ public class Servicio extends Producto {
     private TipoServicio tipo;
     private boolean requiereTriaje;
     private boolean requiereVacuna;
-    private int duracionEstimada;
+    private Integer duracionEstimada;
 
     public Servicio() {
     }
@@ -60,14 +60,11 @@ public class Servicio extends Producto {
         this.requiereVacuna = requiereVacuna;
     }
 
-    public int getDuracionEstimada() {
+    public Integer getDuracionEstimada() {
         return duracionEstimada;
     }
 
-    public void setDuracionEstimada(int duracionEstimada) {
-        if (duracionEstimada <= 0) {
-            throw new IllegalArgumentException("Duracion estimada debe ser mayor que 0");
-        }
+    public void setDuracionEstimada(Integer duracionEstimada) {
         this.duracionEstimada = duracionEstimada;
     }
 

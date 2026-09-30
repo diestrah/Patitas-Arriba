@@ -1,4 +1,5 @@
 -- Procedimientos CRUD para patitasarriba.modelo.producto.CategoriaArticulo
+used mydb;
 
 DROP PROCEDURE IF EXISTS insertar_categoria_articulo;
 DROP PROCEDURE IF EXISTS modificar_categoria_articulo;
@@ -16,7 +17,7 @@ CREATE PROCEDURE insertar_categoria_articulo (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO categoria_articulo (nombre, descripcion, activo)
+    INSERT INTO CATEGORIA_ARTICULO (nombre, descripcion, activo)
     VALUES (p_nombre, p_descripcion, p_activo);
 
     SET p_id = LAST_INSERT_ID();
@@ -30,7 +31,7 @@ CREATE PROCEDURE modificar_categoria_articulo (
     IN p_activo TINYINT(1)
 )
 BEGIN
-    UPDATE categoria_articulo
+    UPDATE CATEGORIA_ARTICULO
     SET nombre = p_nombre,
         descripcion = p_descripcion,
         activo = p_activo
@@ -39,14 +40,14 @@ END //
 
 CREATE PROCEDURE eliminar_categoria_articulo (IN p_id INT)
 BEGIN
-    DELETE FROM categoria_articulo
+    DELETE FROM CATEGORIA_ARTICULO
     WHERE id_categoria_articulo = p_id;
 END //
 
 CREATE PROCEDURE buscar_categoria_articulo_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM categoria_articulo
+    FROM CATEGORIA_ARTICULO
     WHERE id_categoria_articulo = p_id;
 END //
 
@@ -54,7 +55,7 @@ END //
 CREATE PROCEDURE listar_categoria_articulo ()
 BEGIN
     SELECT *
-    FROM categoria_articulo
+    FROM CATEGORIA_ARTICULO
     WHERE activo = 1;
 END //
 

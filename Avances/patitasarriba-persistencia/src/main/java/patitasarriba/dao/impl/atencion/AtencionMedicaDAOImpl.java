@@ -62,6 +62,7 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
         if (atencionMedica == null) {
             throw new IllegalArgumentException("La atencion medica no puede ser nula");
         }
+        validarRelaciones(atencionMedica);
 
         Connection conn = TransactionsManager.getConnection();
 
@@ -93,6 +94,7 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
         if (atencionMedica == null) {
             throw new IllegalArgumentException("La atencion medica no puede ser nula");
         }
+        validarRelaciones(atencionMedica);
 
         Connection conn = TransactionsManager.getConnection();
 
@@ -159,5 +161,14 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
         atencionMedica.setDiagnosticos(atencionDiagnosticoDAO.findByAtencionMedicaId(atencionMedica.getId()));
 
         return atencionMedica;
+    }
+
+    private void validarRelaciones(AtencionMedica atencionMedica) {
+        if (atencionMedica.getMascota() == null) {
+            throw new IllegalArgumentException("La atención médica debe tener una mascota");
+        }
+        if (atencionMedica.getCita() == null) {
+            throw new IllegalArgumentException("La atención médica debe tener una cita");
+        }
     }
 }

@@ -7,9 +7,19 @@ import patitasarriba.bl.CitaBL;
 import patitasarriba.bl.ClienteBL;
 import patitasarriba.bl.CuentaBL;
 import patitasarriba.bl.MascotaBL;
+import patitasarriba.bl.ServicioBL;
+import patitasarriba.bl.HorarioBL;
+import patitasarriba.bl.TratamientoBL;
+import patitasarriba.bl.AdministradorBL;
+import patitasarriba.bl.BoletaBL;
 import patitasarriba.bl.VeterinarioBL;
 import patitasarriba.bl.impl.cita.CitaBLImpl;
 import patitasarriba.bl.impl.mascota.MascotaBLImpl;
+import patitasarriba.bl.impl.producto.ServicioBLImpl;
+import patitasarriba.bl.impl.horario.HorarioBLImpl;
+import patitasarriba.bl.impl.atencion.TratamientoBLImpl;
+import patitasarriba.bl.impl.usuario.AdministradorBLImpl;
+import patitasarriba.bl.impl.boleta.BoletaBLImpl;
 import patitasarriba.bl.impl.producto.ArticuloBLImpl;
 import patitasarriba.bl.impl.producto.CategoriaArticuloBLImpl;
 import patitasarriba.bl.impl.usuario.ClienteBLImpl;
@@ -22,12 +32,22 @@ import patitasarriba.modelo.mascota.SexoMascota;
 import patitasarriba.modelo.mascota.TipoMascota;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.CategoriaArticulo;
+import patitasarriba.modelo.producto.Servicio;
+import patitasarriba.modelo.producto.TipoServicio;
+import patitasarriba.modelo.horario.DiaSemana;
+import patitasarriba.modelo.horario.Horario;
+import patitasarriba.modelo.atencion.Tratamiento;
+import patitasarriba.modelo.usuario.Administrador;
+import patitasarriba.modelo.boleta.Boleta;
+import patitasarriba.modelo.boleta.DetalleBoleta;
+import patitasarriba.modelo.boleta.MetodoPago;
 import patitasarriba.modelo.usuario.Cliente;
 import patitasarriba.modelo.usuario.Cuenta;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +71,11 @@ public class Tester {
     private static final VeterinarioBL veterinarioBL = new VeterinarioBLImpl();
     private static final MascotaBL mascotaBL = new MascotaBLImpl();
     private static final CitaBL citaBL = new CitaBLImpl();
+    private static final ServicioBL servicioBL = new ServicioBLImpl();
+    private static final HorarioBL horarioBL = new HorarioBLImpl();
+    private static final TratamientoBL tratamientoBL = new TratamientoBLImpl();
+    private static final AdministradorBL administradorBL = new AdministradorBLImpl();
+    private static final BoletaBL boletaBL = new BoletaBLImpl();
 
     // Ejecuta todas las pruebas en orden
     public static void main(String[] args) {
@@ -61,6 +86,11 @@ public class Tester {
         try {
             probarCategoriaArticulo();
             probarArticulo();
+            probarServicio();
+            probarHorario();
+            probarTratamiento();
+            probarAdministrador();
+            probarBoleta();
             probarMascota();
             probarCita();
             probarReglasDeNegocio();
@@ -193,6 +223,201 @@ public class Tester {
 
         articuloBL.delete(apoyo.getId());
         categoriaArticuloBL.delete(categoria.getId());
+        separador();
+    }
+
+    private static void probarServicio() throws BLException {
+        tituloSeccion("SERVICIO");
+        int codigo = nuevoCodigo();
+
+        Servicio servicio = new Servicio();
+        servicio.setNombre("Consulta demo " + codigo);
+        servicio.setPrecioBase(60.00);
+        servicio.setDescripcion("Consulta veterinaria de prueba");
+        servicio.setTipo(TipoServicio.CONSULTA_MEDICA);
+        servicio.setDuracionEstimada(30);
+        servicio.setRequiereTriaje(true);
+        servicio.setRequiereVacuna(false);
+        servicio.setActivo(true);
+        servicioBL.insert(servicio);
+        bloque("INSERT");
+        imprimirDetalle(servicio);
+
+        servicio = servicioBL.findById(servicio.getId());
+        servicio.setPrecioBase(65.00);
+        servicio.setDuracionEstimada(null);
+        servicioBL.update(servicio);
+        servicio = servicioBL.findById(servicio.getId());
+        bloque("UPDATE");
+        imprimirDetalle(servicio);
+
+        bloque("FIND BY NAME");
+        imprimirDetalle(servicioBL.findByName(servicio.getNombre()));
+        bloque("LISTADO");
+        listarServicios(servicioBL.findAll());
+
+        int id = servicio.getId();
+        servicioBL.delete(id);
+        verificarServicioEliminado(id);
+        separador();
+    }
+
+    private static void probarHorario() throws BLException {
+        tituloSeccion("HORARIO");
+        Horario horario = new Horario();
+        horario.setDiaSemana(DiaSemana.LUNES);
+        horario.setHoraInicio(LocalTime.of(8, 0));
+        horario.setHoraFin(LocalTime.of(17, 0));
+        horario.setActivo(true);
+        horarioBL.insert(horario);
+        bloque("INSERT");
+        imprimirDetalle(horario);
+
+        horario = horarioBL.findById(horario.getId());
+        horario.setHoraFin(LocalTime.of(18, 0));
+        horarioBL.update(horario);
+        horario = horarioBL.findById(horario.getId());
+        bloque("UPDATE");
+        imprimirDetalle(horario);
+        bloque("LISTADO");
+        listarHorarios(horarioBL.findAll());
+
+        int id = horario.getId();
+        horarioBL.delete(id);
+        verificarHorarioEliminado(id);
+        separador();
+    }
+
+    private static void probarTratamiento() throws BLException {
+        tituloSeccion("TRATAMIENTO");
+        Tratamiento tratamiento = new Tratamiento();
+        tratamiento.setNombreProcedimiento("Desparasitación demo " + nuevoCodigo());
+        tratamiento.setDescripcion("Tratamiento de prueba");
+        tratamiento.setActivo(true);
+        tratamientoBL.insert(tratamiento);
+        bloque("INSERT");
+        imprimirDetalle(tratamiento);
+
+        tratamiento = tratamientoBL.findById(tratamiento.getId());
+        tratamiento.setDescripcion("Tratamiento actualizado");
+        tratamientoBL.update(tratamiento);
+        tratamiento = tratamientoBL.findById(tratamiento.getId());
+        bloque("UPDATE");
+        imprimirDetalle(tratamiento);
+        bloque("FIND BY NAME");
+        imprimirDetalle(tratamientoBL.findByName(tratamiento.getNombreProcedimiento()));
+        bloque("LISTADO");
+        listarTratamientos(tratamientoBL.findAll());
+
+        int id = tratamiento.getId();
+        tratamientoBL.delete(id);
+        verificarTratamientoEliminado(id);
+        separador();
+    }
+
+    private static void probarAdministrador() throws BLException {
+        tituloSeccion("ADMINISTRADOR");
+        int codigo = nuevoCodigo();
+        Cuenta cuenta = new Cuenta();
+        cuenta.setNombreUsuario("admin.tester." + codigo);
+        cuenta.setPassword("demo123");
+        cuenta.setCorreo("admin.tester." + codigo + "@softprog.pe");
+        cuenta.setFechaCreacion(LocalDate.now());
+        cuenta.setActivo(true);
+        cuentaBL.insert(cuenta);
+
+        Administrador administrador = new Administrador();
+        administrador.setCuenta(cuenta);
+        administrador.setDni(nuevoDni());
+        administrador.setNombres("Administrador");
+        administrador.setApellidoPaterno("Demo");
+        administrador.setApellidoMaterno("Tester");
+        administrador.setTelefono("999555666");
+        administrador.setActivo(true);
+        administradorBL.insert(administrador);
+        bloque("INSERT");
+        imprimirDetalle(administrador);
+
+        administrador = administradorBL.findById(administrador.getId());
+        administrador.setNombres("Administrador Editado");
+        administradorBL.update(administrador);
+        administrador = administradorBL.findById(administrador.getId());
+        bloque("UPDATE");
+        imprimirDetalle(administrador);
+        bloque("LISTADO");
+        listarAdministradores(administradorBL.findAll());
+
+        int id = administrador.getId();
+        administradorBL.delete(id);
+        cuentaBL.delete(cuenta.getId());
+        verificarAdministradorEliminado(id);
+        separador();
+    }
+
+    private static void probarBoleta() throws BLException {
+        tituloSeccion("BOLETA");
+        int codigo = nuevoCodigo();
+
+        Cuenta cuenta = new Cuenta();
+        cuenta.setNombreUsuario("cliente.boleta." + codigo);
+        cuenta.setPassword("demo123");
+        cuenta.setCorreo("cliente.boleta." + codigo + "@softprog.pe");
+        cuenta.setFechaCreacion(LocalDate.now());
+        cuenta.setActivo(true);
+        cuentaBL.insert(cuenta);
+
+        Cliente cliente = new Cliente();
+        cliente.setCuenta(cuenta);
+        cliente.setDni(nuevoDni());
+        cliente.setNombres("Cliente");
+        cliente.setApellidoPaterno("Boleta");
+        cliente.setApellidoMaterno("Tester");
+        cliente.setTelefono("999777888");
+        clienteBL.insert(cliente);
+
+        CategoriaArticulo categoria = new CategoriaArticulo();
+        categoria.setNombre("Categoria boleta " + codigo);
+        categoria.setDescripcion("Categoria para prueba de boleta");
+        categoria.setActivo(true);
+        categoriaArticuloBL.insert(categoria);
+
+        Articulo articulo = new Articulo();
+        articulo.setNombre("Producto boleta " + codigo);
+        articulo.setPrecioBase(20.00);
+        articulo.setDescripcion("Producto para prueba de boleta");
+        articulo.setStockActual(10);
+        articulo.setStockMinimo(1);
+        articulo.setMarca("Tester");
+        articulo.setCategoria(categoria);
+        articulo.setActivo(true);
+        articuloBL.insert(articulo);
+
+        Boleta boleta = new Boleta();
+        boleta.setFecha(LocalDate.now());
+        boleta.setMetodoPago(MetodoPago.EFECTIVO);
+        boleta.setCliente(cliente);
+        boleta.setActivo(true);
+        boleta.agregarDetalle(0, true, 2, 40.00, articulo);
+        boletaBL.insert(boleta);
+        bloque("INSERT");
+        imprimirDetalle(boleta);
+
+        boleta = boletaBL.findById(boleta.getId());
+        boleta.setMetodoPago(MetodoPago.TARJETA_DE_CREDITO);
+        boletaBL.update(boleta);
+        boleta = boletaBL.findById(boleta.getId());
+        bloque("UPDATE");
+        imprimirDetalle(boleta);
+        bloque("LISTADO");
+        listarBoletas(boletaBL.findAll());
+
+        int id = boleta.getId();
+        boletaBL.delete(id);
+        verificarBoletaEliminada(id);
+        articuloBL.delete(articulo.getId());
+        categoriaArticuloBL.delete(categoria.getId());
+        clienteBL.delete(cliente.getId());
+        cuentaBL.delete(cuenta.getId());
         separador();
     }
 
@@ -353,12 +578,23 @@ public class Tester {
         veterinario.setNumeroColegiatura("CMVP-" + codigoVet);
         veterinarioBL.insert(veterinario);
 
+        Servicio servicio = new Servicio();
+        servicio.setNombre("Consulta cita " + nuevoCodigo());
+        servicio.setPrecioBase(55.00);
+        servicio.setDescripcion("Servicio usado por el Tester");
+        servicio.setTipo(TipoServicio.CONSULTA_MEDICA);
+        servicio.setDuracionEstimada(30);
+        servicio.setRequiereTriaje(true);
+        servicio.setRequiereVacuna(false);
+        servicio.setActivo(true);
+        servicioBL.insert(servicio);
+
         Cita cita = new Cita();
         cita.setFechaHora(LocalDateTime.now().plusDays(1));
         cita.setEstado(EstadoCita.AGENDADA);
         cita.setMascota(michi);
         cita.setVeterinario(veterinario);
-        cita.setDetalles(new ArrayList<>());
+        cita.agregarDetalle(0, true, "Prueba de cita", servicio);
         cita.setActivo(true);
         citaBL.insert(cita);
         bloque("INSERT");
@@ -387,7 +623,7 @@ public class Tester {
         citaApoyo.setEstado(EstadoCita.AGENDADA);
         citaApoyo.setMascota(rex);
         citaApoyo.setVeterinario(veterinario);
-        citaApoyo.setDetalles(new ArrayList<>());
+        citaApoyo.agregarDetalle(0, true, "Cita de apoyo", servicio);
         citaApoyo.setActivo(true);
         citaBL.insert(citaApoyo);
 
@@ -410,6 +646,7 @@ public class Tester {
         cuentaBL.delete(cuentaCliente.getId());
         veterinarioBL.delete(veterinario.getId());
         cuentaBL.delete(cuentaVet.getId());
+        servicioBL.delete(servicio.getId());
         separador();
     }
 
@@ -515,6 +752,46 @@ public class Tester {
         }
     }
 
+    private static void verificarServicioEliminado(int id) {
+        try {
+            imprimirResultadoVerificacion(id, servicioBL.findById(id) == null);
+        } catch (BLException ex) {
+            imprimirResultadoVerificacionConExcepcion(id, ex);
+        }
+    }
+
+    private static void verificarHorarioEliminado(int id) {
+        try {
+            imprimirResultadoVerificacion(id, horarioBL.findById(id) == null);
+        } catch (BLException ex) {
+            imprimirResultadoVerificacionConExcepcion(id, ex);
+        }
+    }
+
+    private static void verificarTratamientoEliminado(int id) {
+        try {
+            imprimirResultadoVerificacion(id, tratamientoBL.findById(id) == null);
+        } catch (BLException ex) {
+            imprimirResultadoVerificacionConExcepcion(id, ex);
+        }
+    }
+
+    private static void verificarAdministradorEliminado(int id) {
+        try {
+            imprimirResultadoVerificacion(id, administradorBL.findById(id) == null);
+        } catch (BLException ex) {
+            imprimirResultadoVerificacionConExcepcion(id, ex);
+        }
+    }
+
+    private static void verificarBoletaEliminada(int id) {
+        try {
+            imprimirResultadoVerificacion(id, boletaBL.findById(id) == null);
+        } catch (BLException ex) {
+            imprimirResultadoVerificacionConExcepcion(id, ex);
+        }
+    }
+
     private static void imprimirResultadoVerificacion(int id, boolean quedoNull) {
         if (quedoNull) {
             System.out.println("  buscar id " + id + " -> no encontrada (null). Se elimino correctamente.");
@@ -609,6 +886,48 @@ public class Tester {
         campo("activo", cita.isActivo());
     }
 
+    private static void imprimirDetalle(Servicio servicio) {
+        campo("id", servicio.getId());
+        campo("nombre", servicio.getNombre());
+        campo("precio", servicio.getPrecioBase());
+        campo("tipo", servicio.getTipo());
+        campo("duracion", servicio.getDuracionEstimada());
+        campo("activo", servicio.isActivo());
+    }
+
+    private static void imprimirDetalle(Horario horario) {
+        campo("id", horario.getId());
+        campo("dia", horario.getDiaSemana());
+        campo("inicio", horario.getHoraInicio());
+        campo("fin", horario.getHoraFin());
+        campo("activo", horario.isActivo());
+    }
+
+    private static void imprimirDetalle(Tratamiento tratamiento) {
+        campo("id", tratamiento.getId());
+        campo("nombre", tratamiento.getNombreProcedimiento());
+        campo("descripcion", tratamiento.getDescripcion());
+        campo("activo", tratamiento.isActivo());
+    }
+
+    private static void imprimirDetalle(Administrador administrador) {
+        campo("id", administrador.getId());
+        campo("dni", administrador.getDni());
+        campo("nombre", administrador.getNombres());
+        campo("apellido", administrador.getApellidoPaterno());
+        campo("activo", administrador.isActivo());
+    }
+
+    private static void imprimirDetalle(Boleta boleta) {
+        campo("id", boleta.getId());
+        campo("fecha", boleta.getFecha());
+        campo("total", boleta.getTotal());
+        campo("metodo", boleta.getMetodoPago());
+        campo("cliente", boleta.getCliente().getDni());
+        campo("detalles", boleta.getDetalles().size());
+        campo("activo", boleta.isActivo());
+    }
+
     private static String nombreVeterinario(Veterinario veterinario) {
         return veterinario.getNombres() + " " + veterinario.getApellidoPaterno()
                 + " (dni " + veterinario.getDni() + ")";
@@ -647,6 +966,44 @@ public class Tester {
             System.out.printf("  %d) id=%-4d %s  %-11s mascota=%s%n",
                     n, cita.getId(), FORMATO_FECHA.format(cita.getFechaHora()), cita.getEstado(), cita.getMascota().getNombre());
             n++;
+        }
+    }
+
+    private static void listarServicios(List<Servicio> servicios) {
+        for (Servicio servicio : servicios) {
+            System.out.printf("  id=%-4d %-25s S/ %.2f%n",
+                    servicio.getId(), servicio.getNombre(), servicio.getPrecioBase());
+        }
+    }
+
+    private static void listarHorarios(List<Horario> horarios) {
+        for (Horario horario : horarios) {
+            System.out.printf("  id=%-4d %-10s %s-%s%n",
+                    horario.getId(), horario.getDiaSemana(),
+                    horario.getHoraInicio(), horario.getHoraFin());
+        }
+    }
+
+    private static void listarTratamientos(List<Tratamiento> tratamientos) {
+        for (Tratamiento tratamiento : tratamientos) {
+            System.out.printf("  id=%-4d %s%n",
+                    tratamiento.getId(), tratamiento.getNombreProcedimiento());
+        }
+    }
+
+    private static void listarAdministradores(List<Administrador> administradores) {
+        for (Administrador administrador : administradores) {
+            System.out.printf("  id=%-4d %s %s%n",
+                    administrador.getId(), administrador.getNombres(),
+                    administrador.getApellidoPaterno());
+        }
+    }
+
+    private static void listarBoletas(List<Boleta> boletas) {
+        for (Boleta boleta : boletas) {
+            System.out.printf("  id=%-4d fecha=%s total=%.2f metodo=%s%n",
+                    boleta.getId(), boleta.getFecha(), boleta.getTotal(),
+                    boleta.getMetodoPago());
         }
     }
 }

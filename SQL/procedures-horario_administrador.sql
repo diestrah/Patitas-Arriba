@@ -15,7 +15,7 @@ CREATE PROCEDURE insertar_horario_administrador(
     IN p_activo BOOLEAN,
     OUT p_id INT)
 BEGIN
-    INSERT INTO horario_administrador (
+    INSERT INTO HORARIO_ADMINISTRADOR (
         id_administrador,
         id_horario,
         activo)
@@ -33,7 +33,7 @@ CREATE PROCEDURE modificar_horario_administrador(
     IN p_activo BOOLEAN,
     IN p_id INT)
 BEGIN
-    UPDATE horario_administrador
+    UPDATE HORARIO_ADMINISTRADOR
     SET
         id_administrador = p_id_administrador,
         id_horario = p_id_horario,
@@ -43,27 +43,27 @@ END //
 
 CREATE PROCEDURE eliminar_horario_administrador(IN p_id INT)
 BEGIN
-    DELETE FROM horario_administrador WHERE id_horario_admin = p_id;
+    DELETE FROM HORARIO_ADMINISTRADOR WHERE id_horario_admin = p_id;
 END //
 
 CREATE PROCEDURE buscar_horario_administrador_por_id(IN p_id INT)
 BEGIN
-    SELECT * FROM horario_administrador WHERE id_horario_admin = p_id;
+    SELECT * FROM HORARIO_ADMINISTRADOR WHERE id_horario_admin = p_id;
 END //
 
 CREATE PROCEDURE listar_horarios_administrador()
 BEGIN
-    SELECT * FROM horario_administrador;
+    SELECT * FROM HORARIO_ADMINISTRADOR;
 END //
 
 CREATE PROCEDURE listar_horarios_por_administrador(IN p_id_administrador INT)
 BEGIN
-    SELECT * FROM horario_administrador WHERE id_administrador = p_id_administrador;
+    SELECT * FROM HORARIO_ADMINISTRADOR WHERE id_administrador = p_id_administrador;
 END //
 
 CREATE PROCEDURE eliminar_horarios_por_administrador(IN p_id_administrador INT)
 BEGIN
-    DELETE FROM horario_administrador WHERE id_administrador = p_id_administrador;
+    DELETE FROM HORARIO_ADMINISTRADOR WHERE id_administrador = p_id_administrador;
 END //
 
 DELIMITER ;

@@ -5,6 +5,7 @@ import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.receta.DetalleReceta;
 import patitasarriba.modelo.receta.Receta;
+import patitasarriba.modelo.atencion.AtencionMedica;
 import patitasarriba.dao.RecetaDAO;
 
 import java.sql.*;
@@ -55,22 +56,19 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
         }
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{insertar_receta(?, ?, ?, ?, ?}";
+        if (receta.getAtencionMedica() == null) {
+            throw new IllegalArgumentException("La receta debe tener una atención médica");
+        }
+
+        String sql = "{call insertar_receta(?,?,?,?,?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            if (receta.getAtencionMedica() != null){
-                cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
-            }
-
+            cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
             cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
             cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setInt("p_estado", receta.isActivo() ? 1 : 0);
+            cmd.setBoolean("p_estado", receta.isActivo());
             cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insertar la receta");
-            }
-
+            cmd.execute();
             receta.setId(cmd.getInt("p_id"));
 
             DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
@@ -86,15 +84,17 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call modificar_receta(?, ?, ?, ?, ?)}";
+        if (receta.getAtencionMedica() == null) {
+            throw new IllegalArgumentException("La receta debe tener una atención médica");
+        }
+
+        String sql = "{call modificar_receta(?,?,?,?,?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)){
-            if (receta.getAtencionMedica() != null) {
-                cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
-            }
+            cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
             cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
             cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setInt("p_estado", receta.isActivo() ? 1 : 0);
+            cmd.setBoolean("p_estado", receta.isActivo());
             cmd.setInt("p_id", receta.getId());
 
             if (cmd.executeUpdate() == 0) {
@@ -141,12 +141,14 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
 
     private void mapearAtencionMedica(ResultSet rs, Receta receta) throws SQLException {
         int idAtencionMedica = rs.getInt("id_atencion_medica");
-        if (!rs.wasNull()) {
-            receta.setAtencionMedica(new RecetaDAOImpl().findById(idAtencionMedica).getAtencionMedica());
-        }
-        else{
+        if (rs.wasNull()) {
             receta.setAtencionMedica(null);
+            return;
         }
+
+        AtencionMedica atencionMedica = new AtencionMedica();
+        atencionMedica.setId(idAtencionMedica);
+        receta.setAtencionMedica(atencionMedica);
     }
 
     private void mapearDetalles(ResultSet rs, Receta receta) throws SQLException{
