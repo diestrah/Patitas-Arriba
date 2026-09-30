@@ -40,7 +40,7 @@ public class Tester {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    //Para generar códigos para cada módulo de manera aleatoria (Erasmo lab2-algoritmia vibes)
+    //Para generar códigos para cada módulo de manera aleatoria 
     private static final Random RANDOM = new Random();
     private static long dniSeq = 70_000_000L + (System.currentTimeMillis() % 9_000_000L);
 
