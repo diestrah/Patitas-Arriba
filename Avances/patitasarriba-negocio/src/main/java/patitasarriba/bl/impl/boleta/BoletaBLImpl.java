@@ -186,8 +186,10 @@ public class BoletaBLImpl implements BoletaBL {
                 int nuevoStock = art.getStockActual() - detalle.getCantidad();
                 art.setStockActual(nuevoStock);
 
-                // Actualización en base de datos
-                articuloDAO.update(art);
+                // Actualización en base de datos: usa la misma conexion de la
+                // transaccion activa (evita autobloqueo con el candado que ya
+                // sostiene el insert del detalle por la FK hacia ARTICULO)
+                articuloDAO.update(TransactionsManager.getConnection(), art);
             }
         }
     }

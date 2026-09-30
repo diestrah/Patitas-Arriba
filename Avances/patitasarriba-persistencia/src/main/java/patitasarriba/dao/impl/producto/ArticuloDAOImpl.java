@@ -61,13 +61,22 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
 
     @Override
     public void update(Articulo articulo) throws SQLException {
+        try (Connection conn = DBManager.getInstance().getConnection()) {
+            update(conn, articulo);
+        }
+    }
+
+    // Variante para usar dentro de una transaccion ya abierta (ej. BoletaBLImpl.descontarStock):
+    // usa la Connection recibida en vez de abrir una nueva, para no autobloquearse esperando
+    // el candado que ya sostiene esa misma transaccion (ej. por una FK de detalle_boleta_art).
+    @Override
+    public void update(Connection conn, Articulo articulo) throws SQLException {
         if (articulo == null) {
             throw new IllegalArgumentException("El articulo no puede ser nulo");
         }
 
         String sql = "{call modificar_articulo(?,?,?,?,?,?,?,?,?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", articulo.getId());
             setParametrosComunes(cmd, articulo);
 
