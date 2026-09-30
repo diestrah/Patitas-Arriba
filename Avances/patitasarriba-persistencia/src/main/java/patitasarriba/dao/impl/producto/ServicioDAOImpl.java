@@ -96,7 +96,7 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
         } else {
             cmd.setInt("p_duracion_estimada", servicio.getDuracionEstimada());
         }
-        cmd.setString("p_servicio_medico", mapearTipoASql(servicio.getTipo()));
+        cmd.setString("p_servicio_medico", servicio.getTipo().name());
         cmd.setBoolean("p_requiere_triaje", servicio.isRequiereTriaje());
         cmd.setBoolean("p_requiere_vacuna", servicio.isRequiereVacuna());
     }
@@ -146,26 +146,7 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
         servicio.setPrecioBase(rs.getDouble("precio_base"));
         int duracionEstimada = rs.getInt("duracion_estimada");
         servicio.setDuracionEstimada(rs.wasNull() ? null : duracionEstimada);
-        servicio.setTipo(mapearTipoDesdeSql(rs.getString("tipo_servicio_medico")));
+        servicio.setTipo(TipoServicio.valueOf(rs.getString("tipo_servicio_medico")));
         return servicio;
-    }
-
-    private String mapearTipoASql(TipoServicio tipo) {
-        return switch (tipo) {
-            case CONSULTA_MEDICA -> "Consulta médica";
-            case OPERACION -> "Operación";
-            case VACUNACION -> "Vacunación";
-            case EMERGENCIA -> "Emergencia";
-        };
-    }
-
-    private TipoServicio mapearTipoDesdeSql(String tipo) throws SQLException {
-        return switch (tipo) {
-            case "Consulta médica" -> TipoServicio.CONSULTA_MEDICA;
-            case "Operación" -> TipoServicio.OPERACION;
-            case "Vacunación" -> TipoServicio.VACUNACION;
-            case "Emergencia" -> TipoServicio.EMERGENCIA;
-            default -> throw new SQLException("Tipo de servicio desconocido: " + tipo);
-        };
     }
 }
