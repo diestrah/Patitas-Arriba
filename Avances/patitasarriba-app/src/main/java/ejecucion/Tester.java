@@ -258,6 +258,10 @@ public class Tester {
 
         int id = servicio.getId();
         servicioBL.delete(id);
+        bloque("DELETE");
+        campo("id eliminado", id);
+
+        bloque("VERIFICACION DELETE");
         verificarServicioEliminado(id);
         separador();
     }
@@ -284,6 +288,10 @@ public class Tester {
 
         int id = horario.getId();
         horarioBL.delete(id);
+        bloque("DELETE");
+        campo("id eliminado", id);
+
+        bloque("VERIFICACION DELETE");
         verificarHorarioEliminado(id);
         separador();
     }
@@ -311,6 +319,10 @@ public class Tester {
 
         int id = tratamiento.getId();
         tratamientoBL.delete(id);
+        bloque("DELETE");
+        campo("id eliminado", id);
+
+        bloque("VERIFICACION DELETE");
         verificarTratamientoEliminado(id);
         separador();
     }
@@ -349,7 +361,11 @@ public class Tester {
 
         int id = administrador.getId();
         administradorBL.delete(id);
+        bloque("DELETE");
+        campo("id eliminado", id);
         cuentaBL.delete(cuenta.getId());
+
+        bloque("VERIFICACION DELETE");
         verificarAdministradorEliminado(id);
         separador();
     }
@@ -413,6 +429,10 @@ public class Tester {
 
         int id = boleta.getId();
         boletaBL.delete(id);
+        bloque("DELETE");
+        campo("id eliminado", id);
+
+        bloque("VERIFICACION DELETE");
         verificarBoletaEliminada(id);
         articuloBL.delete(articulo.getId());
         categoriaArticuloBL.delete(categoria.getId());
