@@ -37,11 +37,9 @@ BEGIN
     WHERE id_categoria_articulo = p_id;
 END //
 
--- Borrado suave: nunca se elimina la fila, solo se desactiva
 CREATE PROCEDURE eliminar_categoria_articulo (IN p_id INT)
 BEGIN
-    UPDATE categoria_articulo
-    SET activo = 0
+    DELETE FROM categoria_articulo
     WHERE id_categoria_articulo = p_id;
 END //
 

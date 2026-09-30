@@ -3,6 +3,7 @@
 DROP PROCEDURE IF EXISTS insertar_detalle_cita;
 DROP PROCEDURE IF EXISTS modificar_detalle_cita;
 DROP PROCEDURE IF EXISTS eliminar_detalle_cita;
+DROP PROCEDURE IF EXISTS eliminar_detalles_por_cita;
 DROP PROCEDURE IF EXISTS buscar_detalle_cita_por_id;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_cita;
 
@@ -38,12 +39,18 @@ BEGIN
     WHERE id_detalle_cita = p_id;
 END //
 
--- Borrado suave: nunca se elimina la fila, solo se desactiva
 CREATE PROCEDURE eliminar_detalle_cita (IN p_id INT)
 BEGIN
-    UPDATE detalle_cita
-    SET activo = 0
+    DELETE FROM detalle_cita
     WHERE id_detalle_cita = p_id;
+END //
+
+-- Borra todos los detalles de UNA cita (usado por CitaDAOImpl.delete antes de
+-- borrar la cita misma, ya que la FK se mantiene en NO ACTION)
+CREATE PROCEDURE eliminar_detalles_por_cita (IN p_id_cita INT)
+BEGIN
+    DELETE FROM detalle_cita
+    WHERE id_cita = p_id_cita;
 END //
 
 CREATE PROCEDURE buscar_detalle_cita_por_id (IN p_id INT)

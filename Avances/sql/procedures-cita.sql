@@ -43,11 +43,9 @@ BEGIN
     WHERE id_cita = p_id;
 END //
 
--- Borrado suave: nunca se elimina la fila, solo se desactiva
 CREATE PROCEDURE eliminar_cita (IN p_id INT)
 BEGIN
-    UPDATE cita
-    SET activo = 0
+    DELETE FROM cita
     WHERE id_cita = p_id;
 END //
 
