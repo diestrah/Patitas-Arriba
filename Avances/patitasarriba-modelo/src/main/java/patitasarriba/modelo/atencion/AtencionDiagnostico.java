@@ -34,9 +34,6 @@ public class AtencionDiagnostico extends Registro {
     }
 
     public void setNivelGravedad(NivelGravedad nivelGravedad) {
-        if (nivelGravedad == null) {
-            throw new IllegalArgumentException("nivelGravedad no puede ser nulo");
-        }
         this.nivelGravedad = nivelGravedad;
     }
 
@@ -45,9 +42,6 @@ public class AtencionDiagnostico extends Registro {
     }
 
     public void setDetalleDiagnostico(String detalleDiagnostico) {
-        if (detalleDiagnostico == null || detalleDiagnostico.isEmpty()) {
-            throw new IllegalArgumentException("detalleDiagnostico no puede ser nulo o vacío");
-        }
         this.detalleDiagnostico = detalleDiagnostico;
     }
 

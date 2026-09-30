@@ -24,8 +24,8 @@ BEGIN
         nombre,
         precio_base,
         descripcion,
-        estado,
-        duracion,
+        activo,
+        duracion_estimada,
         tipo_servicio_medico,
         requiere_triaje,
         requiere_vacuna)
@@ -59,8 +59,8 @@ BEGIN
         nombre = p_nombre,
         precio_base = p_precio_base,
         descripcion = p_descripcion,
-        estado = p_estado,
-        duracion = p_duracion_estimada,
+        activo = p_estado,
+        duracion_estimada = p_duracion_estimada,
         tipo_servicio_medico = p_servicio_medico,
         requiere_triaje = p_requiere_triaje,
         requiere_vacuna = p_requiere_vacuna

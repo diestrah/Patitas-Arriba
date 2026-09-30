@@ -14,7 +14,14 @@ public class TratamientoBLImpl implements TratamientoBL {
 
     @Override
     public Tratamiento findByName(String nombre) throws BLException {
-        return null;
+        if (nombre == null || nombre.isBlank()) {
+            throw new BLException("El nombre del tratamiento no puede ser nulo o vacío");
+        }
+        try {
+            return tratamientoDAO.findByName(nombre);
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar el tratamiento", e);
+        }
     }
 
     @Override
@@ -30,8 +37,8 @@ public class TratamientoBLImpl implements TratamientoBL {
     public Tratamiento findById(Integer integer) throws BLException {
         try {
             return tratamientoDAO.findById(integer);
-        } catch (Exception e) {
-            throw new BLException("No se pudo recuperar el tratamiento");
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar el tratamiento", e);
         }
     }
 
@@ -40,19 +47,19 @@ public class TratamientoBLImpl implements TratamientoBL {
         validarNombre(entidad);
         try {
             tratamientoDAO.insert(entidad);
-        } catch (Exception e) {
-            throw new BLException("No se pudo insertar el tratamiento");
+        } catch (SQLException e) {
+            throw new BLException("No se pudo insertar el tratamiento", e);
         }
     }
 
     @Override
     public void update(Tratamiento entidad) throws BLException {
-        validarExiste(entidad.getId());
         validarNombre(entidad);
+        validarExiste(entidad.getId());
         try {
             tratamientoDAO.update(entidad);
-        } catch (Exception e) {
-            throw new BLException("No se pudo actualizar el tratamiento");
+        } catch (SQLException e) {
+            throw new BLException("No se pudo actualizar el tratamiento", e);
         }
     }
 
@@ -60,13 +67,17 @@ public class TratamientoBLImpl implements TratamientoBL {
     public void delete(Integer integer) throws BLException {
         try {
             tratamientoDAO.delete(integer);
-        } catch (Exception e) {
-            throw new BLException("No se pudo eliminar el tratamiento");
+        } catch (SQLException e) {
+            throw new BLException("No se pudo eliminar el tratamiento", e);
         }
     }
 
     private void validarNombre(Tratamiento tratamiento) throws BLException {
-        if (tratamiento.getNombreProcedimiento() == null) {
+        if (tratamiento == null) {
+            throw new BLException("El tratamiento no puede ser nulo");
+        }
+        if (tratamiento.getNombreProcedimiento() == null
+                || tratamiento.getNombreProcedimiento().isBlank()) {
             throw new BLException("El nombre no puede ser nulo");
         }
     }

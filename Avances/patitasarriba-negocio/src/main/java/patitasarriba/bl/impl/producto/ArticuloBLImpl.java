@@ -46,6 +46,9 @@ public class ArticuloBLImpl implements ArticuloBL {
 
     @Override
     public void update(Articulo articulo) throws BLException {
+        if (articulo == null) {
+            throw new BLException("El articulo no puede ser nulo");
+        }
         validarExiste(articulo.getId());
         validarPrecio(articulo);
         validarCategoriaExiste(articulo);
@@ -66,12 +69,21 @@ public class ArticuloBLImpl implements ArticuloBL {
     }
 
     private void validarPrecio(Articulo articulo) throws BLException {
+        if (articulo == null) {
+            throw new BLException("El articulo no puede ser nulo");
+        }
         if (articulo.getPrecioBase() <= 0) {
             throw new BLException("El precio base del articulo debe ser mayor a 0");
+        }
+        if (articulo.getStockActual() < 0 || articulo.getStockMinimo() < 0) {
+            throw new BLException("El stock no puede ser negativo");
         }
     }
 
     private void validarCategoriaExiste(Articulo articulo) throws BLException {
+        if (articulo.getCategoria() == null) {
+            throw new BLException("El articulo debe tener una categoria");
+        }
         try {
             if (categoriaArticuloDAO.findById(articulo.getCategoria().getId()) == null) {
                 throw new BLException("La categoria asignada al articulo no existe");

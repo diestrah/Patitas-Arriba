@@ -104,9 +104,6 @@ public class Mascota extends Registro {
     }
 
     public void setRaza(String raza) {
-        if (raza == null || raza.isEmpty()) {
-            throw new IllegalArgumentException("raza no puede ser nulo o vacío");
-        }
         this.raza = raza;
     }
 

@@ -76,6 +76,9 @@ public class BoletaBLImpl implements BoletaBL {
      * Validaciones de negocio antes de persistir.
      */
     private void validar(Boleta boleta) throws BLException {
+        if (boleta == null) {
+            throw new BLException("La boleta no puede ser nula");
+        }
         if (boleta.getCliente() == null) {
             throw new BLException("La boleta debe tener un cliente asociado");
         }
@@ -94,11 +97,17 @@ public class BoletaBLImpl implements BoletaBL {
 
         double totalCalculado = 0.0;
         for (DetalleBoleta detalle : boleta.getDetalles()) {
+            if (detalle == null) {
+                throw new BLException("La boleta no puede contener detalles nulos");
+            }
             if (detalle.getCantidad() < 1) {
                 throw new BLException("La cantidad de cada detalle debe ser al menos 1");
             }
             if (detalle.getProducto() == null) {
                 throw new BLException("Cada detalle debe tener un producto asociado");
+            }
+            if (detalle.getSubTotal() <= 0) {
+                throw new BLException("El subtotal de cada detalle debe ser mayor a 0");
             }
             totalCalculado += detalle.getSubTotal();
         }

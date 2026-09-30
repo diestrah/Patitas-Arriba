@@ -56,19 +56,13 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
             throw new IllegalArgumentException("El servicio no puede ser nulo");
         }
 
-        String sql = "{call insertar_servicio (?, ?, ?, ?, ?, ?, ?, ?, ?) }";
+        String sql = "{call insertar_servicio(?,?,?,?,?,?,?,?,?)}";
 
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
+        try (Connection conn = DBManager.getInstance().getConnection();
+             CallableStatement cmd = conn.prepareCall(sql)) {
             setParametrosComunes(cmd, modelo);
             cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insertar el tratamiento");
-            }
-
+            cmd.execute();
             modelo.setId(cmd.getInt("p_id"));
         }
     }
@@ -79,14 +73,12 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
             throw new IllegalArgumentException("El servicio no puede ser nulo");
         }
 
-        String sql = "{call modificar_servicio(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call modificar_servicio(?,?,?,?,?,?,?,?,?)}";
 
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setInt("p_id", modelo.getId());
+        try (Connection conn = DBManager.getInstance().getConnection();
+             CallableStatement cmd = conn.prepareCall(sql)) {
             setParametrosComunes(cmd, modelo);
+            cmd.setInt("p_id", modelo.getId());
 
             if (cmd.executeUpdate() == 0) {
                 throw new SQLException("No se pudo actualizar el servicio");
@@ -99,10 +91,14 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
         cmd.setBigDecimal("p_precio_base", BigDecimal.valueOf(servicio.getPrecioBase()));
         cmd.setString("p_descripcion", servicio.getDescripcion());
         cmd.setBoolean("p_estado", servicio.isActivo());
-        cmd.setInt("p_duracion_estimada", servicio.getDuracionEstimada());
-        cmd.setString("p_servicio_medico", servicio.getTipo().toString());
-        cmd.setInt("p_requiere_triaje", servicio.isRequiereTriaje() ? 1 : 0);
-        cmd.setInt("p_requiere_vacuna", servicio.isRequiereVacuna() ? 1 : 0);
+        if (servicio.getDuracionEstimada() == null) {
+            cmd.setNull("p_duracion_estimada", Types.INTEGER);
+        } else {
+            cmd.setInt("p_duracion_estimada", servicio.getDuracionEstimada());
+        }
+        cmd.setString("p_servicio_medico", mapearTipoASql(servicio.getTipo()));
+        cmd.setBoolean("p_requiere_triaje", servicio.isRequiereTriaje());
+        cmd.setBoolean("p_requiere_vacuna", servicio.isRequiereVacuna());
     }
 
     @Override
@@ -113,9 +109,8 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
 
         String sql = "{call eliminar_servicio(?)}";
 
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
+        try (Connection conn = DBManager.getInstance().getConnection();
+             CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", integer);
 
             if (cmd.executeUpdate() == 0) {
@@ -149,8 +144,28 @@ public class ServicioDAOImpl extends RegistroDAOImpl implements ServicioDAO {
         servicio.setNombre(rs.getString("nombre"));
         servicio.setDescripcion(rs.getString("descripcion"));
         servicio.setPrecioBase(rs.getDouble("precio_base"));
-        servicio.setDuracionEstimada(rs.getInt("duracion_estimada"));
-        servicio.setTipo(Enum.valueOf(TipoServicio.class, rs.getString("tipo_servicio_medico")));
+        int duracionEstimada = rs.getInt("duracion_estimada");
+        servicio.setDuracionEstimada(rs.wasNull() ? null : duracionEstimada);
+        servicio.setTipo(mapearTipoDesdeSql(rs.getString("tipo_servicio_medico")));
         return servicio;
+    }
+
+    private String mapearTipoASql(TipoServicio tipo) {
+        return switch (tipo) {
+            case CONSULTA_MEDICA -> "Consulta médica";
+            case OPERACION -> "Operación";
+            case VACUNACION -> "Vacunación";
+            case EMERGENCIA -> "Emergencia";
+        };
+    }
+
+    private TipoServicio mapearTipoDesdeSql(String tipo) throws SQLException {
+        return switch (tipo) {
+            case "Consulta médica" -> TipoServicio.CONSULTA_MEDICA;
+            case "Operación" -> TipoServicio.OPERACION;
+            case "Vacunación" -> TipoServicio.VACUNACION;
+            case "Emergencia" -> TipoServicio.EMERGENCIA;
+            default -> throw new SQLException("Tipo de servicio desconocido: " + tipo);
+        };
     }
 }

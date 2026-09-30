@@ -32,6 +32,7 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
 
     @Override
     public void insert(CategoriaArticulo categoria) throws BLException {
+        validar(categoria);
         try {
             categoriaArticuloDAO.insert(categoria);
         } catch (SQLException e) {
@@ -41,6 +42,7 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
 
     @Override
     public void update(CategoriaArticulo categoria) throws BLException {
+        validar(categoria);
         validarExiste(categoria.getId());
         try {
             categoriaArticuloDAO.update(categoria);
@@ -65,6 +67,16 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia de la categoria de articulo", e);
+        }
+
+    }
+
+    private void validar(CategoriaArticulo categoria) throws BLException {
+        if (categoria == null) {
+            throw new BLException("La categoria de articulo no puede ser nula");
+        }
+        if (categoria.getNombre() == null || categoria.getNombre().isBlank()) {
+            throw new BLException("El nombre de la categoria es obligatorio");
         }
     }
 }

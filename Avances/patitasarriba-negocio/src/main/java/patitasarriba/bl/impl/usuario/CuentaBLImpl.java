@@ -117,7 +117,7 @@ public class CuentaBLImpl implements CuentaBL {
         if (cuenta.getPassword() == null || cuenta.getPassword().trim().isEmpty()) {
             throw new BLException("La contraseña es obligatoria");
         }
-        if (cuenta.getCorreo() == null || !cuenta.getCorreo().contains("@")) {
+        if (cuenta.getCorreo() == null || !cuenta.getCorreo().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
             throw new BLException("Debe ingresar un correo electrónico válido");
         }
     }

@@ -13,12 +13,15 @@ DELIMITER //
 CREATE PROCEDURE insertar_tratamiento(
 	IN p_nombre_procedimiento VARCHAR(45),
 	IN p_descripcion VARCHAR(200),
+	IN p_activo TINYINT(1),
 	OUT p_id INT)
 BEGIN
 	INSERT INTO TRATAMIENTO (
+		activo,
 		nombre_procedimiento,
 		descripcion)
 	VALUES(
+		p_activo,
 		p_nombre_procedimiento,
 		p_descripcion);
 		
@@ -28,12 +31,14 @@ END //
 CREATE PROCEDURE actualizar_tratamiento(
 	IN p_nombre_procedimiento VARCHAR(45),
 	IN p_descripcion VARCHAR(200),
+	IN p_activo TINYINT(1),
 	IN p_id INT)
 BEGIN
 	UPDATE TRATAMIENTO
 	SET 
 		nombre_procedimiento = p_nombre_procedimiento,
-		descripcion = p_descripcion
+		descripcion = p_descripcion,
+		activo = p_activo
 	WHERE id_tratamiento = p_id;
 END //
 

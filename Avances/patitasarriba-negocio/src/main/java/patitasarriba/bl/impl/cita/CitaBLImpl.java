@@ -35,7 +35,7 @@ public class CitaBLImpl implements CitaBL {
 
     @Override
     public void insert(Cita cita) throws BLException {
-        validarFecha(cita);
+        validar(cita);
         validarEstadoInicial(cita);
 
         TransactionsManager.iniciar();
@@ -50,8 +50,8 @@ public class CitaBLImpl implements CitaBL {
 
     @Override
     public void update(Cita cita) throws BLException {
+        validar(cita);
         validarExiste(cita.getId());
-        validarFecha(cita);
 
         TransactionsManager.iniciar();
         try {
@@ -76,12 +76,32 @@ public class CitaBLImpl implements CitaBL {
     }
 
     private void validarFecha(Cita cita) throws BLException {
+        if (cita == null) {
+            throw new BLException("La cita no puede ser nula");
+        }
+
+        if (cita.getFechaHora() == null) {
+            throw new BLException("La cita debe tener fecha y hora");
+        }
         if (cita.getFechaHora().isBefore(LocalDateTime.now())) {
             throw new BLException("La fecha y hora de la cita no puede ser en el pasado");
         }
     }
 
+    private void validar(Cita cita) throws BLException {
+        validarFecha(cita);
+        if (cita.getMascota() == null || cita.getVeterinario() == null) {
+            throw new BLException("La cita debe tener mascota y veterinario");
+        }
+        if (cita.getDetalles() == null || cita.getDetalles().isEmpty()) {
+            throw new BLException("La cita debe tener al menos un servicio");
+        }
+    }
+
     private void validarEstadoInicial(Cita cita) throws BLException {
+        if (cita == null) {
+            throw new BLException("La cita no puede ser nula");
+        }
         if (cita.getEstado() != EstadoCita.AGENDADA) {
             throw new BLException("Toda cita nueva debe registrarse con estado AGENDADA");
         }

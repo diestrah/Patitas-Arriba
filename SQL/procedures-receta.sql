@@ -20,7 +20,7 @@ BEGIN
         id_atencion_medica,
         fecha_emision,
         indicaciones_generales,
-        estado
+        activo
     )
     VALUES (
         p_id_atencion_medica,
@@ -45,7 +45,7 @@ BEGIN
         id_atencion_medica = p_id_atencion_medica,
         fecha_emision = p_fecha_emision,
         indicaciones_generales = p_indicaciones_generales,
-        estado = p_estado
+        activo = p_estado
     WHERE id_receta = p_id;
 END //
 
