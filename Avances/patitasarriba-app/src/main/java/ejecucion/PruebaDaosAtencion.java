@@ -29,28 +29,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
-// Prueba de extremo a extremo contra la BD real de los DAOs asignados a Leonardo:
-// AtencionMedica, AtencionDiagnostico, AtencionTratamiento, InsumoUtilizado y Diagnostico.
-// Sigue el patron de PruebaConexion.java: clase de ejecucion separada, no toca el
-// demo en memoria de Principal.java.
-//
-// IMPORTANTE sobre los datos de apoyo (Cuenta, Cliente, Veterinario, Mascota, Cita,
-// CategoriaArticulo, Articulo, Tratamiento): son FK obligatorias de ATENCION_MEDICA e
-// INSUMO_UTILIZADO, pero NO son parte de esta tarea. En la BD compartida del equipo
-// (mydb, ver db.properties) todavia no existen sus stored procedures (ni siquiera hay
-// script para insertar_cuenta/insertar_cliente/insertar_veterinario en el repo, y
-// insertar_tratamiento tampoco esta cargado), asi que aqui se siembran con INSERT
-// directo (bypaseando esos DAOs) solo para poder montar la atencion medica de prueba.
-// Lo unico que este archivo prueba de verdad, via sus DAOs y sus procedures reales,
-// es la cadena AtencionMedicaDAOImpl -> AtencionTratamientoDAOImpl/AtencionDiagnosticoDAOImpl
-// (package-private, orquestados internamente) -> InsumoUtilizadoDAOImpl, y DiagnosticoDAOImpl.
-//
-// NOTA sobre AtencionMedicaDAOImpl.findById()/.delete(): ambos reconstruyen Mascota, Cita
-// y Tratamiento llamando a MascotaDAOImpl/CitaDAOImpl/TratamientoDAOImpl.findById(), cuyos
-// procedures (buscar_mascota_por_id, buscar_cita_por_id, buscar_tratamiento_por_id) tampoco
-// estan desplegados todavia en esta BD compartida. Por eso la limpieza de abajo NO depende
-// de AtencionMedicaDAOImpl.delete() para borrar la cascada: usa los ids que ya quedaron en
-// memoria tras el insert (nadie necesita volver a leerlos de la BD).
 public class PruebaDaosAtencion {
 
     public static void main(String[] args) throws SQLException {
