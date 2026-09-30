@@ -89,10 +89,8 @@ public class BoletaBLImpl implements BoletaBL {
         }
     }
 
-    /**
-     * Validaciones de negocio antes de persistir.
-     */
-    private void validar(Boleta boleta) throws BLException {
+    // Valida integridad de boleta, existencia de productos y recálculo de precios.
+    private void validarYCalcular(Boleta boleta) throws BLException {
         if (boleta == null) {
             throw new BLException("La boleta no puede ser nula");
         }
@@ -127,7 +125,7 @@ public class BoletaBLImpl implements BoletaBL {
                 throw new BLException("Cada detalle debe tener un producto");
             }
 
-            double subTotalSeguro = 0.0;
+            double subTotalSeguro;
 
             try {
                 // Enrutamiento polimórfico para búsqueda de producto
@@ -159,17 +157,17 @@ public class BoletaBLImpl implements BoletaBL {
                     throw new BLException("Tipo de producto no reconocido por el sistema");
                 }
 
-                // Actualización segura del subtotal
-                detalle.setSubTotal(subTotalSeguro);
-                totalCalculado += subTotalSeguro;
-
             } catch (SQLException e) {
                 throw new BLException("Error técnico al consultar el catálogo de productos", e);
             }
-            if (detalle.getSubTotal() <= 0) {
+
+            if (subTotalSeguro <= 0) {
                 throw new BLException("El subtotal de cada detalle debe ser mayor a 0");
             }
-            totalCalculado += detalle.getSubTotal();
+
+            // Actualización segura del subtotal
+            detalle.setSubTotal(subTotalSeguro);
+            totalCalculado += subTotalSeguro;
         }
 
         boleta.setTotal(totalCalculado);
