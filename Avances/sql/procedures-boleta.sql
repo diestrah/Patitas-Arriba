@@ -13,7 +13,7 @@ CREATE PROCEDURE insertar_boleta(
     IN p_activo TINYINT(1),
     IN p_fecha DATE,
     IN p_total DECIMAL,
-    IN p_metodo_pago ENUM('Efectivo', 'Tarjeta de credito'),
+    IN p_metodo_pago VARCHAR(45),
     OUT p_id INT
 )
 BEGIN
@@ -40,7 +40,7 @@ CREATE PROCEDURE modificar_boleta(
     IN p_activo TINYINT(1),
     IN p_fecha DATE,
     IN p_total DECIMAL,
-    IN p_metodo_pago ENUM('Efectivo', 'Tarjeta de credito'),
+    IN p_metodo_pago VARCHAR(45),
     IN p_id INT
 )
 BEGIN

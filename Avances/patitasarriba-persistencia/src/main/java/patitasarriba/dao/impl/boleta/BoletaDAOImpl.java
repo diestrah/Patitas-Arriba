@@ -1,5 +1,14 @@
 package patitasarriba.dao.impl.boleta;
 
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+
+import conexion.DBManager;
 import patitasarriba.dao.BoletaDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
@@ -9,16 +18,6 @@ import patitasarriba.modelo.boleta.MetodoPago;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.Servicio;
 import patitasarriba.modelo.usuario.Cliente;
-import conexion.DBManager;
-
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.List;
 
 public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO {
 
@@ -29,9 +28,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
     public List<Boleta> findAll() throws SQLException {
         String sql = "{call listar_boletas()}";
 
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql);
-             ResultSet rs = cmd.executeQuery()) {
+        try (Connection conn = DBManager.getInstance().getConnection(); CallableStatement cmd = conn.prepareCall(sql); ResultSet rs = cmd.executeQuery()) {
 
             List<Boleta> boletas = new ArrayList<>();
             while (rs.next()) {
@@ -45,8 +42,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
     public Boleta findById(Integer id) throws SQLException {
         String sql = "{call buscar_boleta_por_id(?)}";
 
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
+        try (Connection conn = DBManager.getInstance().getConnection(); CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", id);
             try (ResultSet rs = cmd.executeQuery()) {
                 return rs.next() ? mapear(rs, new Boleta()) : null;
@@ -65,7 +61,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
             cmd.setBoolean("p_activo", boleta.isActivo());
             cmd.setDate("p_fecha", java.sql.Date.valueOf(boleta.getFecha()));
             cmd.setDouble("p_total", boleta.getTotal());
-            cmd.setString("p_metodo_pago", mapearMetodoPagoABD(boleta.getMetodoPago()));
+            cmd.setString("p_metodo_pago", boleta.getMetodoPago().name());
             cmd.registerOutParameter("p_id", Types.INTEGER);
 
             if (cmd.executeUpdate() == 0) {
@@ -90,7 +86,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
             cmd.setBoolean("p_activo", boleta.isActivo());
             cmd.setDate("p_fecha", java.sql.Date.valueOf(boleta.getFecha()));
             cmd.setDouble("p_total", boleta.getTotal());
-            cmd.setString("p_metodo_pago", mapearMetodoPagoABD(boleta.getMetodoPago()));
+            cmd.setString("p_metodo_pago", boleta.getMetodoPago().name());
             cmd.setInt("p_id", boleta.getId());
 
             if (cmd.executeUpdate() == 0) {
@@ -124,11 +120,8 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
     // -----------------------------------------------------------------------
     // Métodos privados
     // -----------------------------------------------------------------------
-
-    /**
-     * Enruta la inserción de cada detalle al DAO correcto según el tipo
-     * concreto del Producto (instanceof Articulo o Servicio).
-     */
+    // Enruta la inserción de cada detalle al DAO correcto según el tipo
+    // concreto del Producto (instanceof Articulo o Servicio).
     private void insertarDetallesPorTipo(Boleta boleta) throws SQLException {
         List<DetalleBoleta> detallesArt = new ArrayList<>();
         List<DetalleBoleta> detallesServ = new ArrayList<>();
@@ -149,17 +142,15 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         }
     }
 
-    /**
-     * Mapea un ResultSet de BOLETA a un objeto Boleta.
-     * Fusiona los detalles de ambas tablas (ART + SERV) en una sola lista.
-     */
+    // Mapea un ResultSet de BOLETA a un objeto Boleta.
+    // Fusiona los detalles de ambas tablas (ART + SERV) en una sola lista.
     @Override
     protected Boleta mapear(ResultSet rs, Boleta boleta) throws SQLException {
+        super.mapear(rs, boleta);
         boleta.setId(rs.getInt("ID_BOLETA"));
-        boleta.setActivo(rs.getBoolean("ACTIVO"));
         boleta.setFecha(rs.getDate("FECHA").toLocalDate());
         boleta.setTotal(rs.getDouble("TOTAL"));
-        boleta.setMetodoPago(mapearMetodoPagoDesdeDB(rs.getString("METODO_PAGO")));
+        boleta.setMetodoPago(MetodoPago.valueOf(rs.getString("METODO_PAGO")));
 
         // Mapear cliente (solo con id)
         Cliente cliente = new Cliente();
@@ -173,33 +164,5 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         boleta.setDetalles(todosLosDetalles);
 
         return boleta;
-    }
-
-    /**
-     * Convierte el enum MetodoPago de Java al valor del ENUM de MySQL.
-     */
-    private String mapearMetodoPagoABD(MetodoPago metodoPago) {
-        switch (metodoPago) {
-            case EFECTIVO:
-                return "Efectivo";
-            case TARJETA_DE_CREDITO:
-                return "Tarjeta de credito";
-            default:
-                return "Efectivo";
-        }
-    }
-
-    /**
-     * Convierte el valor del ENUM de MySQL al enum MetodoPago de Java.
-     */
-    private MetodoPago mapearMetodoPagoDesdeDB(String valor) {
-        switch (valor) {
-            case "Efectivo":
-                return MetodoPago.EFECTIVO;
-            case "Tarjeta de credito":
-                return MetodoPago.TARJETA_DE_CREDITO;
-            default:
-                return MetodoPago.EFECTIVO;
-        }
     }
 }
