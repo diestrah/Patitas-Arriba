@@ -31,6 +31,16 @@ class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
         }
     }
 
+    // Borra todos los detalles de una cita (hijos antes que padre, dentro de
+    // la misma transaccion) — la FK se mantiene en NO ACTION a proposito.
+    void deleteDetalles(Connection conn, int idCita) throws SQLException {
+        String sql = "{call eliminar_detalles_por_cita(?)}";
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setInt("p_id_cita", idCita);
+            cmd.executeUpdate();
+        }
+    }
+
     List<DetalleCita> listarPorCita(Connection conn, int idCita) throws SQLException {
         String sql = "{call listar_detalle_cita_por_cita(?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {

@@ -4,11 +4,11 @@ import conexion.DBManager;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
+import patitasarriba.dao.impl.usuario.VeterinarioDAOImpl;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.cita.EstadoCita;
-import patitasarriba.modelo.mascota.Mascota;
-import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -110,15 +110,21 @@ public class CitaDAOImpl extends RegistroDAOImpl<Cita> implements CitaDAO {
         }
     }
 
+    // Borra en 2 tablas (detalle_cita + cita) de forma atomica: requiere que la
+    // capa de negocio ya haya llamado TransactionsManager.iniciar() antes de esto.
     @Override
     public void delete(Integer id) throws SQLException {
         if (id == null) {
             throw new IllegalArgumentException("El id no puede ser nulo");
         }
 
+        Connection conn = TransactionsManager.getConnection();
+
+        // Primero eliminar los detalles (hijos antes que padre)
+        detalleCitaDAO.deleteDetalles(conn, id);
+
         String sql = "{call eliminar_cita(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", id);
 
             if (cmd.executeUpdate() == 0) {
@@ -134,15 +140,8 @@ public class CitaDAOImpl extends RegistroDAOImpl<Cita> implements CitaDAO {
         cita.setFechaHora(rs.getTimestamp("fecha_hora").toLocalDateTime());
         cita.setEstado(EstadoCita.valueOf(rs.getString("estado")));
 
-        // Mascota y Veterinario no son parte de este modulo: se dejan con solo el id
-        // hasta que existan MascotaDAOImpl / VeterinarioDAOImpl
-        Mascota mascota = new Mascota();
-        mascota.setId(rs.getInt("id_mascota"));
-        cita.setMascota(mascota);
-
-        Veterinario veterinario = new Veterinario();
-        veterinario.setId(rs.getInt("id_veterinario"));
-        cita.setVeterinario(veterinario);
+        cita.setMascota(new MascotaDAOImpl().findById(rs.getInt("id_mascota")));
+        cita.setVeterinario(new VeterinarioDAOImpl().findById(rs.getInt("id_veterinario")));
 
         return cita;
     }
