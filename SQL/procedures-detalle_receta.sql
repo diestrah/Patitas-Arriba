@@ -20,7 +20,7 @@ CREATE PROCEDURE insertar_detalle_receta (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO detalle_receta (
+    INSERT INTO DETALLE_RECETA (
         id_receta,
         id_articulo,
         dosis,
@@ -50,7 +50,7 @@ CREATE PROCEDURE modificar_detalle_receta (
     IN p_id INT
 )
 BEGIN
-    UPDATE detalle_receta 
+    UPDATE DETALLE_RECETA
     SET 
         id_receta = p_id_receta,
         id_articulo = p_id_articulo,
@@ -63,33 +63,33 @@ END //
 
 CREATE PROCEDURE eliminar_detalle_receta(IN p_id INT)
 BEGIN
-    DELETE FROM detalle_receta
+    DELETE FROM DETALLE_RECETA
     WHERE id_detalle_receta = p_id;
 END //
 
 CREATE PROCEDURE buscar_detalle_receta_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM detalle_receta
+    FROM DETALLE_RECETA
     WHERE id_detalle_receta = p_id;
 END //
 
 CREATE PROCEDURE listar_detalles_receta()
 BEGIN
     SELECT *
-    FROM detalle_receta;
+    FROM DETALLE_RECETA;
 END //
 
 CREATE PROCEDURE listar_detalles_por_receta(IN p_id_receta INT)
 BEGIN
     SELECT *
-    FROM detalle_receta
+    FROM DETALLE_RECETA
     WHERE id_receta = p_id_receta;
 END //
 
 CREATE PROCEDURE eliminar_detalles_por_receta(IN p_id_receta INT)
 BEGIN
-    DELETE FROM detalle_receta
+    DELETE FROM DETALLE_RECETA
     WHERE id_receta = p_id_receta;
 END //
 

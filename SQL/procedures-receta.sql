@@ -16,7 +16,7 @@ CREATE PROCEDURE insertar_receta(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO receta (
+    INSERT INTO RECETA(
         id_atencion_medica,
         fecha_emision,
         indicaciones_generales,
@@ -40,7 +40,7 @@ CREATE PROCEDURE modificar_receta(
     IN p_id INT
 )
 BEGIN
-    UPDATE receta
+    UPDATE RECETA
     SET 
         id_atencion_medica = p_id_atencion_medica,
         fecha_emision = p_fecha_emision,
@@ -51,19 +51,19 @@ END //
 
 CREATE PROCEDURE eliminar_receta(IN p_id INT)
 BEGIN
-    DELETE FROM receta
+    DELETE FROM RECETA
     WHERE id_receta = p_id;
 END //
 
 CREATE PROCEDURE buscar_receta_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM receta
+    FROM RECETA
     WHERE id_receta = p_id;
 END //
 
 CREATE PROCEDURE listar_recetas()
 BEGIN
     SELECT *
-    FROM receta;
+    FROM RECETA;
 END //

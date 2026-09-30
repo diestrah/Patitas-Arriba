@@ -21,7 +21,7 @@ CREATE PROCEDURE insertar_mascota(
     IN p_activo BOOLEAN,
     OUT p_id INT)
 BEGIN
-    INSERT INTO mascota (
+    INSERT INTO MASCOTA (
         id_cliente,
         nombre,
         sexo,
@@ -54,7 +54,7 @@ CREATE PROCEDURE modificar_mascota(
     IN p_activo BOOLEAN,
     IN p_id INT)
 BEGIN
-    UPDATE mascota
+    UPDATE MASCOTA
     SET
         id_cliente = p_id_cliente,
         nombre = p_nombre,
@@ -69,32 +69,32 @@ END //
 
 CREATE PROCEDURE eliminar_mascota(IN p_id INT)
 BEGIN
-    DELETE FROM mascota WHERE id_mascota = p_id;
+    DELETE FROM MASCOTA WHERE id_mascota = p_id;
 END //
 
 CREATE PROCEDURE buscar_mascota_por_id(IN p_id INT)
 BEGIN
-    SELECT * FROM mascota WHERE id_mascota = p_id;
+    SELECT * FROM MASCOTA WHERE id_mascota = p_id;
 END //
 
 CREATE PROCEDURE buscar_mascota_por_nombre(IN p_nombre VARCHAR(45))
 BEGIN
-    SELECT * FROM mascota WHERE nombre = p_nombre;
+    SELECT * FROM MASCOTA WHERE nombre = p_nombre;
 END //
 
 CREATE PROCEDURE listar_mascotas()
 BEGIN
-    SELECT * FROM mascota;
+    SELECT * FROM MASCOTA;
 END //
 
 CREATE PROCEDURE listar_mascotas_por_cliente(IN p_id_cliente INT)
 BEGIN
-    SELECT * FROM mascota WHERE id_cliente = p_id_cliente;
+    SELECT * FROM MASCOTA WHERE id_cliente = p_id_cliente;
 END //
 
 CREATE PROCEDURE eliminar_mascotas_por_cliente(IN p_id_cliente INT)
 BEGIN
-    DELETE FROM mascota WHERE id_cliente = p_id_cliente;
+    DELETE FROM MASCOTA WHERE id_cliente = p_id_cliente;
 END //
 
 DELIMITER ;

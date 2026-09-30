@@ -20,7 +20,7 @@ CREATE PROCEDURE insertar_servicio (
     IN p_requiere_vacuna TINYINT(1),
     OUT p_id INT)
 BEGIN
-    INSERT INTO servicio (
+    INSERT INTO SERVICIO (
         nombre,
         precio_base,
         descripcion,
@@ -54,7 +54,7 @@ CREATE PROCEDURE modificar_servicio(
     IN p_id INT
 )
 BEGIN
-    UPDATE servicio
+    UPDATE SERVICIO
     SET 
         nombre = p_nombre,
         precio_base = p_precio_base,
@@ -69,26 +69,26 @@ END //
 
 CREATE PROCEDURE eliminar_servicio(IN p_id INT)
 BEGIN
-    DELETE FROM servicio 
+    DELETE FROM SERVICIO
     WHERE id_servicio = p_id;
 END //
 
 CREATE PROCEDURE buscar_servicio_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM servicio 
+    FROM SERVICIO
     WHERE id_servicio = p_id;
 END //
 
 CREATE PROCEDURE buscar_servicio_por_nombre(IN p_nombre VARCHAR(45))
 BEGIN
     SELECT *
-    FROM servicio
+    FROM SERVICIO
     WHERE nombre = p_nombre;
 END //
 
 CREATE PROCEDURE listar_servicios()
 BEGIN
     SELECT *
-    FROM servicio;
+    FROM SERVICIO;
 END //
