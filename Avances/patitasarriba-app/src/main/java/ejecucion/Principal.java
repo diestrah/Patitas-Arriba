@@ -50,24 +50,23 @@ public class Principal {
         Tratamiento tratamientoAntibiotico = new Tratamiento(1, true, "Aplicacion de antibiotico", "Inyeccion IM");
         Diagnostico diagnosticoOtitis = new Diagnostico(1, true, "Otitis", "Infeccion en el oido");
 
-        // Se abre la consulta, sin diagnostico/tratamiento/receta aun
+        // Se abre la consulta, sin diagnostico/tratamiento aun
         AtencionMedica atencion1 = new AtencionMedica(1, true, LocalDateTime.of(2026, 9, 15, 10, 30),
-                "Dolor en el oido", 8.5, "Revision en curso", vet1, null, new ArrayList<>(), new ArrayList<>());
+                "Dolor en el oido", 8.5, "Revision en curso", firulais, cita1, new ArrayList<>(), new ArrayList<>());
 
         // Se decide el tratamiento, sin insumos aun
         AtencionTratamiento aplicacionAntibiotico = atencion1.agregarTratamiento(1, true, tratamientoAntibiotico);
         // Se registra el insumo usado (relacion N a N)
-        aplicacionAntibiotico.agregarInsumo(1, true, amoxicilina, 14, "comprimidos");
+        aplicacionAntibiotico.agregarInsumo(1, true, amoxicilina, 14);
 
         // Se registra el diagnostico de esta consulta
         atencion1.agregarDiagnostico(1, true, NivelGravedad.LEVE, "Otitis en oido derecho", diagnosticoOtitis);
 
-        // Al terminar, se emite la receta, sin medicamentos aun
+        // Al terminar, se emite la receta, sin medicamentos aun (la receta es quien
+        // referencia a la atencion medica, no al reves)
         Receta receta1 = new Receta(1, true, LocalDate.of(2026, 9, 15), "Administrar con alimento", new ArrayList<>(), atencion1);
         // Se agrega el medicamento recetado
         receta1.agregarDetalle(1, true, "1 comprimido", "Cada 12 horas", 7, 14, amoxicilina);
-        // Se vincula la receta a la consulta
-        atencion1.setReceta(receta1);
 
         // Se registra la consulta en el historial de la mascota
 //        firulais.agregarAtencionMedica(atencion1);

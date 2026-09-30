@@ -1,8 +1,8 @@
 package patitasarriba.modelo.atencion;
 
 import patitasarriba.modelo.Registro;
-import patitasarriba.modelo.usuario.Veterinario;
-import patitasarriba.modelo.receta.Receta;
+import patitasarriba.modelo.mascota.Mascota;
+import patitasarriba.modelo.cita.Cita;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,8 +14,8 @@ public class AtencionMedica extends Registro {
     private String motivoConsulta;
     private double pesoFisico;
     private String observaciones;
-    private Veterinario veterinario;
-    private Receta receta;
+    private Mascota mascota;
+    private Cita cita;
     private List<AtencionTratamiento> tratamientos;
     private List<AtencionDiagnostico> diagnosticos;
 
@@ -24,14 +24,14 @@ public class AtencionMedica extends Registro {
         this.diagnosticos = new ArrayList<>();
     }
 
-    public AtencionMedica(int id, boolean activo, LocalDateTime fechaHora, String motivoConsulta, double pesoFisico, String observaciones, Veterinario veterinario, Receta receta, List<AtencionTratamiento> tratamientos, List<AtencionDiagnostico> diagnosticos) {
+    public AtencionMedica(int id, boolean activo, LocalDateTime fechaHora, String motivoConsulta, double pesoFisico, String observaciones, Mascota mascota, Cita cita, List<AtencionTratamiento> tratamientos, List<AtencionDiagnostico> diagnosticos) {
         super(id, activo);
         setFechaHora(fechaHora);
         setMotivoConsulta(motivoConsulta);
         setPesoFisico(pesoFisico);
         setObservaciones(observaciones);
-        setVeterinario(veterinario);
-        setReceta(receta);
+        setMascota(mascota);
+        setCita(cita);
         setTratamientos(tratamientos);
         setDiagnosticos(diagnosticos);
     }
@@ -46,8 +46,8 @@ public class AtencionMedica extends Registro {
         setMotivoConsulta(atencionMedica.getMotivoConsulta());
         setPesoFisico(atencionMedica.getPesoFisico());
         setObservaciones(atencionMedica.getObservaciones());
-        setVeterinario(atencionMedica.getVeterinario());
-        setReceta(atencionMedica.getReceta());
+        setMascota(atencionMedica.getMascota());
+        setCita(atencionMedica.getCita());
         setTratamientos(atencionMedica.getTratamientos());
         setDiagnosticos(atencionMedica.getDiagnosticos());
     }
@@ -92,24 +92,26 @@ public class AtencionMedica extends Registro {
         this.observaciones = observaciones;
     }
 
-    public Veterinario getVeterinario() {
-        return veterinario;
+    public Mascota getMascota() {
+        return mascota;
     }
 
-    public void setVeterinario(Veterinario veterinario) {
-        if (veterinario == null) {
-            throw new IllegalArgumentException("veterinario no puede ser nulo");
+    public void setMascota(Mascota mascota) {
+        if (mascota == null) {
+            throw new IllegalArgumentException("mascota no puede ser nula");
         }
-        this.veterinario = veterinario;
+        this.mascota = mascota;
     }
 
-    public Receta getReceta() {
-        return receta;
+    public Cita getCita() {
+        return cita;
     }
 
-    public void setReceta(Receta receta) {
-        // receta es opcional: se asigna recien cuando termina la consulta
-        this.receta = receta;
+    public void setCita(Cita cita) {
+        if (cita == null) {
+            throw new IllegalArgumentException("cita no puede ser nula");
+        }
+        this.cita = cita;
     }
 
     public List<AtencionTratamiento> getTratamientos() {
@@ -147,21 +149,14 @@ public class AtencionMedica extends Registro {
 
     @Override
     public String toString() {
-        String dniVeterinario = null;
-        if (veterinario != null) {
-            dniVeterinario = veterinario.getDni();
+        String nombreMascota = null;
+        if (mascota != null) {
+            nombreMascota = mascota.getNombre();
         }
 
-        int idReceta = -1;
-        if (receta != null) {
-            idReceta = receta.getId();
-        }
-
-        String textoReceta;
-        if (idReceta == -1) {
-            textoReceta = "ninguna";
-        } else {
-            textoReceta = String.valueOf(idReceta);
+        int idCita = -1;
+        if (cita != null) {
+            idCita = cita.getId();
         }
 
         return "AtencionMedica{" +
@@ -170,8 +165,8 @@ public class AtencionMedica extends Registro {
                 ", motivoConsulta='" + motivoConsulta + "'" +
                 ", pesoFisico=" + pesoFisico +
                 ", observaciones='" + observaciones + "'" +
-                ", veterinario=" + dniVeterinario +
-                ", receta=" + textoReceta +
+                ", mascota=" + nombreMascota +
+                ", cita=" + idCita +
                 ", tratamientos=" + tratamientos +
                 ", diagnosticos=" + diagnosticos +
                 '}';

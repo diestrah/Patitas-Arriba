@@ -20,13 +20,12 @@ class InsumoUtilizadoDAOImpl extends RegistroDAOImpl<InsumoUtilizado> implements
     public void insertInsumos(int idAtencionTratamiento, List<InsumoUtilizado> insumos) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call insertar_insumo_utilizado(?, ?, ?, ?, ?, ?)}";
+        String sql = "{call insertar_insumo_utilizado(?, ?, ?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             for (InsumoUtilizado insumo : insumos) {
                 cmd.setInt("p_id_atencion_tratamiento", idAtencionTratamiento);
                 cmd.setInt("p_id_articulo", insumo.getArticulo().getId());
                 cmd.setInt("p_cantidad_utilizada", insumo.getCantidadUtilizada());
-                cmd.setString("p_unidad_medida", insumo.getUnidadMedida());
                 cmd.setBoolean("p_activo", insumo.isActivo());
                 cmd.registerOutParameter("p_id", Types.INTEGER);
 
@@ -72,10 +71,6 @@ class InsumoUtilizadoDAOImpl extends RegistroDAOImpl<InsumoUtilizado> implements
         super.mapear(rs, insumo);
         insumo.setId(rs.getInt("id_insumo_utilizado"));
         insumo.setCantidadUtilizada(rs.getInt("cantidad_utilizada"));
-
-        // unidad_medida no esta en el script SQL actual de INSUMO_UTILIZADO,
-        // pero el modelo la requiere: se asume que la columna existira
-        insumo.setUnidadMedida(rs.getString("unidad_medida"));
 
         // Articulo se carga completo porque ya existe ArticuloDAOImpl
         insumo.setArticulo(new ArticuloDAOImpl().findById(rs.getInt("id_articulo")));

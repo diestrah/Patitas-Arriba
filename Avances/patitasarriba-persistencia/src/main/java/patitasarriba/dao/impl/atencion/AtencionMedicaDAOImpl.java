@@ -3,9 +3,10 @@ package patitasarriba.dao.impl.atencion;
 import conexion.DBManager;
 import patitasarriba.dao.AtencionMedicaDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
+import patitasarriba.dao.impl.cita.CitaDAOImpl;
+import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.AtencionMedica;
-import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
@@ -64,14 +65,15 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call insertar_atencion_medica(?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call insertar_atencion_medica(?, ?, ?, ?, ?, ?, ?, ?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_veterinario", atencionMedica.getVeterinario().getId());
             cmd.setObject("p_fecha_hora", atencionMedica.getFechaHora());
             cmd.setString("p_motivo_consulta", atencionMedica.getMotivoConsulta());
             cmd.setDouble("p_peso_fisico", atencionMedica.getPesoFisico());
             cmd.setString("p_observaciones", atencionMedica.getObservaciones());
+            cmd.setInt("p_id_mascota", atencionMedica.getMascota().getId());
+            cmd.setInt("p_id_cita_medica", atencionMedica.getCita().getId());
             cmd.setBoolean("p_activo", atencionMedica.isActivo());
             cmd.registerOutParameter("p_id", Types.INTEGER);
 
@@ -94,14 +96,15 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call actualizar_atencion_medica(?, ?, ?, ?, ?, ?, ?)}";
+        String sql = "{call actualizar_atencion_medica(?, ?, ?, ?, ?, ?, ?, ?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_veterinario", atencionMedica.getVeterinario().getId());
             cmd.setObject("p_fecha_hora", atencionMedica.getFechaHora());
             cmd.setString("p_motivo_consulta", atencionMedica.getMotivoConsulta());
             cmd.setDouble("p_peso_fisico", atencionMedica.getPesoFisico());
             cmd.setString("p_observaciones", atencionMedica.getObservaciones());
+            cmd.setInt("p_id_mascota", atencionMedica.getMascota().getId());
+            cmd.setInt("p_id_cita_medica", atencionMedica.getCita().getId());
             cmd.setBoolean("p_activo", atencionMedica.isActivo());
             cmd.setInt("p_id", atencionMedica.getId());
 
@@ -148,12 +151,9 @@ public class AtencionMedicaDAOImpl extends RegistroDAOImpl<AtencionMedica> imple
         atencionMedica.setPesoFisico(rs.getDouble("peso_fisico"));
         atencionMedica.setObservaciones(rs.getString("observaciones"));
 
-        // Veterinario no es parte de este modulo (no existe VeterinarioDAOImpl), asi
-        // que se carga solo con el id; se asume la columna id_veterinario en
-        // ATENCION_MEDICA porque el modelo la requiere.
-        Veterinario veterinario = new Veterinario();
-        veterinario.setId(rs.getInt("id_veterinario"));
-        atencionMedica.setVeterinario(veterinario);
+        // Mascota y Cita se cargan completas porque ya existen MascotaDAOImpl y CitaDAOImpl
+        atencionMedica.setMascota(new MascotaDAOImpl().findById(rs.getInt("id_mascota")));
+        atencionMedica.setCita(new CitaDAOImpl().findById(rs.getInt("id_cita_medica")));
 
         atencionMedica.setTratamientos(atencionTratamientoDAO.findByAtencionMedicaId(atencionMedica.getId()));
         atencionMedica.setDiagnosticos(atencionDiagnosticoDAO.findByAtencionMedicaId(atencionMedica.getId()));

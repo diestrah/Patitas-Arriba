@@ -54,8 +54,8 @@ public class AtencionTratamiento extends Registro {
         this.insumosUtilizados = new ArrayList<>(insumosUtilizados);
     }
 
-    public void agregarInsumo(int idInsumo, boolean activo, Articulo articulo, int cantidadUtilizada, String unidadMedida) {
-        insumosUtilizados.add(new InsumoUtilizado(idInsumo, activo, articulo, cantidadUtilizada, unidadMedida));
+    public void agregarInsumo(int idInsumo, boolean activo, Articulo articulo, int cantidadUtilizada) {
+        insumosUtilizados.add(new InsumoUtilizado(idInsumo, activo, articulo, cantidadUtilizada));
     }
 
     @Override

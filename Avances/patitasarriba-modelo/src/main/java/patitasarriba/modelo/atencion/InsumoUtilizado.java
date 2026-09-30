@@ -6,16 +6,14 @@ import patitasarriba.modelo.producto.Articulo;
 public class InsumoUtilizado extends Registro {
     private Articulo articulo;
     private int cantidadUtilizada;
-    private String unidadMedida;
 
     public InsumoUtilizado() {
     }
 
-    public InsumoUtilizado(int id, boolean activo, Articulo articulo, int cantidadUtilizada, String unidadMedida) {
+    public InsumoUtilizado(int id, boolean activo, Articulo articulo, int cantidadUtilizada) {
         super(id, activo);
         setArticulo(articulo);
         setCantidadUtilizada(cantidadUtilizada);
-        setUnidadMedida(unidadMedida);
     }
 
     // Constructor de copia
@@ -26,7 +24,6 @@ public class InsumoUtilizado extends Registro {
         super(insumoUtilizado);
         setArticulo(insumoUtilizado.getArticulo());
         setCantidadUtilizada(insumoUtilizado.getCantidadUtilizada());
-        setUnidadMedida(insumoUtilizado.getUnidadMedida());
     }
 
     // Getters y Setters
@@ -52,17 +49,6 @@ public class InsumoUtilizado extends Registro {
         this.cantidadUtilizada = cantidadUtilizada;
     }
 
-    public String getUnidadMedida() {
-        return unidadMedida;
-    }
-
-    public void setUnidadMedida(String unidadMedida) {
-        if (unidadMedida == null || unidadMedida.isEmpty()) {
-            throw new IllegalArgumentException("unidadMedida no puede ser nulo o vacío");
-        }
-        this.unidadMedida = unidadMedida;
-    }
-
     @Override
     public String toString() {
         String nombreArticulo = null;
@@ -74,7 +60,6 @@ public class InsumoUtilizado extends Registro {
                 super.toString() +
                 "articulo=" + nombreArticulo +
                 ", cantidadUtilizada=" + cantidadUtilizada +
-                ", unidadMedida='" + unidadMedida + "'" +
                 '}';
     }
 }
