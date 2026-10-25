@@ -51,7 +51,8 @@ END //
 
 CREATE PROCEDURE eliminar_receta(IN p_id INT)
 BEGIN
-    DELETE FROM RECETA
+    UPDATE RECETA
+	SET activo = 0
     WHERE id_receta = p_id;
 END //
 
