@@ -3,7 +3,8 @@ package patitasarriba.modelo;
 // Padre de todas las clases abstractas y de las clases concretas sin padre.
 // Solo guarda el estado logico del registro (borrado logico): cada clase define su propio id.
 public abstract class Registro {
-    private boolean activo;
+    // Por defecto activo, igual que la columna activo (DEFAULT 1) de la base
+    private boolean activo = true;
 
     public Registro() {
     }
