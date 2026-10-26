@@ -1,4 +1,4 @@
-use mydb;
+use patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_tratamiento;
 DROP PROCEDURE IF EXISTS actualizar_tratamiento;

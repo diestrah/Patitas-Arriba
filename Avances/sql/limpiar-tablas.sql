@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 SET FOREIGN_KEY_CHECKS = 0;
 
 TRUNCATE TABLE insumo_utilizado;

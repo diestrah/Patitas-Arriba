@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_cliente;
 DROP PROCEDURE IF EXISTS modificar_cliente;

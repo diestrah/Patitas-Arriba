@@ -1,4 +1,4 @@
-use mydb;
+use patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_horario_administrador;
 DROP PROCEDURE IF EXISTS modificar_horario_administrador;

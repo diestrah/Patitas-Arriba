@@ -1,5 +1,7 @@
 -- Procedimientos CRUD para patitasarriba.modelo.producto.Articulo
-use mydb;
+-- Las categorias del articulo se manejan en procedures-articulo_categoria.sql
+
+use patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_articulo;
 DROP PROCEDURE IF EXISTS modificar_articulo;
@@ -17,18 +19,16 @@ CREATE PROCEDURE insertar_articulo (
     IN p_activo TINYINT(1),
     IN p_stock_actual INT,
     IN p_stock_minimo INT,
-    IN p_marca VARCHAR(45),
-    IN p_id_categoria_articulo INT,
     OUT p_id INT
 )
 BEGIN
     INSERT INTO articulo (
         nombre, precio_base, descripcion, activo,
-        stock_actual, stock_minimo, marca, id_categoria_articulo
+        stock_actual, stock_minimo
     )
     VALUES (
         p_nombre, p_precio_base, p_descripcion, p_activo,
-        p_stock_actual, p_stock_minimo, p_marca, p_id_categoria_articulo
+        p_stock_actual, p_stock_minimo
     );
 
     SET p_id = LAST_INSERT_ID();
@@ -42,9 +42,7 @@ CREATE PROCEDURE modificar_articulo (
     IN p_descripcion VARCHAR(200),
     IN p_activo TINYINT(1),
     IN p_stock_actual INT,
-    IN p_stock_minimo INT,
-    IN p_marca VARCHAR(45),
-    IN p_id_categoria_articulo INT
+    IN p_stock_minimo INT
 )
 BEGIN
     UPDATE articulo
@@ -53,26 +51,28 @@ BEGIN
         descripcion = p_descripcion,
         activo = p_activo,
         stock_actual = p_stock_actual,
-        stock_minimo = p_stock_minimo,
-        marca = p_marca,
-        id_categoria_articulo = p_id_categoria_articulo
+        stock_minimo = p_stock_minimo
     WHERE id_articulo = p_id;
 END //
 
+-- Borrado logico: el articulo queda inactivo
 CREATE PROCEDURE eliminar_articulo (IN p_id INT)
 BEGIN
-    DELETE FROM articulo
+    UPDATE articulo
+    SET activo = 0
     WHERE id_articulo = p_id;
 END //
 
+-- Solo devuelve el articulo si esta activo
 CREATE PROCEDURE buscar_articulo_por_id (IN p_id INT)
 BEGIN
     SELECT *
     FROM articulo
-    WHERE id_articulo = p_id;
+    WHERE id_articulo = p_id
+      AND activo = 1;
 END //
 
--- Solo lista los articulos activos (respeta el borrado suave)
+-- Solo lista los articulos activos (respeta el borrado logico)
 CREATE PROCEDURE listar_articulo ()
 BEGIN
     SELECT *

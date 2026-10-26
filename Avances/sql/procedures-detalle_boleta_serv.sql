@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_detalle_boleta_serv;
 DROP PROCEDURE IF EXISTS modificar_detalle_boleta_serv;

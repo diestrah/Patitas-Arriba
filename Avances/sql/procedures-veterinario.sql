@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_veterinario;
 DROP PROCEDURE IF EXISTS modificar_veterinario;

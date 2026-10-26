@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_horario_veterinario;
 DROP PROCEDURE IF EXISTS modificar_horario_veterinario;

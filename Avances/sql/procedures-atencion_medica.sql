@@ -1,4 +1,4 @@
-USE mydb;
+USE patitasarriba;
 
 DROP PROCEDURE IF EXISTS insertar_atencion_medica;
 DROP PROCEDURE IF EXISTS actualizar_atencion_medica;
