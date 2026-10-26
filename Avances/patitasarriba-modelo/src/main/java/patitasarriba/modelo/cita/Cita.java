@@ -24,6 +24,7 @@ public class Cita extends Registro {
         this.detalles = new ArrayList<>();
     }
 
+
     public Cita(int idCita, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean esEmergencia, List<DetalleCita> detalles) {
         super(activo);
         setIdCita(idCita);
@@ -46,7 +47,9 @@ public class Cita extends Registro {
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
         setAdministrador(cita.getAdministrador());
+
         setEsEmergencia(cita.isEsEmergencia());
+
         setDetalles(cita.getDetalles());
     }
 
