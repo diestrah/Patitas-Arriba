@@ -3,7 +3,6 @@ package patitasarriba.dao.impl.atencion;
 import conexion.DBManager;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
-import patitasarriba.modelo.atencion.AtencionTratamiento;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;

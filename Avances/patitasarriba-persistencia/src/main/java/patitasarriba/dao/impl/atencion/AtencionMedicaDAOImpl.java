@@ -6,7 +6,6 @@ import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
 import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
-import patitasarriba.modelo.atencion.AtencionMedica;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;

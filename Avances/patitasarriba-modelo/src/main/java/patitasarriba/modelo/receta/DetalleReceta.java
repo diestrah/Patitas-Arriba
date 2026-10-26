@@ -4,46 +4,90 @@ import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.producto.Articulo;
 
 public class DetalleReceta extends Registro {
+    private int idDetalleReceta;
+    private Receta receta;
+    private Articulo articulo;
     private String dosis;
     private String frecuencia;
     private int duracionDias;
     private int cantidadTotal;
-    private Articulo producto;
 
     public DetalleReceta() {
-        // Constructor vacío
     }
 
-    public DetalleReceta(int id, boolean activo, String dosis, String frecuencia, int duracionDias, int cantidadTotal, Articulo producto) {
-        super(id, activo);
+    public DetalleReceta(int idDetalleReceta, boolean activo, Receta receta, Articulo articulo, String dosis,
+                         String frecuencia, int duracionDias, int cantidadTotal) {
+        super(activo);
+        setIdDetalleReceta(idDetalleReceta);
+        setReceta(receta);
+        setArticulo(articulo);
         setDosis(dosis);
         setFrecuencia(frecuencia);
         setDuracionDias(duracionDias);
         setCantidadTotal(cantidadTotal);
-        setProducto(producto);
     }
 
     // Constructor de copia
     public DetalleReceta(final DetalleReceta detalleReceta) {
         if (detalleReceta == null) {
-            throw new IllegalArgumentException("DetalleReceta no puede ser nulo");
+            throw new IllegalArgumentException("detalleReceta no puede ser nulo");
         }
         super(detalleReceta);
+        setIdDetalleReceta(detalleReceta.getIdDetalleReceta());
+        setReceta(detalleReceta.getReceta());
+        setArticulo(detalleReceta.getArticulo());
         setDosis(detalleReceta.getDosis());
         setFrecuencia(detalleReceta.getFrecuencia());
         setDuracionDias(detalleReceta.getDuracionDias());
         setCantidadTotal(detalleReceta.getCantidadTotal());
-        setProducto(detalleReceta.getProducto());
     }
 
     // Getters y Setters
+    public int getIdDetalleReceta() {
+        return idDetalleReceta;
+    }
+
+    public void setIdDetalleReceta(int idDetalleReceta) {
+        if (idDetalleReceta < 0) {
+            throw new IllegalArgumentException("idDetalleReceta no puede ser negativo");
+        }
+        this.idDetalleReceta = idDetalleReceta;
+    }
+
+    // receta es el contenedor del detalle (composicion): se guarda la referencia, no una copia,
+    // para que el detalle siga apuntando a la misma receta que lo contiene
+    public Receta getReceta() {
+        return receta;
+    }
+
+    public void setReceta(Receta receta) {
+        if (receta == null) {
+            throw new IllegalArgumentException("receta no puede ser nula");
+        }
+        this.receta = receta;
+    }
+
+    public Articulo getArticulo() {
+        if (articulo == null) {
+            return null;
+        }
+        return new Articulo(articulo);
+    }
+
+    public void setArticulo(Articulo articulo) {
+        if (articulo == null) {
+            throw new IllegalArgumentException("articulo no puede ser nulo");
+        }
+        this.articulo = new Articulo(articulo);
+    }
+
     public String getDosis() {
         return dosis;
     }
 
     public void setDosis(String dosis) {
-        if (dosis == null || dosis.isEmpty()) {
-            throw new IllegalArgumentException("dosis no puede ser nulo o vacío");
+        if (dosis == null || dosis.isBlank()) {
+            throw new IllegalArgumentException("dosis no puede ser nula o vacía");
         }
         this.dosis = dosis;
     }
@@ -53,8 +97,8 @@ public class DetalleReceta extends Registro {
     }
 
     public void setFrecuencia(String frecuencia) {
-        if (frecuencia == null || frecuencia.isEmpty()) {
-            throw new IllegalArgumentException("frecuencia no puede ser nulo o vacío");
+        if (frecuencia == null || frecuencia.isBlank()) {
+            throw new IllegalArgumentException("frecuencia no puede ser nula o vacía");
         }
         this.frecuencia = frecuencia;
     }
@@ -81,26 +125,27 @@ public class DetalleReceta extends Registro {
         this.cantidadTotal = cantidadTotal;
     }
 
-    public Articulo getProducto() {
-        return producto;
-    }
-
-    public void setProducto(Articulo producto) {
-        if (producto == null) {
-            throw new IllegalArgumentException("producto no puede ser nulo");
-        }
-        this.producto = producto;
-    }
-
     @Override
     public String toString() {
+        int idReceta = -1;
+        if (receta != null) {
+            idReceta = receta.getIdReceta();
+        }
+
+        String nombreArticulo = null;
+        if (articulo != null) {
+            nombreArticulo = articulo.getNombre();
+        }
+
         return "DetalleReceta{" +
-                super.toString() +
+                "idDetalleReceta=" + idDetalleReceta +
+                ", " + super.toString() +
+                ", receta=" + idReceta +
+                ", articulo=" + nombreArticulo +
                 ", dosis='" + dosis + '\'' +
                 ", frecuencia='" + frecuencia + '\'' +
                 ", duracionDias=" + duracionDias +
                 ", cantidadTotal=" + cantidadTotal +
-                ", producto=" + producto +
                 '}';
     }
 }

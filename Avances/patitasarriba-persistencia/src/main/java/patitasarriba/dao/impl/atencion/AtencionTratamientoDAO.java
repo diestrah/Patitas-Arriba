@@ -1,7 +1,5 @@
 package patitasarriba.dao.impl.atencion;
 
-import patitasarriba.modelo.atencion.AtencionTratamiento;
-
 import java.sql.SQLException;
 import java.util.List;
 

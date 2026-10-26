@@ -12,24 +12,27 @@ import java.util.Collections;
 import java.util.List;
 
 public class Cita extends Registro {
+    private int idCita;
     private LocalDateTime fechaHora;
     private EstadoCita estado;
     private Mascota mascota;
     private Administrador administrador;
-    private boolean emergencia;
+    private boolean esEmergencia;
     private List<DetalleCita> detalles;
 
     public Cita(){
         this.detalles = new ArrayList<>();
     }
 
-    public Cita(int id, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean emergencia, List<DetalleCita> detalles) {
-        super(id, activo);
+
+    public Cita(int idCita, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean esEmergencia, List<DetalleCita> detalles) {
+        super(activo);
+        setIdCita(idCita);
         setFechaHora(fechaHora);
         setEstado(estado);
         setMascota(mascota);
         setAdministrador(administrador);
-        setEmergencia(emergencia);
+        setEsEmergencia(esEmergencia);
         setDetalles(detalles);
     }
 
@@ -39,15 +42,29 @@ public class Cita extends Registro {
             throw new IllegalArgumentException("Cita no puede ser nula");
         }
         super(cita);
+        setIdCita(cita.getIdCita());
         setFechaHora(cita.getFechaHora());
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
         setAdministrador(cita.getAdministrador());
-        setEmergencia(cita.isEmergencia());
+
+        setEsEmergencia(cita.isEsEmergencia());
+
         setDetalles(cita.getDetalles());
     }
 
     // Getters y Setters
+
+    public int getIdCita() {
+        return idCita;
+    }
+
+    public void setIdCita(int idCita) {
+        if (idCita < 0) {
+            throw new IllegalArgumentException("idCita no puede ser negativo");
+        }
+        this.idCita = idCita;
+    }
 
     public LocalDateTime getFechaHora() {
         return fechaHora;
@@ -101,12 +118,12 @@ public class Cita extends Registro {
         }
     }
 
-    public boolean isEmergencia() {
-        return emergencia;
+    public boolean isEsEmergencia() {
+        return esEmergencia;
     }
 
-    public void setEmergencia(boolean emergencia) {
-        this.emergencia = emergencia;
+    public void setEsEmergencia(boolean esEmergencia) {
+        this.esEmergencia = esEmergencia;
     }
 
     public List<DetalleCita> getDetalles() {
@@ -117,11 +134,16 @@ public class Cita extends Registro {
         if (detalles == null) {
             throw new IllegalArgumentException("detalles no puede ser nulo");
         }
+        for (DetalleCita detalle : detalles) {
+            if (detalle == null) {
+                throw new IllegalArgumentException("detalles no puede contener elementos nulos");
+            }
+        }
         this.detalles = new ArrayList<>(detalles);
     }
 
-    public void agregarDetalle(int id, boolean activo, String observaciones, Servicio servicio, Veterinario veterinario) {
-        detalles.add(new DetalleCita(id, activo, observaciones, servicio, veterinario));
+    public void agregarDetalle(int idDetalleCita, boolean activo, String observaciones, Servicio servicio, Veterinario veterinario) {
+        detalles.add(new DetalleCita(idDetalleCita, activo, observaciones, servicio, veterinario, this));
     }
 
     @Override
@@ -137,12 +159,13 @@ public class Cita extends Registro {
         }
 
         return "Cita{" +
-                super.toString() +
+                "idCita=" + idCita +
+                ", " + super.toString() +
                 ", fechaHora=" + fechaHora +
                 ", estado=" + estado +
                 ", mascota=" + nombreMascota +
                 ", administrador=" + dniAdministrador +
-                ", emergencia=" + emergencia +
+                ", esEmergencia=" + esEmergencia +
                 ", detalles=" + detalles +
                 '}';
     }

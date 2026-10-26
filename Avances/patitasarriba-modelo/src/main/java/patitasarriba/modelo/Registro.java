@@ -1,33 +1,26 @@
 package patitasarriba.modelo;
 
+// Padre de todas las clases abstractas y de las clases concretas sin padre.
+// Solo guarda el estado logico del registro (borrado logico): cada clase define su propio id.
 public abstract class Registro {
-    private int id;
     private boolean activo;
 
     public Registro() {
     }
 
+    public Registro(boolean activo) {
+        setActivo(activo);
+    }
+
+    // Constructor de copia
     public Registro(final Registro registro) {
         if (registro == null) {
-            throw new IllegalArgumentException("El registro no puede ser nulo");
+            throw new IllegalArgumentException("registro no puede ser nulo");
         }
-        setId(registro.getId());
         setActivo(registro.isActivo());
     }
 
-    public Registro(int id, boolean activo) {
-        this.id = id;
-        this.activo = activo;
-    }
-
-    public int getId() {
-        return id;
-    }
-
-    public void setId(int id) {
-        this.id = id;
-    }
-
+    // Getters y Setters
     public boolean isActivo() {
         return activo;
     }
@@ -38,7 +31,6 @@ public abstract class Registro {
 
     @Override
     public String toString() {
-        return String.format("%-5d\t%-5b", id, activo);
+        return "activo=" + activo;
     }
 }
-

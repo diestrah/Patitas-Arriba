@@ -3,7 +3,6 @@ package patitasarriba.dao.impl.horario;
 import conexion.DBManager;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
-import patitasarriba.modelo.horario.HorarioPersonal;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;

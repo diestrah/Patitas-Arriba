@@ -1,35 +1,39 @@
 package patitasarriba.modelo.boleta;
 
 import patitasarriba.modelo.Registro;
+import patitasarriba.modelo.atencion.InsumoUtilizado;
+import patitasarriba.modelo.cita.DetalleCita;
+import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.usuario.Cliente;
-import patitasarriba.modelo.cita.Cita;
-import patitasarriba.modelo.producto.Producto;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 public class Boleta extends Registro {
-    private LocalDate fecha;
+    private int idBoleta;
+    private Cliente cliente;
+    private List<DetalleBoleta> detalles;
+    private String serieCorrelativo;
+    private LocalDateTime fecha;
     private double total;
     private MetodoPago metodoPago;
-    private Cliente cliente;
-    private Cita cita;
-    private List<DetalleBoleta> detalles;
 
     public Boleta() {
         this.detalles = new ArrayList<>();
     }
 
-    public Boleta(int id, boolean activo, LocalDate fecha, double total, MetodoPago metodoPago, Cliente cliente, Cita cita, List<DetalleBoleta> detalles) {
-        super(id, activo);
+    public Boleta(int idBoleta, boolean activo, Cliente cliente, List<DetalleBoleta> detalles, String serieCorrelativo,
+                  LocalDateTime fecha, double total, MetodoPago metodoPago) {
+        super(activo);
+        setIdBoleta(idBoleta);
+        setCliente(cliente);
+        setDetalles(detalles);
+        setSerieCorrelativo(serieCorrelativo);
         setFecha(fecha);
         setTotal(total);
         setMetodoPago(metodoPago);
-        setCliente(cliente);
-        setCita(cita);
-        setDetalles(detalles);
     }
 
     // Constructor de copia
@@ -38,20 +42,73 @@ public class Boleta extends Registro {
             throw new IllegalArgumentException("boleta no puede ser nula");
         }
         super(boleta);
+        setIdBoleta(boleta.getIdBoleta());
+        setCliente(boleta.getCliente());
+        setDetalles(boleta.getDetalles());
+        setSerieCorrelativo(boleta.getSerieCorrelativo());
         setFecha(boleta.getFecha());
         setTotal(boleta.getTotal());
         setMetodoPago(boleta.getMetodoPago());
-        setCliente(boleta.getCliente());
-        setCita(boleta.getCita());
-        setDetalles(boleta.getDetalles());
     }
 
     // Getters y Setters
-    public LocalDate getFecha() {
+    public int getIdBoleta() {
+        return idBoleta;
+    }
+
+    public void setIdBoleta(int idBoleta) {
+        if (idBoleta < 0) {
+            throw new IllegalArgumentException("idBoleta no puede ser negativo");
+        }
+        this.idBoleta = idBoleta;
+    }
+
+    public Cliente getCliente() {
+        if (cliente == null) {
+            return null;
+        }
+        return new Cliente(cliente);
+    }
+
+    public void setCliente(Cliente cliente) {
+        if (cliente == null) {
+            throw new IllegalArgumentException("cliente no puede ser nulo");
+        }
+        this.cliente = new Cliente(cliente);
+    }
+
+    public List<DetalleBoleta> getDetalles() {
+        return Collections.unmodifiableList(detalles);
+    }
+
+    public void setDetalles(List<DetalleBoleta> detalles) {
+        if (detalles == null) {
+            throw new IllegalArgumentException("detalles no puede ser nulo");
+        }
+        for (DetalleBoleta detalle : detalles) {
+            if (detalle == null) {
+                throw new IllegalArgumentException("detalles no puede contener elementos nulos");
+            }
+        }
+        this.detalles = new ArrayList<>(detalles);
+    }
+
+    public String getSerieCorrelativo() {
+        return serieCorrelativo;
+    }
+
+    public void setSerieCorrelativo(String serieCorrelativo) {
+        if (serieCorrelativo == null || serieCorrelativo.isBlank()) {
+            throw new IllegalArgumentException("serieCorrelativo no puede ser nulo o vacío");
+        }
+        this.serieCorrelativo = serieCorrelativo;
+    }
+
+    public LocalDateTime getFecha() {
         return fecha;
     }
 
-    public void setFecha(LocalDate fecha) {
+    public void setFecha(LocalDateTime fecha) {
         if (fecha == null) {
             throw new IllegalArgumentException("fecha no puede ser nula");
         }
@@ -63,6 +120,10 @@ public class Boleta extends Registro {
     }
 
     public void setTotal(double total) {
+        // Que el total sea la suma de los subtotales lo valida la capa de negocio
+        if (total < 0) {
+            throw new IllegalArgumentException("total no puede ser negativo");
+        }
         this.total = total;
     }
 
@@ -77,39 +138,17 @@ public class Boleta extends Registro {
         this.metodoPago = metodoPago;
     }
 
-    public Cliente getCliente() {
-        return cliente;
+    // Linea de articulo: venta directa en caja (insumoUtilizado = null) o cobro de un insumo de una atencion
+    public void agregarDetalleArticulo(int idDetalleBoleta, boolean activo, int cantidad, double precioUnitario,
+                                       Articulo articulo, InsumoUtilizado insumoUtilizado) {
+        detalles.add(new DetalleBoletaArticulo(idDetalleBoleta, activo, this, cantidad, precioUnitario,
+                articulo, insumoUtilizado));
     }
 
-    public void setCliente(Cliente cliente) {
-        if (cliente == null) {
-            throw new IllegalArgumentException("cliente no puede ser nulo");
-        }
-        this.cliente = cliente;
-    }
-
-    public Cita getCita() {
-        return cita;
-    }
-
-    public void setCita(Cita cita) {
-        // cita es opcional: una boleta puede emitirse sin estar asociada a una cita (ej. venta de productos)
-        this.cita = cita;
-    }
-
-    public List<DetalleBoleta> getDetalles() {
-        return Collections.unmodifiableList(detalles);
-    }
-
-    public void setDetalles(List<DetalleBoleta> detalles) {
-        if (detalles == null) {
-            throw new IllegalArgumentException("detalles no puede ser nulo");
-        }
-        this.detalles = new ArrayList<>(detalles);
-    }
-
-    public void agregarDetalle(int idDetalleBoleta, boolean activo, int cantidad, double subTotal, Producto producto) {
-        detalles.add(new DetalleBoleta(idDetalleBoleta, activo, cantidad, subTotal, producto));
+    // Linea de servicio: cobro de un servicio pedido en la cita
+    public void agregarDetalleServicio(int idDetalleBoleta, boolean activo, int cantidad, double precioUnitario,
+                                       DetalleCita detalleCita) {
+        detalles.add(new DetalleBoletaServicio(idDetalleBoleta, activo, this, cantidad, precioUnitario, detalleCita));
     }
 
     @Override
@@ -119,30 +158,15 @@ public class Boleta extends Registro {
             dniCliente = cliente.getDni();
         }
 
-        int idCita = -1;
-        if (cita != null) {
-            idCita = cita.getId();
-        }
-
-        String textoCita;
-        if (idCita == -1) {
-            textoCita = "ninguna";
-        } else {
-            textoCita = String.valueOf(idCita);
-        }
-
-        String textoDetalles = "";
-        for (DetalleBoleta detalle : detalles) {
-            textoDetalles = textoDetalles + detalle.toString() + "\n";
-        }
-
-        return "Boleta\n" +
-                super.toString() + "\n" +
-                "fecha: " + fecha + "\n" +
-                "total: " + total + "\n" +
-                "metodoPago: " + metodoPago + "\n" +
-                "cliente: " + dniCliente + "\n" +
-                "cita: " + textoCita + "\n" +
-                "detalles:\n" + textoDetalles;
+        return "Boleta{" +
+                "idBoleta=" + idBoleta +
+                ", " + super.toString() +
+                ", cliente=" + dniCliente +
+                ", serieCorrelativo='" + serieCorrelativo + '\'' +
+                ", fecha=" + fecha +
+                ", total=" + total +
+                ", metodoPago=" + metodoPago +
+                ", detalles=" + detalles +
+                '}';
     }
 }

@@ -4,7 +4,6 @@ import patitasarriba.bl.BLException;
 import patitasarriba.bl.TratamientoBL;
 import patitasarriba.dao.TratamientoDAO;
 import patitasarriba.dao.impl.atencion.TratamientoDAOImpl;
-import patitasarriba.modelo.atencion.Tratamiento;
 
 import java.sql.SQLException;
 import java.util.List;
