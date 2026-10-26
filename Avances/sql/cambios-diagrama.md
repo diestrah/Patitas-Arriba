@@ -2,24 +2,26 @@
 
 Regla: cada cambio se hace **primero en el diagrama**; luego se genera el DDL (Forward Engineer), se pasa a minúscula y recién después se adaptan procedures y Java.
 
-Lógica de negocio que guía los cambios: una **cita** es un contenedor; cada servicio pedido es un `detalle_cita`, y la **atención** es la ejecución de cada `detalle_cita`. Una cita tiene varias atenciones.
+Lógica de negocio que guía los cambios:
+- Una **cita** es un contenedor. Cada servicio pedido es un `detalle_cita`, que lleva su servicio y el veterinario asignado.
+- La **atención** es la ejecución de un `detalle_cita` (relación **1 a 1**). Una cita tiene varias atenciones.
+- **Todo** servicio, también los estéticos, se ejecuta en una atención. Por eso la tabla `atencion_medica` pasó a llamarse `atencion`.
+
+Estado: el DDL de referencia es `ddl-prueba` **v4** (revisión del 26/10/2026, al final de este archivo), con los ajustes de "Para dejar el diagrama bien".
 
 ---
 
 ## Hechos
 
-### 1. El veterinario pasa de `cita` a `atencion_medica`
-- **Por qué:** en una misma cita, cada atención puede hacerla un veterinario distinto (baño con uno, chequeo con otro). Con el veterinario en `cita` solo cabe uno por cita completa.
-- **Cambio hecho en el diagrama:**
-  - `cita`: se quitó `id_veterinario`, su índice y su FK. Quedan `id_cita`, `id_mascota`, `fecha_hora`, `estado`, `es_emergencia`.
-  - `atencion_medica`: se agregó `id_veterinario INT NOT NULL`, con FK a `veterinario`.
-- **Decisiones:** obligatorio en la atención (`NOT NULL`); `horario_veterinario` no cambia.
-- **Java que arrastra (después):** `Cita` (modelo, DAO, BL, procedures, Tester) y `AtencionMedica`.
-
-### 3. Quitar `id_mascota` de `atencion_medica`
-- **Por qué:** es redundante; la mascota se obtiene por `detalle_cita → cita → mascota`. Tener las dos rutas permitía datos contradictorios (atención de una mascota enlazada a la cita de otra). Toda atención tiene `id_detalle_cita NOT NULL`, así que no hay atenciones sueltas que necesiten mascota propia.
-- **Cambio hecho en el diagrama:** se quitó `id_mascota`, su FK y su índice de `atencion_medica`. Ahora solo `cita` apunta a `mascota`.
-- **Java que arrastra (después):** `AtencionMedica` obtiene la mascota vía la cita; procedures de búsqueda por mascota necesitarán `JOIN`.
+### 1. El veterinario pasa de `cita` a `detalle_cita`
+- **Por qué:** en una misma cita, cada servicio puede hacerlo un veterinario distinto (baño con uno, chequeo con otro). Con el veterinario en `cita` solo cabe uno por cita completa.
+- **Historia:** primero se movió a `atencion_medica`. En la revisión v1 → v4 pasó a `detalle_cita`, porque el veterinario se asigna **al reservar** cada servicio, también los estéticos. Así se puede validar su disponibilidad contra `horario_veterinario` antes de la atención.
+- **Cambio en el diagrama:**
+  - `cita`: sin `id_veterinario`. Quedan `id_cita`, `id_administrador`, `id_mascota`, `fecha_hora`, `estado`, `es_emergencia`, `activo`.
+  - `detalle_cita`: `id_veterinario INT NOT NULL`, con FK a `veterinario`.
+  - `atencion`: **sin** `id_veterinario`, para no tener dos veterinarios que puedan contradecirse. Si se reasigna el veterinario, se actualiza en `detalle_cita`.
+- **Decisiones:** obligatorio (`NOT NULL`); `horario_veterinario` no cambia de rol.
+- **Java que arrastra (después):** `Cita`, `DetalleCita` y `Atencion` (antes `AtencionMedica`): modelo, DAO, BL, procedures y Tester.
 
 ### 2. Cobrar en la boleta los insumos usados en una atención
 _(Hecho y verificado en el diagrama: `es_cobrable` en `insumo_utilizado`; `id_insumo_utilizado` con FK y `UNIQUE` en `detalle_boleta_art`; índice `(id_boleta, id_articulo)` eliminado y FK de boleta recreada.)_
@@ -41,7 +43,9 @@ _(Hecho y verificado en el diagrama: `es_cobrable` en `insumo_utilizado`; `id_in
 
 **Por qué sale el índice `(id_boleta, id_articulo)`.** Antes obligaba "una línea por artículo, con la cantidad dentro". Con los insumos, el mismo artículo puede salir de dos atenciones distintas de una misma boleta (dos vacunas en dos servicios). Para saber de qué atención salió cada cobro hacen falta dos líneas, y ese índice las rechazaría. La boleta que ve el cliente puede mostrarse agrupada; la trazabilidad interna se queda por línea.
 
-**Decisión de diseño.** La línea guarda `id_articulo` y también `id_insumo_utilizado` (el insumo ya conoce su artículo). Se acepta esa pequeña redundancia a cambio de no tocar las ventas directas; el BL validará que ambos coincidan.
+**Decisión de diseño.** La línea guarda `id_articulo` y también `id_insumo_utilizado` (el insumo ya conoce su artículo). Se acepta esa pequeña redundancia a cambio de no tocar las ventas directas; el BL validará que ambos coincidan. `id_articulo` nunca queda vacío; solo `id_insumo_utilizado` es nullable.
+
+**Por qué no hay una tabla `detalle_boleta_insu` aparte.** Un insumo cobrado sigue siendo la venta de un artículo. Una tabla extra obligaría a sumar tres tablas para el total y a usar `UNION` para listar las líneas.
 
 **Ejemplo (una sola boleta, varias líneas).** Ana lleva a Firulais: vacunación (S/ 50) y consulta (S/ 80). Se usó una vacuna cobrable (S/ 35), 2 desparasitantes cobrables (S/ 10 c/u), algodón y alcohol (incluidos), y Ana compra un shampoo (S/ 25) en caja.
 
@@ -67,117 +71,182 @@ El algodón y el alcohol no se cobran porque su `es_cobrable` es 0.
 - En la boleta, las líneas con `id_insumo_utilizado` **no** vuelven a descontar stock.
 - `DetalleBoleta` gana un `insumoUtilizado` opcional; el BL valida que el artículo coincida con el del insumo.
 
-**Pregunta abierta para el compañero (mismo problema que el cambio 10).** El `UNIQUE (id_insumo_utilizado)` de `detalle_boleta_art` impide cobrar un insumo dos veces, pero también impediría **volver a cobrarlo después de anular una boleta**: la línea de la boleta anulada sigue ocupando ese `id_insumo_utilizado`. Hay que decidir entre:
-- **Dejar el `UNIQUE`** (garantía fuerte en la base; re-facturar un insumo tras anular exigiría un procedimiento aparte que libere la línea anulada).
-- **Quitarlo y controlarlo en el BL** (como se decidió para `detalle_boleta_serv`): antes de cobrar un insumo, el BL comprueba que no esté en una boleta no anulada.
-- Recomendación: la segunda, por coherencia con el cambio 10.
+**El `UNIQUE (id_insumo_utilizado)` se mantiene** (decisión de la revisión v4, igual que en los cambios 10 y 11). Consecuencia: la línea de una boleta anulada (`activo = 0`) sigue ocupando ese `id_insumo_utilizado`, así que la base no deja volver a cobrar ese insumo en una boleta nueva. Si hay que re-facturar tras anular, falta definir el procedimiento.
+
+### 3. Quitar `id_mascota` de `atencion` (antes `atencion_medica`)
+- **Por qué:** es redundante; la mascota se obtiene por `detalle_cita → cita → mascota`. Tener las dos rutas permitía datos contradictorios (atención de una mascota enlazada a la cita de otra). Toda atención tiene `id_detalle_cita NOT NULL`, así que no hay atenciones sueltas que necesiten mascota propia.
+- **Cambio hecho en el diagrama:** se quitó `id_mascota`, su FK y su índice de la atención. Ahora solo `cita` apunta a `mascota`.
+- **Java que arrastra (después):** `Atencion` obtiene la mascota vía la cita; procedures de búsqueda por mascota necesitarán `JOIN`.
 
 ### 4. Corregir la expresión de `subtotal`
 - **Por qué:** en `detalle_boleta_art` y `detalle_boleta_serv`, `subtotal` es una columna calculada por MySQL. La fórmula estaba guardada con backticks sobrantes (``CANTIDAD` * `PRECIO_UNITARIO``), y al generar el DDL salía SQL inválido que MySQL rechazaba. Cada vez que se regenerara el script habría que arreglarlo a mano.
-- **Cambio hecho en el diagrama:** en las dos tablas la expresión ahora es `CANTIDAD * PRECIO_UNITARIO` (sin backticks), con almacenamiento `STORED` en ambas.
+- **Cambio hecho en el diagrama:** en las dos tablas la expresión ahora es `cantidad * precio_unitario` (sin backticks). En la v4 el almacenamiento es `VIRTUAL` (antes `STORED`); para el Java da igual.
 - **Java que arrastra (después):** los procedures de `detalle_boleta_*` **no deben insertar ni actualizar `subtotal`** (MySQL lo calcula); el modelo solo lo lee.
 
+### 5. `mascota.sexo` → `ENUM('MACHO','HEMBRA')`
+- **Por qué:** uniformidad con los demás ENUM, cuyo valor es el `name()` del enum de Java. Antes se había descartado para conservar `ENUM('M','H')`; se revirtió en la revisión v4.
+- **Cambio en el diagrama:** `sexo ENUM('MACHO','HEMBRA') NOT NULL` (ya está así en la v4).
+- **Java que arrastra (después):** `MascotaDAOImpl` deja de traducir `MACHO↔'M'` y `HEMBRA↔'H'` y guarda o lee con `name()`/`valueOf()`. En `procedures-mascota.sql`, `p_sexo CHAR(1)` pasa a `VARCHAR(6)` (con `CHAR(1)` se truncaría `'MACHO'`).
+
 ### 6. `nivel_gravedad` y `dia_semana` pasan de `VARCHAR` a `ENUM`
-- **Por qué:** en Java ya son enums (`NivelGravedad`, `DiaSemana`) y los DAOs los guardan con `name()` y leen con `valueOf()`. Con `VARCHAR`, la base aceptaba cualquier texto y un valor inválido solo fallaba después, al leerlo con `valueOf()`. Con `ENUM`, la base rechaza lo que no sea válido y el diagrama documenta los valores permitidos. Es coherente con los demás ENUM (`tipo_mascota`, `metodo_pago`, `estado`, `tipo_servicio_medico`).
+- **Por qué:** en Java ya son enums (`NivelGravedad`, `DiaSemana`) y los DAOs los guardan con `name()` y leen con `valueOf()`. Con `VARCHAR`, la base aceptaba cualquier texto y un valor inválido solo fallaba después, al leerlo con `valueOf()`. Con `ENUM`, la base rechaza lo que no sea válido y el diagrama documenta los valores permitidos. Es coherente con los demás ENUM (`tipo_mascota`, `metodo_pago`, `estado`, `tipo_servicio`).
 - **Cambio hecho en el diagrama:**
-  - `atencion_diagnostico.nivel_gravedad` → `ENUM('LEVE','MODERADO','GRAVE','CRITICO')`, sigue opcional.
+  - `atencion_diagnostico.nivel_gravedad` → `ENUM('LEVE','MODERADO','GRAVE','CRITICO')`, **obligatorio** (`NOT NULL`, desde la v4).
   - `horario.dia_semana` → `ENUM('LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO')`, sigue obligatorio.
-- **Java que arrastra (después):** nada. Los DAOs ya usan `name()`/`valueOf()` y los procedures pueden mantener sus parámetros `VARCHAR`.
+- **Java que arrastra (después):** los DAOs ya usan `name()`/`valueOf()` y los procedures pueden mantener sus parámetros `VARCHAR`. El BL debe exigir `nivelGravedad` al registrar un diagnóstico.
 
----
+### 7. `servicio.tipo_servicio`: valores definitivos
+- **Situación:** V2 solo permitía `CONSULTA_MEDICA`, `OPERACION`, `VACUNACION`; el Java (`TipoServicio`) tenía además `EMERGENCIA` y `ESTETICO`. Guardar un servicio de esos dos tipos daba `Data truncated`.
+- **Decisión:** la columna se renombra a `tipo_servicio` con `ENUM('CONSULTA_MEDICA','OPERACION','VACUNACION','ESTETICA','EMERGENCIA')`.
+  - `ESTETICA` (no `ESTETICO`, ni `BAÑO`: la Ñ da problemas de encoding entre MySQL, JDBC y Java).
+  - `EMERGENCIA` se mantiene para que base y Java coincidan, aunque exista `cita.es_emergencia`.
+  - `DESPARASITACION` **no** va. La v4 la tiene: hay que quitarla del diagrama (ver "Para dejar el diagrama bien").
+- **Java que arrastra (después):** en `TipoServicio`, `ESTETICO` pasa a `ESTETICA`. Costo nulo en procedures (`p_servicio_medico` es `VARCHAR(45)`), salvo renombrar la columna en los `INSERT`/`UPDATE`/`SELECT`.
 
-## Descartados
-
-### 5. `mascota.sexo` → `ENUM('MACHO','HEMBRA')` (se queda `ENUM('M','H')`)
-- **Por qué se propuso:** uniformidad con los demás ENUM, cuyo valor es el `name()` del enum de Java.
-- **Por qué se descarta:** el DDL anterior ya tenía `sexo CHAR(1)` con `'M'`/`'H'` y V2 solo lo volvió `ENUM('M','H')`. `MascotaDAOImpl` ya traduce `MACHO↔'M'` y `HEMBRA↔'H'`, y esa traducción funciona (el Tester de Mascota pasó). Cambiarlo obligaría a tocar el procedure (`p_sexo CHAR(1)` truncaría `'MACHO'`) y el DAO, sin ganar nada funcional.
-
-### 10. `UNIQUE (id_detalle_cita)` en `detalle_boleta_serv` (no se agrega; lo controla el BL)
-- **Qué buscaba:** que un servicio de una cita (`detalle_cita`) no se cobre dos veces, ni en una misma boleta ni en dos distintas.
-- **Por qué se descarta:** un `UNIQUE` también bloquearía un caso normal: si una boleta se **anula** y hay que emitir otra corrigiendo un error (por ejemplo el método de pago), la línea de la boleta anulada sigue en la tabla y el `UNIQUE` impediría volver a cobrar ese mismo servicio. MySQL no permite un `UNIQUE` que valga solo para boletas no anuladas.
-- **Decisión:** el BL comprueba, antes de agregar la línea, que el `detalle_cita` no esté en una boleta **no anulada**.
-
-### 11. `UNIQUE (id_detalle_cita)` en `atencion_medica` (no se agrega; lo controla el BL)
-- **Qué buscaba:** reflejar la regla de negocio "cada servicio pedido (`detalle_cita`) se ejecuta en una sola atención" (relación 1 a 1) y evitar dos atenciones del mismo servicio.
-- **Por qué se descarta:** mismo problema que el cambio 10. Si una atención se **anula** (`anulado = 1`) por un error de registro, el servicio sigue sin ejecutarse y habría que registrarlo de nuevo, pero la atención anulada seguiría ocupando ese `id_detalle_cita` y el `UNIQUE` lo bloquearía.
-- **Decisión:** el BL comprueba, antes de registrar una atención, que ese `detalle_cita` no tenga otra atención **no anulada**.
-
-### 12. Estado también en `detalle_cita` (no se agrega)
-- **Qué buscaba:** reflejar que los servicios de una cita se ejecutan por separado (el baño puede estar hecho y la vacuna pendiente).
-- **Por qué se descarta:** el estado de cada servicio se puede **deducir** de lo que ya existe, sin columna nueva:
-  - *pendiente:* el `detalle_cita` no tiene ninguna atención con `anulado = 0`;
-  - *ejecutado:* tiene una atención con `anulado = 0`;
-  - *cancelado individualmente:* su `activo = 0` (si se aprueba la propuesta 9).
-  La cita pasa a `COMPLETADO` cuando todos sus servicios activos están ejecutados, y eso lo calcula el BL al registrar la última atención. `APROBADO` y `RECHAZADO` son decisiones sobre la cita completa, no sobre cada servicio. Una columna extra duplicaría información de `atencion_medica` y podría desincronizarse.
-
----
-
-## Para que decida el compañero que corrige el diagrama
-
-### 7. `servicio.tipo_servicio_medico`: agregar `ESTETICO` y `EMERGENCIA`
-- **Situación:** la base (V2) solo permite `CONSULTA_MEDICA`, `OPERACION`, `VACUNACION`; el Java (`TipoServicio`) tiene además `EMERGENCIA` y `ESTETICO`. Guardar un servicio de esos dos tipos daría `Data truncated`. V2 parece venir de una versión anterior a la corrección que hicimos en `ServicioDAOImpl`.
-- **Nuestra recomendación:** ampliar el ENUM a `('CONSULTA_MEDICA','OPERACION','VACUNACION','EMERGENCIA','ESTETICO')`. `ESTETICO` es necesario (un baño es un servicio estético y se menciona como ejemplo de servicio de una cita); `EMERGENCIA` es opcional porque ahora existe `cita.es_emergencia`, pero conviene dejarlo para que base y Java coincidan sin tocar código.
-- **Costo:** nulo en Java y procedures (`p_servicio_medico` es `VARCHAR(45)`).
-- **Estado:** se deja documentado para que lo resuelva él al corregir el diagrama.
-
-### 8. ¿Se eliminan `tratamiento` y `atencion_tratamiento`?
-- **Situación:** V2 no tiene esas dos tablas, y `insumo_utilizado` ya no cuelga de `atencion_tratamiento` sino directo de `atencion_medica`. En los audios no se menciona; parece una decisión de diseño, pero no está confirmada.
-- **Qué eran en el Java:** `Tratamiento` es un catálogo de procedimientos (`nombreProcedimiento`, `descripcion`); `AtencionTratamiento` registra qué tratamientos se aplicaron en una atención, con sus insumos.
-- **Por qué podría ser intencional:** según la lógica del negocio, la atención es la ejecución de **un servicio** pedido en la cita. Si el servicio ya dice qué se hace (consulta, operación, vacunación, baño), un catálogo aparte de tratamientos duplica la idea.
-- **Qué arrastra si se eliminan (Java a retirar o adaptar, ~14 archivos):**
+### 8. Se eliminan `tratamiento` y `atencion_tratamiento`
+- **Decisión:** alternativa A, confirmada por la v4, que no tiene esas tablas. `insumo_utilizado` cuelga directo de `atencion`.
+- **Por qué:** la atención es la ejecución de **un servicio** pedido en la cita. Si el servicio ya dice qué se hace (consulta, operación, vacunación, baño), un catálogo aparte de tratamientos duplica la idea.
+- **Java que arrastra (después), ~14 archivos a retirar o adaptar:**
   - Modelo: `Tratamiento`, `AtencionTratamiento`; referencias en `AtencionMedica`.
   - Persistencia: `TratamientoDAO`/`Impl`, `AtencionTratamientoDAO`/`Impl`; referencias en `AtencionMedicaDAOImpl` e `InsumoUtilizadoDAOImpl`.
   - Negocio: `TratamientoBL`/`Impl`.
   - SQL: `procedures-tratamiento.sql`, `procedures-atencion_tratamiento.sql`, y la línea de `limpiar-tablas.sql`.
   - App: `probarTratamiento` del Tester y referencias en `Principal`.
-- **Alternativas:**
-  - **A. Aceptar que se eliminan** (coherente con V2 y con los audios). Cada dueño retira su Java (`Tratamiento`: Naim; `AtencionTratamiento`: Leonardo).
-  - **B. Restituirlas:** volver a agregar `tratamiento` y `atencion_tratamiento` al diagrama y reconectar `insumo_utilizado`. Más trabajo y contradice la dirección de V2.
-- **Nuestra recomendación:** A, pero debe confirmarse con el grupo y con los dueños de esos módulos antes de borrar código. Conviene revisar antes el catálogo de requerimientos por si menciona tratamientos como funcionalidad pedida.
-- **Estado:** se deja documentado para que lo decida el compañero que corrige el diagrama.
+  - Cada dueño retira su Java (`Tratamiento`: Naim; `AtencionTratamiento`: Leonardo). Conviene revisar antes el catálogo de requerimientos por si menciona tratamientos como funcionalidad pedida.
 
-### 9. Borrado lógico (pedido de la JP) con las tablas de V2
-**El problema.** La JP pidió que **todos los deletes sean lógicos** (marcar el registro como inactivo en vez de borrarlo). V2 dejó **12 tablas sin columna `activo`**, pero **todas las clases del modelo Java extienden `Registro`**, que trae `id` y `activo`. Esas tablas no se pueden desactivar y, además, sus clases fallarían al leer o insertar buscando una columna que no existe.
+### 9. Borrado lógico (pedido de la JP)
+**El problema.** La JP pidió que **todos los deletes sean lógicos** (marcar el registro como inactivo en vez de borrarlo). V2 dejó varias tablas sin columna `activo`, pero **todas las clases del modelo Java extienden `Registro`**, que trae `id` y `activo`.
 
-**Cómo es el estado de las 23 tablas en V2.**
+**Decisión (v4).** **Todas las tablas tienen `activo TINYINT(1) NOT NULL DEFAULT 1`**:
+- **Maestros y catálogos:** "eliminar" es `activo = 0`.
+- **`boleta` y `atencion`:** `activo` **reemplaza** a `anulado`. Una boleta o atención anulada tiene `activo = 0`.
+- **`cita`:** conserva `estado` (`PENDIENTE`, `APROBADO`, `RECHAZADO`, `CANCELADO`, `COMPLETADO`) y además tiene `activo`.
+- **Detalles** (`detalle_cita`, `detalle_receta`, `detalle_boleta_art`, `detalle_boleta_serv`, `atencion_diagnostico`, `insumo_utilizado`): `activo`, para la cascada lógica.
+- **Enlaces** (`articulo_categoria`, `horario_administrador`, `horario_veterinario`): también llevan `activo` y se desactivan con `UPDATE`, no con `DELETE`. Como su PK es compuesta, volver a agregar un enlace desactivado es **reactivarlo** (`UPDATE activo = 1`), no insertarlo de nuevo.
 
-| Grupo | Tablas | Cómo se "elimina" |
+Con esto se resuelve la "decisión pendiente" anterior: `Registro` no cambia en Java, y no hay redundancia `activo` + `anulado`.
+
+**Cómo se elimina (patrón que hay que respetar).** Es el patrón maestro–detalle que mostró el profesor: al eliminar un maestro, **primero se desactivan sus detalles y al final el maestro, en una sola transacción manejada desde el BL**. Ya existe así en `CitaDAOImpl.delete` y en `eliminar_detalles_por_receta`. Es además lo que demuestra el requisito de la rúbrica sobre transacciones.
+
+**Cómo afecta a cada quien (procedures, después del diagrama).** Todos los procedures `eliminar_*` pasan a `UPDATE ... SET activo = 0`, también los de enlaces. Los de `boleta` y `atencion` usan `activo` en lugar de `anulado`.
+
+### 10. `UNIQUE (id_detalle_cita)` en `detalle_boleta_serv`
+- **Qué busca:** que un servicio de una cita (`detalle_cita`) no se cobre dos veces, ni en una misma boleta ni en dos distintas.
+- **Historia:** antes se había descartado para controlarlo en el BL. En la revisión v4 se decidió **ponerlo en la base**.
+- **Consecuencia aceptada:** si una boleta se anula (`activo = 0`), su línea sigue ocupando ese `id_detalle_cita`, y la base no deja volver a cobrar ese servicio en una boleta nueva. MySQL no permite un `UNIQUE` que valga solo para filas activas. Falta definir el procedimiento si hay que re-facturar.
+
+### 11. `UNIQUE (id_detalle_cita)` en `atencion`: relación 1 a 1
+- **Qué busca:** reflejar la regla "cada servicio pedido (`detalle_cita`) se ejecuta en una sola atención".
+- **Cambio en el diagrama:**
+  - `detalle_cita`: **sin** `id_atencion`.
+  - `atencion`: `id_detalle_cita INT NOT NULL` con `UNIQUE` y FK a `detalle_cita`.
+  - *Por qué la FK va en `atencion`:* en una 1 a 1 basta una FK de un solo lado, y va en la tabla que se crea después. Con la FK en `detalle_cita` y `NOT NULL`, no se podía reservar un servicio sin crear antes la atención. Tener la FK en ambos lados duplicaría la relación y crearía una FK circular.
+- **Historia:** antes se había descartado el `UNIQUE` para controlarlo en el BL. En la revisión v4 se decidió **ponerlo en la base**.
+- **Consecuencia aceptada:** si una atención se anula (`activo = 0`), sigue ocupando ese `id_detalle_cita`, y la base no deja registrar otra atención para ese servicio. Para corregir un registro erróneo hay que **editar** la atención existente o reactivarla, no crear otra.
+
+---
+
+## Descartados
+
+### 12. Estado también en `detalle_cita` (no se agrega)
+- **Qué buscaba:** reflejar que los servicios de una cita se ejecutan por separado (el baño puede estar hecho y la vacuna pendiente).
+- **Por qué se descarta:** el estado de cada servicio se puede **deducir** de lo que ya existe, sin columna nueva:
+  - *pendiente:* el `detalle_cita` no tiene atención con `activo = 1`;
+  - *ejecutado:* tiene una atención con `activo = 1`;
+  - *cancelado individualmente:* su propio `activo = 0`.
+  La cita pasa a `COMPLETADO` cuando todos sus servicios activos están ejecutados, y eso lo calcula el BL al registrar la última atención. `APROBADO` y `RECHAZADO` son decisiones sobre la cita completa, no sobre cada servicio. Una columna extra duplicaría información de `atencion` y podría desincronizarse.
+
+---
+
+## Revisión del DDL: `ddl-prueba` v1 → v4 (26/10/2026)
+
+Resumen de todo lo que cambió entre la v1 y la v4 del DDL. Las decisiones que modifican cambios anteriores ya están integradas arriba (cambios 1, 2, 4, 5, 6, 7, 8, 9, 10 y 11).
+
+### Cambios generales
+| Cambio | v1 | v4 |
 |---|---|---|
-| Con `activo` (11) | `administrador`, `articulo`, `categoria`, `cliente`, `cuenta`, `diagnostico`, `horario`, `mascota`, `receta`, `servicio`, `veterinario` | `UPDATE ... SET activo = 0` |
-| Con indicador propio (3) | `boleta`, `atencion_medica` (`anulado`), `cita` (`estado`) | `anulado = 1` / `estado = 'CANCELADO'` |
-| Sin ningún indicador (9) | `detalle_cita`, `detalle_receta`, `detalle_boleta_art`, `detalle_boleta_serv`, `atencion_diagnostico`, `insumo_utilizado`, `articulo_categoria`, `horario_administrador`, `horario_veterinario` | por definir |
+| Nombre del esquema | `mydb` | `patitasarriba` |
+| Nombres de tablas, columnas e índices | mezcla de mayúsculas y minúsculas | todo en minúscula |
+| `activo` | faltaba en varias tablas; en `atencion` tenía `DEFAULT 0` | presente en todas las tablas, con `DEFAULT 1` (cambio 9) |
 
-**Cómo se elimina hoy en el código (patrón que hay que respetar).** Es el patrón maestro–detalle que mostró el profesor: al eliminar un maestro, **primero se eliminan sus detalles y al final el maestro, en una sola transacción manejada desde el BL**. Ya existe así en `CitaDAOImpl.delete` (detalles de la cita y luego la cita) y en `eliminar_detalles_por_receta` (que pone `activo = 0` en los detalles de la receta). Es además lo que demuestra el requisito de la rúbrica sobre transacciones.
+### Cambios por tabla
 
-**Por qué es un problema con V2.** Con borrado lógico, esa cascada también tiene que ser lógica: marcar los detalles como inactivos y luego el maestro. Pero si los detalles **no tienen `activo`**, la única forma de "eliminarlos" es borrarlos de verdad mientras el maestro queda ahí (inactivo). Eso destruye el historial: una **boleta anulada se quedaría sin sus líneas**, una cita cancelada sin sus servicios, una atención anulada sin diagnósticos ni insumos.
+**`detalle_cita` y `atencion`**
+- `detalle_cita`: se quitó `id_atencion`. Se agregaron `id_servicio INT NOT NULL` e `id_veterinario INT NOT NULL`, con sus FK (cambios 1 y 11).
+- `atencion`: se agregó `id_detalle_cita INT NOT NULL` con `UNIQUE` (cambio 11). Se quitaron `id_servicio` e `id_veterinario`.
+  - *Por qué `id_servicio` pasa a `detalle_cita`:* el servicio se elige al reservar, no al atender, y `detalle_boleta_serv` cobra desde `detalle_cita`.
+- `atencion.motivo_consulta` pasó a ser `NULL`: una atención estética no tiene motivo de consulta. El BL lo exige solo en servicios médicos.
 
-**Propuesta.**
-1. **Agregar `activo TINYINT(1) NOT NULL DEFAULT 1` a las tablas detalle que cuelgan de un maestro:** `detalle_cita`, `detalle_receta`, `detalle_boleta_art`, `detalle_boleta_serv`, `atencion_diagnostico`, `insumo_utilizado`.
-   - *Porqué:* la cascada lógica necesita marcar cada línea como inactiva; sin la columna solo se puede borrar la línea y se pierde el historial.
-2. **Eliminar = cascada lógica en una sola transacción desde el BL:** (1) `activo = 0` en los detalles; (2) `activo = 0` / `anulado = 1` / `estado = 'CANCELADO'` en el maestro.
-   - *Porqué:* es el patrón que ya usa el proyecto; la transacción evita hijos activos con padre desactivado si algo falla a la mitad.
-3. **Los enlaces puros quedan sin `activo` y se borran con `DELETE`:** `articulo_categoria`, `horario_administrador`, `horario_veterinario`.
-   - *Porqué:* solo dicen "este artículo está en esta categoría" o "este veterinario tiene este horario"; no tienen historia propia, borrarlos no pierde nada y evita filas muertas.
-4. **Los maestros con indicador propio lo conservan:** `boleta` y `atencion_medica` con `anulado = 1`, `cita` con `estado = 'CANCELADO'`.
-   - *Porqué:* anular una boleta o atención y cancelar una cita expresan mejor el negocio que un `activo = 0`, y esos registros no se eliminan, se invalidan.
+**`servicio`**
+- `TIPO_SERVICIO_MEDICO` → `tipo_servicio` (cambio 7).
+- Se eliminaron `requiere_triaje` y `requiere_vacuna`. No había tablas donde registrar el triaje ni las vacunas de la mascota.
+- Se agregó `UNIQUE (nombre)`.
 
-**Decisión pendiente (la más importante para el Java).** `boleta`, `atencion_medica` y `cita` no tienen `activo`, pero sus clases heredan de `Registro`. Dos caminos:
-- **A. Agregar también `activo`** a esas tres tablas: el Java queda sin cambios, pero la tabla tendría `activo` y `anulado`/`estado` a la vez (redundante).
-- **B. Cambiar la jerarquía en Java:** que `Registro` no obligue a `activo` en esas tres clases (por ejemplo, una base solo con `id`). Más limpio en el modelo, pero toca clases de varios módulos.
+**`cita`**: se agregó `id_administrador INT NULL` con FK a `administrador`: quién aprobó o rechazó la cita (vacío mientras está `PENDIENTE`).
 
-**Cómo afecta a cada quien (procedures, después del diagrama).** Los procedures `eliminar_*` de maestros y detalles pasan a `UPDATE`; los de detalles necesitan el parámetro/columna `activo`; los enlaces puros siguen con `DELETE`.
+**`boleta`**
+- `ANULADO` → `activo` (cambio 9).
+- Se agregó `serie_correlativo VARCHAR(15) NOT NULL` con `UNIQUE` (por ejemplo `B001-000123`).
+- `fecha` pasó de `DATE` a `DATETIME`, para los reportes de caja.
 
-**Estado:** se deja para que lo decida el compañero que corrige el diagrama.
+**`detalle_boleta_art`**: `subtotal` `VIRTUAL` (cambio 4); se agregó `activo`. Se mantiene `UNIQUE (id_insumo_utilizado)` (cambio 2).
+
+**`detalle_boleta_serv`**: `UNIQUE (id_detalle_cita)` (cambio 10); `subtotal` `VIRTUAL`; se agregó `activo`.
+
+**`atencion_diagnostico`**
+- Se eliminó la PK propia (`ID_ATENCION_DIAGNOSTICO`). Ahora la **PK es compuesta: `(id_atencion, id_diagnostico)`**, para impedir el mismo diagnóstico dos veces en una atención.
+- `ID_ATENCION_MEDICA` → `id_atencion`.
+- `nivel_gravedad` `NOT NULL` (cambio 6); se agregó `activo`.
+
+**`horario_administrador` y `horario_veterinario`**: se eliminaron las PK propias (`id_horario_admin`, `id_horario_vet`). Ahora la **PK es compuesta** (`(id_administrador, id_horario)` y `(id_veterinario, id_horario)`), con el mismo criterio que `articulo_categoria`.
+- **Java:** estas tablas y `atencion_diagnostico` ya no tienen `id` autogenerado. Sus DAO buscan, actualizan y eliminan por las dos claves, y no usan `getGeneratedKeys()` al insertar.
+
+**`articulo_categoria`**, **`insumo_utilizado`** y **`detalle_receta`**: se agregó `activo`.
+
+**`receta`**: `ID_ATENCION_MEDICA` → `id_atencion`.
+
+**`diagnostico`**: `nombre_enfermedad` pasó de `VARCHAR(45)` a `VARCHAR(80)`, con `UNIQUE`.
+
+**`mascota`**: la columna `tipo mascota`, que tenía un espacio, pasó a `tipo_mascota`. `sexo` queda `ENUM('MACHO','HEMBRA')` (cambio 5).
+
+**`administrador`**: `nombre` → `nombres`, igual que en `cliente` y `veterinario`.
+
+**`cliente`, `administrador`, `veterinario`**: se mantiene `UNIQUE (id_cuenta)`. Se perdió en una versión intermedia y se restauró. Una cuenta pertenece a una sola persona.
+
+### Reglas que quedan en el BL
+La base no puede validar estas reglas, porque dependen de columnas de otras tablas.
+- `atencion_diagnostico`: solo en atenciones cuyo servicio sea `CONSULTA_MEDICA`. El tipo se obtiene con `atencion → detalle_cita → servicio`.
+- `receta`: solo en servicios médicos, nunca en `ESTETICA`.
+- `motivo_consulta`: obligatorio en servicios médicos.
+- Insumos en la boleta:
+  - Solo se cobran los que tienen `es_cobrable = 1`.
+  - `cantidad` no debe superar `cantidad_utilizada`.
+  - `id_articulo` de la línea debe coincidir con el del insumo.
+- La boleta debe ser del dueño de la mascota de la cita.
+- `boleta.total` es la suma de los subtotales de sus líneas.
+- El stock se descuenta al registrar el insumo en la atención o al vender en caja.
+
+### Opcionales (no aplicados en v4)
+- Agregar `CHECK`:
+  - `cantidad > 0` y `precio_unitario >= 0` en los detalles de boleta.
+  - `hora_fin > hora_inicio` en `horario`.
+  - `cantidad_utilizada > 0` en `insumo_utilizado`.
+  - `stock_minimo >= 0` en `articulo`.
+- `UNIQUE (dia_semana, hora_inicio, hora_fin)` en `horario`.
+- Cambiar `utf8` por `utf8mb4` en el esquema.
+- Quitar índices redundantes generados por Workbench: los `fk_*_idx` que ya cubre un `UNIQUE` o la PK compuesta.
+- FK compuesta `(id_insumo_utilizado, id_articulo)` → `insumo_utilizado`, para que la base valide que coincidan el artículo y el insumo. Requiere `UNIQUE (id_insumo_utilizado, id_articulo)` en `insumo_utilizado`.
 
 ---
 
 ## En análisis
 
-_Ninguno por ahora._ Los 3 cambios que planteó tu compañero (1, 2 y 3) ya están hechos en el diagrama.
+_Ninguno por ahora._
 
 ---
 
 ## Para dejar el diagrama bien
 
-- Pasar nombres de tablas, columnas, índices y FKs del `.mwb` a minúscula (hoy sigue en mayúscula).
+- **`servicio.tipo_servicio`:** quitar `DESPARASITACION` y agregar `EMERGENCIA` (cambio 7). La v4 todavía tiene `DESPARASITACION`.
+- ~~Pasar nombres de tablas, columnas, índices y FKs del `.mwb` a minúscula.~~ Hecho en la v4.
 - Una sola persona edita el `.mwb` a la vez (es binario; git no puede fusionarlo).
