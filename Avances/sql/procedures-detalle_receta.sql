@@ -17,6 +17,7 @@ CREATE PROCEDURE insertar_detalle_receta (
     IN p_frecuencia VARCHAR(45),
     IN p_duracion_dias INT,
     IN p_cantidad_total INT,
+	IN p_activo TINYINT,
     OUT p_id INT
 )
 BEGIN
@@ -26,7 +27,8 @@ BEGIN
         dosis,
         frecuencia,
         duracion_dias,
-        cantidad_total
+        cantidad_total,
+		activo
     )
     VALUES (
         p_id_receta,
@@ -34,50 +36,11 @@ BEGIN
         p_dosis,
         p_frecuencia,
         p_duracion_dias,
-        p_cantidad_total
+        p_cantidad_total,
+		p_activo
     );
 
     SET p_id = LAST_INSERT_ID();
-END //
-
-CREATE PROCEDURE modificar_detalle_receta (
-    IN p_id_receta INT,
-    IN p_id_articulo INT,
-    IN p_dosis VARCHAR(45),
-    IN p_frecuencia VARCHAR(45),
-    IN p_duracion_dias INT,
-    IN p_cantidad_total INT,
-    IN p_id INT
-)
-BEGIN
-    UPDATE DETALLE_RECETA
-    SET 
-        id_receta = p_id_receta,
-        id_articulo = p_id_articulo,
-        dosis = p_dosis,
-        frecuencia = p_frecuencia,
-        duracion_dias = p_duracion_dias,
-        cantidad_total = p_cantidad_total
-    WHERE id_detalle_receta = p_id;
-END //
-
-CREATE PROCEDURE eliminar_detalle_receta(IN p_id INT)
-BEGIN
-    DELETE FROM DETALLE_RECETA
-    WHERE id_detalle_receta = p_id;
-END //
-
-CREATE PROCEDURE buscar_detalle_receta_por_id(IN p_id INT)
-BEGIN
-    SELECT *
-    FROM DETALLE_RECETA
-    WHERE id_detalle_receta = p_id;
-END //
-
-CREATE PROCEDURE listar_detalles_receta()
-BEGIN
-    SELECT *
-    FROM DETALLE_RECETA;
 END //
 
 CREATE PROCEDURE listar_detalles_por_receta(IN p_id_receta INT)
@@ -89,8 +52,9 @@ END //
 
 CREATE PROCEDURE eliminar_detalles_por_receta(IN p_id_receta INT)
 BEGIN
-    DELETE FROM DETALLE_RECETA
-    WHERE id_receta = p_id_receta;
+    UPDATE DETALLE_RECETA
+	SET activo = 0
+	WHERE id_receta = p_id_receta;
 END //
 
 DELIMITER ;

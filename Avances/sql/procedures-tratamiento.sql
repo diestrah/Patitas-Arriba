@@ -44,7 +44,8 @@ END //
 
 CREATE PROCEDURE eliminar_tratamiento(IN p_id INT)
 BEGIN
-	DELETE FROM TRATAMIENTO
+	UPDATE TRATAMIENTO
+	SET activo = 0
 	WHERE id_tratamiento = p_id;
 END //
 
