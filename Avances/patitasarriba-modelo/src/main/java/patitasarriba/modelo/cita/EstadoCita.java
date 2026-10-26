@@ -1,7 +1,9 @@
 package patitasarriba.modelo.cita;
 
 public enum EstadoCita {
-    AGENDADA,
-    COMPLETADA,
-    CANCELADA
+    PENDIENTE,
+    APROBADO,
+    RECHAZADO,
+    CANCELADO,
+    COMPLETADO
 }

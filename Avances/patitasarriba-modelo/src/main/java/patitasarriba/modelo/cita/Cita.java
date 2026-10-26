@@ -3,6 +3,7 @@ package patitasarriba.modelo.cita;
 import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.mascota.Mascota;
 import patitasarriba.modelo.producto.Servicio;
+import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.time.LocalDateTime;
@@ -14,19 +15,21 @@ public class Cita extends Registro {
     private LocalDateTime fechaHora;
     private EstadoCita estado;
     private Mascota mascota;
-    private Veterinario veterinario;
+    private Administrador administrador;
+    private boolean emergencia;
     private List<DetalleCita> detalles;
 
     public Cita(){
         this.detalles = new ArrayList<>();
     }
 
-    public Cita(int id, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Veterinario veterinario, List<DetalleCita> detalles) {
+    public Cita(int id, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean emergencia, List<DetalleCita> detalles) {
         super(id, activo);
         setFechaHora(fechaHora);
         setEstado(estado);
         setMascota(mascota);
-        setVeterinario(veterinario);
+        setAdministrador(administrador);
+        setEmergencia(emergencia);
         setDetalles(detalles);
     }
 
@@ -39,7 +42,8 @@ public class Cita extends Registro {
         setFechaHora(cita.getFechaHora());
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
-        setVeterinario(cita.getVeterinario());
+        setAdministrador(cita.getAdministrador());
+        setEmergencia(cita.isEmergencia());
         setDetalles(cita.getDetalles());
     }
 
@@ -68,25 +72,41 @@ public class Cita extends Registro {
     }
 
     public Mascota getMascota() {
-        return mascota;
+        if (mascota == null) {
+            return null;
+        }
+        return new Mascota(mascota);
     }
 
     public void setMascota(Mascota mascota) {
         if (mascota == null) {
             throw new IllegalArgumentException("mascota no puede ser nula");
         }
-        this.mascota = mascota;
+        this.mascota = new Mascota(mascota);
     }
 
-    public Veterinario getVeterinario() {
-        return veterinario;
-    }
-
-    public void setVeterinario(Veterinario veterinario) {
-        if (veterinario == null) {
-            throw new IllegalArgumentException("veterinario no puede ser nulo");
+    public Administrador getAdministrador() {
+        if (administrador == null) {
+            return null;
         }
-        this.veterinario = veterinario;
+        return new Administrador(administrador);
+    }
+
+    public void setAdministrador(Administrador administrador) {
+        // administrador es opcional: lo asigna quien aprueba o rechaza la cita
+        if (administrador == null) {
+            this.administrador = null;
+        } else {
+            this.administrador = new Administrador(administrador);
+        }
+    }
+
+    public boolean isEmergencia() {
+        return emergencia;
+    }
+
+    public void setEmergencia(boolean emergencia) {
+        this.emergencia = emergencia;
     }
 
     public List<DetalleCita> getDetalles() {
@@ -100,8 +120,8 @@ public class Cita extends Registro {
         this.detalles = new ArrayList<>(detalles);
     }
 
-    public void agregarDetalle(int id, boolean activo, String observaciones, Servicio servicio) {
-        detalles.add(new DetalleCita(id, activo, observaciones, servicio));
+    public void agregarDetalle(int id, boolean activo, String observaciones, Servicio servicio, Veterinario veterinario) {
+        detalles.add(new DetalleCita(id, activo, observaciones, servicio, veterinario));
     }
 
     @Override
@@ -111,9 +131,9 @@ public class Cita extends Registro {
             nombreMascota = mascota.getNombre();
         }
 
-        String dniPersonalAtencion = null;
-        if (veterinario != null) {
-            dniPersonalAtencion = veterinario.getDni();
+        String dniAdministrador = null;
+        if (administrador != null) {
+            dniAdministrador = administrador.getDni();
         }
 
         return "Cita{" +
@@ -121,7 +141,8 @@ public class Cita extends Registro {
                 ", fechaHora=" + fechaHora +
                 ", estado=" + estado +
                 ", mascota=" + nombreMascota +
-                ", personalAtencion=" + dniPersonalAtencion +
+                ", administrador=" + dniAdministrador +
+                ", emergencia=" + emergencia +
                 ", detalles=" + detalles +
                 '}';
     }

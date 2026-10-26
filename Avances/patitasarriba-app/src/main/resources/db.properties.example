@@ -1,5 +1,5 @@
-servidor=prog3-labs-1inf30.cwoa3p5wujey.us-east-1.rds.amazonaws.com
+servidor=TU_SERVIDOR.rds.amazonaws.com
 puerto=3306
-esquema=patitas_arriba
-usuario=admin
-password=labs1inf3020262
+esquema=patitasarriba
+usuario=TU_USUARIO
+password=TU_PASSWORD
