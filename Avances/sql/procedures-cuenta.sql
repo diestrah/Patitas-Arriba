@@ -18,12 +18,12 @@ CREATE PROCEDURE insertar_cuenta(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO CUENTA (
-        ACTIVO,
-        PASSWORD,
-        CORREO,
-        FECHA_CREACION,
-        NOMBRE_USUARIO
+    INSERT INTO cuenta (
+        activo,
+        password,
+        correo,
+        fecha_creacion,
+        nombre_usuario
     )
     VALUES (
         p_activo,
@@ -45,40 +45,40 @@ CREATE PROCEDURE modificar_cuenta(
     IN p_id INT
 )
 BEGIN
-    UPDATE CUENTA
+    UPDATE cuenta
     SET
-        ACTIVO = p_activo,
-        PASSWORD = p_password,
-        CORREO = p_correo,
-        FECHA_CREACION = p_fecha_creacion,
-        NOMBRE_USUARIO = p_nombre_usuario
-    WHERE ID_CUENTA = p_id;
+        activo = p_activo,
+        password = p_password,
+        correo = p_correo,
+        fecha_creacion = p_fecha_creacion,
+        nombre_usuario = p_nombre_usuario
+    WHERE id_cuenta = p_id;
 END //
 
 CREATE PROCEDURE eliminar_cuenta(IN p_id INT)
 BEGIN
-    DELETE FROM CUENTA
-    WHERE ID_CUENTA = p_id;
+    DELETE FROM cuenta
+    WHERE id_cuenta = p_id;
 END //
 
 CREATE PROCEDURE buscar_cuenta_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM CUENTA
-    WHERE ID_CUENTA = p_id;
+    FROM cuenta
+    WHERE id_cuenta = p_id;
 END //
 
 CREATE PROCEDURE buscar_cuenta_por_nombre_usuario(IN p_nombre_usuario VARCHAR(45))
 BEGIN
     SELECT *
-    FROM CUENTA
-    WHERE NOMBRE_USUARIO = p_nombre_usuario;
+    FROM cuenta
+    WHERE nombre_usuario = p_nombre_usuario;
 END //
 
 CREATE PROCEDURE listar_cuentas()
 BEGIN
     SELECT *
-    FROM CUENTA;
+    FROM cuenta;
 END //
 
 DELIMITER ;

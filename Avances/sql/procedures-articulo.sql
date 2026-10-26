@@ -22,7 +22,7 @@ CREATE PROCEDURE insertar_articulo (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO ARTICULO (
+    INSERT INTO articulo (
         nombre, precio_base, descripcion, activo,
         stock_actual, stock_minimo, marca, id_categoria_articulo
     )
@@ -47,7 +47,7 @@ CREATE PROCEDURE modificar_articulo (
     IN p_id_categoria_articulo INT
 )
 BEGIN
-    UPDATE ARTICULO
+    UPDATE articulo
     SET nombre = p_nombre,
         precio_base = p_precio_base,
         descripcion = p_descripcion,
@@ -61,14 +61,14 @@ END //
 
 CREATE PROCEDURE eliminar_articulo (IN p_id INT)
 BEGIN
-    DELETE FROM ARTICULO
+    DELETE FROM articulo
     WHERE id_articulo = p_id;
 END //
 
 CREATE PROCEDURE buscar_articulo_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM ARTICULO
+    FROM articulo
     WHERE id_articulo = p_id;
 END //
 
@@ -76,7 +76,7 @@ END //
 CREATE PROCEDURE listar_articulo ()
 BEGIN
     SELECT *
-    FROM ARTICULO
+    FROM articulo
     WHERE activo = 1;
 END //
 

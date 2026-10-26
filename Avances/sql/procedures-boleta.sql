@@ -17,12 +17,12 @@ CREATE PROCEDURE insertar_boleta(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO BOLETA (
-        ID_CLIENTE,
-        ACTIVO,
-        FECHA,
-        TOTAL,
-        METODO_PAGO
+    INSERT INTO boleta (
+        id_cliente,
+        activo,
+        fecha,
+        total,
+        metodo_pago
     )
     VALUES (
         p_id_cliente,
@@ -44,33 +44,33 @@ CREATE PROCEDURE modificar_boleta(
     IN p_id INT
 )
 BEGIN
-    UPDATE BOLETA
+    UPDATE boleta
     SET
-        ID_CLIENTE = p_id_cliente,
-        ACTIVO = p_activo,
-        FECHA = p_fecha,
-        TOTAL = p_total,
-        METODO_PAGO = p_metodo_pago
-    WHERE ID_BOLETA = p_id;
+        id_cliente = p_id_cliente,
+        activo = p_activo,
+        fecha = p_fecha,
+        total = p_total,
+        metodo_pago = p_metodo_pago
+    WHERE id_boleta = p_id;
 END //
 
 CREATE PROCEDURE eliminar_boleta(IN p_id INT)
 BEGIN
-    DELETE FROM BOLETA
-    WHERE ID_BOLETA = p_id;
+    DELETE FROM boleta
+    WHERE id_boleta = p_id;
 END //
 
 CREATE PROCEDURE buscar_boleta_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM BOLETA
-    WHERE ID_BOLETA = p_id;
+    FROM boleta
+    WHERE id_boleta = p_id;
 END //
 
 CREATE PROCEDURE listar_boletas()
 BEGIN
     SELECT *
-    FROM BOLETA;
+    FROM boleta;
 END //
 
 DELIMITER ;

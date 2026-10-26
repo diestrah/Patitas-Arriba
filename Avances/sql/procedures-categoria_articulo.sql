@@ -17,7 +17,7 @@ CREATE PROCEDURE insertar_categoria_articulo (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO CATEGORIA_ARTICULO (nombre, descripcion, activo)
+    INSERT INTO categoria_articulo (nombre, descripcion, activo)
     VALUES (p_nombre, p_descripcion, p_activo);
 
     SET p_id = LAST_INSERT_ID();
@@ -31,7 +31,7 @@ CREATE PROCEDURE modificar_categoria_articulo (
     IN p_activo TINYINT(1)
 )
 BEGIN
-    UPDATE CATEGORIA_ARTICULO
+    UPDATE categoria_articulo
     SET nombre = p_nombre,
         descripcion = p_descripcion,
         activo = p_activo
@@ -40,14 +40,14 @@ END //
 
 CREATE PROCEDURE eliminar_categoria_articulo (IN p_id INT)
 BEGIN
-    DELETE FROM CATEGORIA_ARTICULO
+    DELETE FROM categoria_articulo
     WHERE id_categoria_articulo = p_id;
 END //
 
 CREATE PROCEDURE buscar_categoria_articulo_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM CATEGORIA_ARTICULO
+    FROM categoria_articulo
     WHERE id_categoria_articulo = p_id;
 END //
 
@@ -55,7 +55,7 @@ END //
 CREATE PROCEDURE listar_categoria_articulo ()
 BEGIN
     SELECT *
-    FROM CATEGORIA_ARTICULO
+    FROM categoria_articulo
     WHERE activo = 1;
 END //
 

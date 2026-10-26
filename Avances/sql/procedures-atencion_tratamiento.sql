@@ -12,7 +12,7 @@ CREATE PROCEDURE insertar_atencion_tratamiento (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO ATENCION_TRATAMIENTO (
+    INSERT INTO atencion_tratamiento (
         id_atencion_medica,
         id_tratamiento,
         activo
@@ -29,13 +29,13 @@ END;
 CREATE PROCEDURE listar_atencion_tratamientos_por_atencion_medica (IN p_id_atencion_medica INT)
 BEGIN
     SELECT *
-    FROM ATENCION_TRATAMIENTO
+    FROM atencion_tratamiento
     WHERE id_atencion_medica = p_id_atencion_medica;
 END;
 
 CREATE PROCEDURE eliminar_atencion_tratamientos_por_atencion_medica (IN p_id_atencion_medica INT)
 BEGIN
-    DELETE FROM ATENCION_TRATAMIENTO
+    DELETE FROM atencion_tratamiento
     WHERE id_atencion_medica = p_id_atencion_medica;
 END;
 

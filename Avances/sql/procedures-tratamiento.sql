@@ -16,7 +16,7 @@ CREATE PROCEDURE insertar_tratamiento(
 	IN p_activo TINYINT(1),
 	OUT p_id INT)
 BEGIN
-	INSERT INTO TRATAMIENTO (
+	INSERT INTO tratamiento (
 		activo,
 		nombre_procedimiento,
 		descripcion)
@@ -34,7 +34,7 @@ CREATE PROCEDURE actualizar_tratamiento(
 	IN p_activo TINYINT(1),
 	IN p_id INT)
 BEGIN
-	UPDATE TRATAMIENTO
+	UPDATE tratamiento
 	SET 
 		nombre_procedimiento = p_nombre_procedimiento,
 		descripcion = p_descripcion,
@@ -44,25 +44,25 @@ END //
 
 CREATE PROCEDURE eliminar_tratamiento(IN p_id INT)
 BEGIN
-	UPDATE TRATAMIENTO
+	UPDATE tratamiento
 	SET activo = 0
 	WHERE id_tratamiento = p_id;
 END //
 
 CREATE PROCEDURE buscar_tratamiento_por_id(IN p_id INT)
 BEGIN
-	SELECT * FROM TRATAMIENTO
+	SELECT * FROM tratamiento
 	WHERE id_tratamiento = p_id;
 END //
 
 
 CREATE PROCEDURE buscar_tratamiento_por_nombre(IN p_nombre VARCHAR(45))
 BEGIN
-	SELECT * FROM TRATAMIENTO
+	SELECT * FROM tratamiento
 	WHERE nombre_procedimiento = p_nombre;
 END //
 
 CREATE PROCEDURE listar_tratamientos()
 BEGIN
-	SELECT * FROM TRATAMIENTO;
+	SELECT * FROM tratamiento;
 END //

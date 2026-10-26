@@ -19,12 +19,12 @@ CREATE PROCEDURE insertar_detalle_boleta_serv(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO DETALLE_BOLETA_SERV (
-        ID_BOLETA,
-        ID_SERVICIO,
-        ACTIVO,
-        CANTIDAD,
-        SUBTOTAL
+    INSERT INTO detalle_boleta_serv (
+        id_boleta,
+        id_servicio,
+        activo,
+        cantidad,
+        subtotal
     )
     VALUES (
         p_id_boleta,
@@ -46,46 +46,46 @@ CREATE PROCEDURE modificar_detalle_boleta_serv(
     IN p_id INT
 )
 BEGIN
-    UPDATE DETALLE_BOLETA_SERV
+    UPDATE detalle_boleta_serv
     SET
-        ID_BOLETA = p_id_boleta,
-        ID_SERVICIO = p_id_servicio,
-        ACTIVO = p_activo,
-        CANTIDAD = p_cantidad,
-        SUBTOTAL = p_subtotal
-    WHERE ID_DETALLE_SERV = p_id;
+        id_boleta = p_id_boleta,
+        id_servicio = p_id_servicio,
+        activo = p_activo,
+        cantidad = p_cantidad,
+        subtotal = p_subtotal
+    WHERE id_detalle_serv = p_id;
 END //
 
 CREATE PROCEDURE eliminar_detalle_boleta_serv(IN p_id INT)
 BEGIN
-    DELETE FROM DETALLE_BOLETA_SERV
-    WHERE ID_DETALLE_SERV = p_id;
+    DELETE FROM detalle_boleta_serv
+    WHERE id_detalle_serv = p_id;
 END //
 
 CREATE PROCEDURE buscar_detalle_boleta_serv_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_SERV
-    WHERE ID_DETALLE_SERV = p_id;
+    FROM detalle_boleta_serv
+    WHERE id_detalle_serv = p_id;
 END //
 
 CREATE PROCEDURE listar_detalles_boleta_serv()
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_SERV;
+    FROM detalle_boleta_serv;
 END //
 
 CREATE PROCEDURE listar_detalles_boleta_serv_por_boleta(IN p_id_boleta INT)
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_SERV
-    WHERE ID_BOLETA = p_id_boleta;
+    FROM detalle_boleta_serv
+    WHERE id_boleta = p_id_boleta;
 END //
 
 CREATE PROCEDURE eliminar_detalles_boleta_serv_por_boleta(IN p_id_boleta INT)
 BEGIN
-    DELETE FROM DETALLE_BOLETA_SERV
-    WHERE ID_BOLETA = p_id_boleta;
+    DELETE FROM detalle_boleta_serv
+    WHERE id_boleta = p_id_boleta;
 END //
 
 DELIMITER ;

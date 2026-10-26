@@ -15,7 +15,7 @@ CREATE PROCEDURE insertar_diagnostico (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO DIAGNOSTICO (
+    INSERT INTO diagnostico (
         nombre_enfermedad,
         descripcion,
         activo
@@ -36,7 +36,7 @@ CREATE PROCEDURE actualizar_diagnostico (
     IN p_estado TINYINT(1)
 )
 BEGIN
-    UPDATE DIAGNOSTICO
+    UPDATE diagnostico
     SET
         nombre_enfermedad = p_nombre_enfermedad,
         descripcion = p_descripcion,
@@ -46,26 +46,26 @@ END;
 
 CREATE PROCEDURE eliminar_diagnostico (IN p_id INT)
 BEGIN
-    DELETE FROM DIAGNOSTICO
+    DELETE FROM diagnostico
     WHERE id_diagnostico = p_id;
 END;
 
 CREATE PROCEDURE buscar_diagnostico_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM DIAGNOSTICO
+    FROM diagnostico
     WHERE id_diagnostico = p_id;
 END;
 
 CREATE PROCEDURE buscar_diagnostico_por_nombre_enfermedad (IN p_nombre_enfermedad VARCHAR(45))
 BEGIN
     SELECT *
-    FROM DIAGNOSTICO
+    FROM diagnostico
     WHERE nombre_enfermedad = p_nombre_enfermedad;
 END;
 
 CREATE PROCEDURE listar_diagnosticos ()
 BEGIN
     SELECT *
-    FROM DIAGNOSTICO;
+    FROM diagnostico;
 END;

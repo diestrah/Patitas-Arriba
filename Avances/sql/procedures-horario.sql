@@ -17,7 +17,7 @@ CREATE PROCEDURE insertar_horario(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO HORARIO (
+    INSERT INTO horario (
         dia_semana,
         hora_inicio,
         hora_fin,
@@ -41,7 +41,7 @@ CREATE PROCEDURE modificar_horario(
     IN p_id INT
 )
 BEGIN
-    UPDATE HORARIO
+    UPDATE horario
     SET 
         dia_semana = p_dia_semana,
         hora_inicio = p_hora_inicio,
@@ -52,28 +52,28 @@ END //
 
 CREATE PROCEDURE eliminar_horario(IN p_id INT)
 BEGIN
-    DELETE FROM HORARIO
+    DELETE FROM horario
     WHERE id_horario = p_id;
 END //
 
 CREATE PROCEDURE buscar_horario_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM HORARIO
+    FROM horario
     WHERE id_horario = p_id;
 END //
 
 CREATE PROCEDURE buscar_horario_por_dia(IN p_dia_semana VARCHAR(10))
 BEGIN
     SELECT *
-    FROM HORARIO
+    FROM horario
     WHERE dia_semana = p_dia_semana;
 END //
 
 CREATE PROCEDURE listar_horarios()
 BEGIN
     SELECT *
-    FROM HORARIO;
+    FROM horario;
 END //
 
 DELIMITER ;

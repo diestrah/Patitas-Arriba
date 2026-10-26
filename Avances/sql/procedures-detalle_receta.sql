@@ -21,7 +21,7 @@ CREATE PROCEDURE insertar_detalle_receta (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO DETALLE_RECETA (
+    INSERT INTO detalle_receta (
         id_receta,
         id_articulo,
         dosis,
@@ -46,13 +46,13 @@ END //
 CREATE PROCEDURE listar_detalles_por_receta(IN p_id_receta INT)
 BEGIN
     SELECT *
-    FROM DETALLE_RECETA
+    FROM detalle_receta
     WHERE id_receta = p_id_receta;
 END //
 
 CREATE PROCEDURE eliminar_detalles_por_receta(IN p_id_receta INT)
 BEGIN
-    UPDATE DETALLE_RECETA
+    UPDATE detalle_receta
 	SET activo = 0
 	WHERE id_receta = p_id_receta;
 END //

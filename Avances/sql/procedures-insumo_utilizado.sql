@@ -13,7 +13,7 @@ CREATE PROCEDURE insertar_insumo_utilizado (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO INSUMO_UTILIZADO (
+    INSERT INTO insumo_utilizado (
         id_atencion_tratamiento,
         id_articulo,
         cantidad_utilizada,
@@ -32,13 +32,13 @@ END;
 CREATE PROCEDURE listar_insumos_por_atencion_tratamiento (IN p_id_atencion_tratamiento INT)
 BEGIN
     SELECT *
-    FROM INSUMO_UTILIZADO
+    FROM insumo_utilizado
     WHERE id_atencion_tratamiento = p_id_atencion_tratamiento;
 END;
 
 CREATE PROCEDURE eliminar_insumos_por_atencion_tratamiento (IN p_id_atencion_tratamiento INT)
 BEGIN
-    DELETE FROM INSUMO_UTILIZADO
+    DELETE FROM insumo_utilizado
     WHERE id_atencion_tratamiento = p_id_atencion_tratamiento;
 END;
 

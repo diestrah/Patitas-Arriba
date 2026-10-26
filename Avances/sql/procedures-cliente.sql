@@ -20,9 +20,9 @@ CREATE PROCEDURE insertar_cliente(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO CLIENTE (
-        ID_CUENTA, ACTIVO, DNI, NOMBRES, APELLIDO_PATERNO,
-        APELLIDO_MATERNO, TELEFONO
+    INSERT INTO cliente (
+        id_cuenta, activo, dni, nombres, apellido_paterno,
+        apellido_materno, telefono
     )
     VALUES (
         p_id_cuenta, p_activo, p_dni, p_nombres, p_apellido_paterno,
@@ -42,35 +42,35 @@ CREATE PROCEDURE modificar_cliente(
     IN p_id INT
 )
 BEGIN
-    UPDATE CLIENTE
-    SET ID_CUENTA = p_id_cuenta,
-        ACTIVO = p_activo,
-        DNI = p_dni,
-        NOMBRES = p_nombres,
-        APELLIDO_PATERNO = p_apellido_paterno,
-        APELLIDO_MATERNO = p_apellido_materno,
-        TELEFONO = p_telefono
-    WHERE ID_CLIENTE = p_id;
+    UPDATE cliente
+    SET id_cuenta = p_id_cuenta,
+        activo = p_activo,
+        dni = p_dni,
+        nombres = p_nombres,
+        apellido_paterno = p_apellido_paterno,
+        apellido_materno = p_apellido_materno,
+        telefono = p_telefono
+    WHERE id_cliente = p_id;
 END //
 
 CREATE PROCEDURE eliminar_cliente(IN p_id INT)
 BEGIN
-    DELETE FROM CLIENTE WHERE ID_CLIENTE = p_id;
+    DELETE FROM cliente WHERE id_cliente = p_id;
 END //
 
 CREATE PROCEDURE buscar_cliente_por_id(IN p_id INT)
 BEGIN
-    SELECT * FROM CLIENTE WHERE ID_CLIENTE = p_id;
+    SELECT * FROM cliente WHERE id_cliente = p_id;
 END //
 
 CREATE PROCEDURE buscar_cliente_por_dni(IN p_dni VARCHAR(8))
 BEGIN
-    SELECT * FROM CLIENTE WHERE DNI = p_dni;
+    SELECT * FROM cliente WHERE dni = p_dni;
 END //
 
 CREATE PROCEDURE listar_clientes()
 BEGIN
-    SELECT * FROM CLIENTE;
+    SELECT * FROM cliente;
 END //
 
 DELIMITER ;

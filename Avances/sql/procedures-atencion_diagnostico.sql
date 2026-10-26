@@ -14,7 +14,7 @@ CREATE PROCEDURE insertar_atencion_diagnostico (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO ATENCION_DIAGNOSTICO (
+    INSERT INTO atencion_diagnostico (
         id_atencion_medica,
         id_diagnostico,
         nivel_gravedad,
@@ -35,13 +35,13 @@ END;
 CREATE PROCEDURE listar_atencion_diagnosticos_por_atencion_medica (IN p_id_atencion_medica INT)
 BEGIN
     SELECT *
-    FROM ATENCION_DIAGNOSTICO
+    FROM atencion_diagnostico
     WHERE id_atencion_medica = p_id_atencion_medica;
 END;
 
 CREATE PROCEDURE eliminar_atencion_diagnosticos_por_atencion_medica (IN p_id_atencion_medica INT)
 BEGIN
-    DELETE FROM ATENCION_DIAGNOSTICO
+    DELETE FROM atencion_diagnostico
     WHERE id_atencion_medica = p_id_atencion_medica;
 END ;
 

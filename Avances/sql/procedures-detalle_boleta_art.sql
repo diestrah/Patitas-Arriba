@@ -19,12 +19,12 @@ CREATE PROCEDURE insertar_detalle_boleta_art(
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO DETALLE_BOLETA_ART (
-        ID_BOLETA,
-        ID_ARTICULO,
-        ACTIVO,
-        CANTIDAD,
-        SUBTOTAL
+    INSERT INTO detalle_boleta_art (
+        id_boleta,
+        id_articulo,
+        activo,
+        cantidad,
+        subtotal
     )
     VALUES (
         p_id_boleta,
@@ -46,46 +46,46 @@ CREATE PROCEDURE modificar_detalle_boleta_art(
     IN p_id INT
 )
 BEGIN
-    UPDATE DETALLE_BOLETA_ART
+    UPDATE detalle_boleta_art
     SET
-        ID_BOLETA = p_id_boleta,
-        ID_ARTICULO = p_id_articulo,
-        ACTIVO = p_activo,
-        CANTIDAD = p_cantidad,
-        SUBTOTAL = p_subtotal
-    WHERE ID_DETALLE_BOLETA_ARTI = p_id;
+        id_boleta = p_id_boleta,
+        id_articulo = p_id_articulo,
+        activo = p_activo,
+        cantidad = p_cantidad,
+        subtotal = p_subtotal
+    WHERE id_detalle_boleta_arti = p_id;
 END //
 
 CREATE PROCEDURE eliminar_detalle_boleta_art(IN p_id INT)
 BEGIN
-    DELETE FROM DETALLE_BOLETA_ART
-    WHERE ID_DETALLE_BOLETA_ARTI = p_id;
+    DELETE FROM detalle_boleta_art
+    WHERE id_detalle_boleta_arti = p_id;
 END //
 
 CREATE PROCEDURE buscar_detalle_boleta_art_por_id(IN p_id INT)
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_ART
-    WHERE ID_DETALLE_BOLETA_ARTI = p_id;
+    FROM detalle_boleta_art
+    WHERE id_detalle_boleta_arti = p_id;
 END //
 
 CREATE PROCEDURE listar_detalles_boleta_art()
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_ART;
+    FROM detalle_boleta_art;
 END //
 
 CREATE PROCEDURE listar_detalles_boleta_art_por_boleta(IN p_id_boleta INT)
 BEGIN
     SELECT *
-    FROM DETALLE_BOLETA_ART
-    WHERE ID_BOLETA = p_id_boleta;
+    FROM detalle_boleta_art
+    WHERE id_boleta = p_id_boleta;
 END //
 
 CREATE PROCEDURE eliminar_detalles_boleta_art_por_boleta(IN p_id_boleta INT)
 BEGIN
-    DELETE FROM DETALLE_BOLETA_ART
-    WHERE ID_BOLETA = p_id_boleta;
+    DELETE FROM detalle_boleta_art
+    WHERE id_boleta = p_id_boleta;
 END //
 
 DELIMITER ;

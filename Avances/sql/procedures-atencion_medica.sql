@@ -18,7 +18,7 @@ CREATE PROCEDURE insertar_atencion_medica (
     OUT p_id INT
 )
 BEGIN
-    INSERT INTO ATENCION_MEDICA (
+    INSERT INTO atencion_medica (
         fecha_hora,
         motivo_consulta,
         peso_fisico,
@@ -51,7 +51,7 @@ CREATE PROCEDURE actualizar_atencion_medica (
     IN p_id INT
 )
 BEGIN
-    UPDATE ATENCION_MEDICA
+    UPDATE atencion_medica
     SET
         fecha_hora = p_fecha_hora,
         motivo_consulta = p_motivo_consulta,
@@ -65,20 +65,20 @@ END;
 
 CREATE PROCEDURE eliminar_atencion_medica (IN p_id INT)
 BEGIN
-    DELETE FROM ATENCION_MEDICA
+    DELETE FROM atencion_medica
     WHERE id_atencion_medica = p_id;
 END;
 
 CREATE PROCEDURE buscar_atencion_medica_por_id (IN p_id INT)
 BEGIN
     SELECT *
-    FROM ATENCION_MEDICA
+    FROM atencion_medica
     WHERE id_atencion_medica = p_id;
 END;
 
 CREATE PROCEDURE listar_atenciones_medicas ()
 BEGIN
     SELECT *
-    FROM ATENCION_MEDICA;
+    FROM atencion_medica;
 END;
 
