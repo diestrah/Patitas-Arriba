@@ -5,16 +5,19 @@ import patitasarriba.modelo.Registro;
 import java.time.LocalDate;
 
 public class Cuenta extends Registro {
+    private int idCuenta;
     private String password;
     private String correo;
     private LocalDate fechaCreacion;
     private String nombreUsuario;
 
-    public Cuenta(){
+    public Cuenta() {
     }
 
-    public Cuenta(int id, boolean activo, String password, String correo, LocalDate fechaCreacion, String nombreUsuario) {
-        super(id, activo);
+    public Cuenta(int idCuenta, boolean activo, String password, String correo, LocalDate fechaCreacion,
+                  String nombreUsuario) {
+        super(activo);
+        setIdCuenta(idCuenta);
         setPassword(password);
         setCorreo(correo);
         setFechaCreacion(fechaCreacion);
@@ -27,6 +30,7 @@ public class Cuenta extends Registro {
             throw new IllegalArgumentException("cuenta no puede ser nula");
         }
         super(cuenta);
+        setIdCuenta(cuenta.getIdCuenta());
         setPassword(cuenta.getPassword());
         setCorreo(cuenta.getCorreo());
         setFechaCreacion(cuenta.getFechaCreacion());
@@ -34,14 +38,24 @@ public class Cuenta extends Registro {
     }
 
     // Getters y Setters
+    public int getIdCuenta() {
+        return idCuenta;
+    }
+
+    public void setIdCuenta(int idCuenta) {
+        if (idCuenta < 0) {
+            throw new IllegalArgumentException("idCuenta no puede ser negativo");
+        }
+        this.idCuenta = idCuenta;
+    }
 
     public String getPassword() {
         return password;
     }
 
     public void setPassword(String password) {
-        if (password == null || password.isEmpty()) {
-            throw new IllegalArgumentException("password no puede ser nulo");
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("password no puede ser nulo o vacío");
         }
         this.password = password;
     }
@@ -51,8 +65,8 @@ public class Cuenta extends Registro {
     }
 
     public void setCorreo(String correo) {
-        if (correo == null || correo.isEmpty()) {
-            throw new IllegalArgumentException("correo no puede ser nulo");
+        if (correo == null || correo.isBlank()) {
+            throw new IllegalArgumentException("correo no puede ser nulo o vacío");
         }
         this.correo = correo;
     }
@@ -62,6 +76,9 @@ public class Cuenta extends Registro {
     }
 
     public void setFechaCreacion(LocalDate fechaCreacion) {
+        if (fechaCreacion == null) {
+            throw new IllegalArgumentException("fechaCreacion no puede ser nula");
+        }
         this.fechaCreacion = fechaCreacion;
     }
 
@@ -70,17 +87,18 @@ public class Cuenta extends Registro {
     }
 
     public void setNombreUsuario(String nombreUsuario) {
-        if (nombreUsuario == null || nombreUsuario.isEmpty()) {
-            throw new IllegalArgumentException("nombreUsuario no puede ser nulo");
+        if (nombreUsuario == null || nombreUsuario.isBlank()) {
+            throw new IllegalArgumentException("nombreUsuario no puede ser nulo o vacío");
         }
         this.nombreUsuario = nombreUsuario;
     }
 
     @Override
     public String toString() {
+        // El password no se imprime
         return "Cuenta{" +
-                super.toString() +
-                ", password='" + password + '\'' +
+                "idCuenta=" + idCuenta +
+                ", " + super.toString() +
                 ", correo='" + correo + '\'' +
                 ", fechaCreacion=" + fechaCreacion +
                 ", nombreUsuario='" + nombreUsuario + '\'' +

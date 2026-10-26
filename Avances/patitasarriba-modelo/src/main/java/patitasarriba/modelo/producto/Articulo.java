@@ -1,30 +1,35 @@
 package patitasarriba.modelo.producto;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 public class Articulo extends Producto {
     private int stockActual;
     private int stockMinimo;
-    private String marca;
-    private CategoriaArticulo categoria;
+    private List<Categoria> categorias;
 
     public Articulo() {
+        this.categorias = new ArrayList<>();
     }
 
-    public Articulo(int id, boolean activo, String nombre, double precioBase, String descripcion,
-                    int stockActual, int stockMinimo, String marca, CategoriaArticulo categoria) {
-        super(id, activo, nombre, precioBase, descripcion);
+    public Articulo(int idProducto, boolean activo, String nombre, double precioBase, String descripcion,
+                    int stockActual, int stockMinimo, List<Categoria> categorias) {
+        super(idProducto, activo, nombre, precioBase, descripcion);
         setStockActual(stockActual);
         setStockMinimo(stockMinimo);
-        setMarca(marca);
-        setCategoria(categoria);
+        setCategorias(categorias);
     }
 
     // Constructor de copia
     public Articulo(final Articulo articulo) {
+        if (articulo == null) {
+            throw new IllegalArgumentException("articulo no puede ser nulo");
+        }
         super(articulo);
         setStockActual(articulo.getStockActual());
         setStockMinimo(articulo.getStockMinimo());
-        setMarca(articulo.getMarca());
-        setCategoria(articulo.getCategoria());
+        setCategorias(articulo.getCategorias());
     }
 
     // Getters y Setters
@@ -50,36 +55,48 @@ public class Articulo extends Producto {
         this.stockMinimo = stockMinimo;
     }
 
-    public String getMarca() {
-        return marca;
+    public List<Categoria> getCategorias() {
+        return Collections.unmodifiableList(categorias);
     }
 
-    public void setMarca(String marca) {
-        if (marca == null || marca.isEmpty()) {
-            throw new IllegalArgumentException("marca no puede ser nulo o vacío");
+    public void setCategorias(List<Categoria> categorias) {
+        if (categorias == null) {
+            throw new IllegalArgumentException("categorias no puede ser nulo");
         }
-        this.marca = marca;
+        for (Categoria categoria : categorias) {
+            if (categoria == null) {
+                throw new IllegalArgumentException("categorias no puede contener elementos nulos");
+            }
+        }
+        this.categorias = new ArrayList<>(categorias);
     }
 
-    public CategoriaArticulo getCategoria() {
-        return categoria;
-    }
-
-    public void setCategoria(CategoriaArticulo categoria) {
+    public void agregarCategoria(Categoria categoria) {
         if (categoria == null) {
-            throw new IllegalArgumentException("categoria no puede ser nulo");
+            throw new IllegalArgumentException("categoria no puede ser nula");
         }
-        this.categoria = categoria;
+        categorias.add(categoria);
+    }
+
+    public void eliminarCategoria(Categoria categoria) {
+        if (categoria == null) {
+            throw new IllegalArgumentException("categoria no puede ser nula");
+        }
+        categorias.removeIf(c -> c.getIdCategoria() == categoria.getIdCategoria());
     }
 
     @Override
     public String toString() {
+        List<String> nombresCategorias = new ArrayList<>();
+        for (Categoria categoria : categorias) {
+            nombresCategorias.add(categoria.getNombre());
+        }
+
         return "Articulo{" +
                 super.toString() +
                 ", stockActual=" + stockActual +
                 ", stockMinimo=" + stockMinimo +
-                ", marca='" + marca + '\'' +
-                ", categoria=" + categoria +
+                ", categorias=" + nombresCategorias +
                 '}';
     }
 }

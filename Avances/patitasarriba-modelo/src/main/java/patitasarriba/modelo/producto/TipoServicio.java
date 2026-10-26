@@ -4,6 +4,6 @@ public enum TipoServicio {
     CONSULTA_MEDICA,
     OPERACION,
     VACUNACION,
-    EMERGENCIA,
-    ESTETICO
+    ESTETICA,
+    EMERGENCIA
 }

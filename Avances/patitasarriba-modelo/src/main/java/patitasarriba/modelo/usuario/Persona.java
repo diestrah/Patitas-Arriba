@@ -3,25 +3,27 @@ package patitasarriba.modelo.usuario;
 import patitasarriba.modelo.Registro;
 
 public abstract class Persona extends Registro {
+    private int idPersona;
+    private Cuenta cuenta;
+    private String dni;
     private String nombres;
     private String apellidoPaterno;
     private String apellidoMaterno;
     private String telefono;
-    private String dni;
-    private Cuenta cuenta;
 
+    public Persona() {
+    }
 
-    public Persona(){}
-
-    public Persona(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
-                   String telefono, String dni, Cuenta cuenta) {
-        super(id, activo);
+    public Persona(int idPersona, boolean activo, Cuenta cuenta, String dni, String nombres,
+                   String apellidoPaterno, String apellidoMaterno, String telefono) {
+        super(activo);
+        setIdPersona(idPersona);
+        setCuenta(cuenta);
+        setDni(dni);
         setNombres(nombres);
         setApellidoPaterno(apellidoPaterno);
         setApellidoMaterno(apellidoMaterno);
         setTelefono(telefono);
-        setDni(dni);
-        setCuenta(cuenta);
     }
 
     // Constructor de copia
@@ -30,23 +32,60 @@ public abstract class Persona extends Registro {
             throw new IllegalArgumentException("persona no puede ser nula");
         }
         super(persona);
+        setIdPersona(persona.getIdPersona());
+        setCuenta(persona.getCuenta());
+        setDni(persona.getDni());
         setNombres(persona.getNombres());
         setApellidoPaterno(persona.getApellidoPaterno());
         setApellidoMaterno(persona.getApellidoMaterno());
         setTelefono(persona.getTelefono());
-        setDni(persona.getDni());
-        setCuenta(persona.getCuenta());
     }
 
     // Getters y Setters
+    public int getIdPersona() {
+        return idPersona;
+    }
+
+    public void setIdPersona(int idPersona) {
+        if (idPersona < 0) {
+            throw new IllegalArgumentException("idPersona no puede ser negativo");
+        }
+        this.idPersona = idPersona;
+    }
+
+    public Cuenta getCuenta() {
+        if (cuenta == null) {
+            return null;
+        }
+        return new Cuenta(cuenta);
+    }
+
+    public void setCuenta(Cuenta cuenta) {
+        if (cuenta == null) {
+            throw new IllegalArgumentException("cuenta no puede ser nula");
+        }
+        this.cuenta = new Cuenta(cuenta);
+    }
+
+    public String getDni() {
+        return dni;
+    }
+
+    public void setDni(String dni) {
+        // El formato (8 digitos) lo valida la capa de negocio
+        if (dni == null || dni.isBlank()) {
+            throw new IllegalArgumentException("dni no puede ser nulo o vacío");
+        }
+        this.dni = dni;
+    }
 
     public String getNombres() {
         return nombres;
     }
 
     public void setNombres(String nombres) {
-        if (nombres == null || nombres.isEmpty()) {
-            throw new IllegalArgumentException("nombres no puede ser nulo");
+        if (nombres == null || nombres.isBlank()) {
+            throw new IllegalArgumentException("nombres no puede ser nulo o vacío");
         }
         this.nombres = nombres;
     }
@@ -56,8 +95,8 @@ public abstract class Persona extends Registro {
     }
 
     public void setApellidoPaterno(String apellidoPaterno) {
-        if (apellidoPaterno == null || apellidoPaterno.isEmpty()) {
-            throw new IllegalArgumentException("apellidoPaterno no puede ser nulo");
+        if (apellidoPaterno == null || apellidoPaterno.isBlank()) {
+            throw new IllegalArgumentException("apellidoPaterno no puede ser nulo o vacío");
         }
         this.apellidoPaterno = apellidoPaterno;
     }
@@ -67,8 +106,8 @@ public abstract class Persona extends Registro {
     }
 
     public void setApellidoMaterno(String apellidoMaterno) {
-        if (apellidoMaterno == null || apellidoMaterno.isEmpty()) {
-            throw new IllegalArgumentException("apellidoMaterno no puede ser nulo");
+        if (apellidoMaterno == null || apellidoMaterno.isBlank()) {
+            throw new IllegalArgumentException("apellidoMaterno no puede ser nulo o vacío");
         }
         this.apellidoMaterno = apellidoMaterno;
     }
@@ -78,41 +117,26 @@ public abstract class Persona extends Registro {
     }
 
     public void setTelefono(String telefono) {
+        if (telefono == null || telefono.isBlank()) {
+            throw new IllegalArgumentException("telefono no puede ser nulo o vacío");
+        }
         this.telefono = telefono;
-    }
-
-    public String getDni() {
-        return dni;
-    }
-
-    public void setDni(String dni) {
-        if (dni == null || dni.isEmpty()) {
-            throw new IllegalArgumentException("dni no puede ser nulo");
-        }
-        this.dni = dni;
-    }
-
-    public Cuenta getCuenta() {
-        return cuenta;
-    }
-
-    public void setCuenta(Cuenta cuenta) {
-        if (cuenta == null) {
-            throw new IllegalArgumentException("cuenta no puede ser nula");
-        }
-        this.cuenta = cuenta;
     }
 
     @Override
     public String toString() {
-        return "Persona{" +
-                super.toString() +
-                "nombres='" + nombres + '\'' +
+        String nombreUsuario = null;
+        if (cuenta != null) {
+            nombreUsuario = cuenta.getNombreUsuario();
+        }
+
+        return "idPersona=" + idPersona +
+                ", " + super.toString() +
+                ", cuenta=" + nombreUsuario +
+                ", dni='" + dni + '\'' +
+                ", nombres='" + nombres + '\'' +
                 ", apellidoPaterno='" + apellidoPaterno + '\'' +
                 ", apellidoMaterno='" + apellidoMaterno + '\'' +
-                ", telefono='" + telefono + '\'' +
-                ", dni='" + dni + '\'' +
-                ", cuenta=" + cuenta +
-                '}';
+                ", telefono='" + telefono + '\'';
     }
 }

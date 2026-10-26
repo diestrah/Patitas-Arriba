@@ -2,37 +2,30 @@ package patitasarriba.modelo.producto;
 
 public class Servicio extends Producto {
     private TipoServicio tipo;
-    private boolean requiereTriaje;
-    private boolean requiereVacuna;
+    // Integer porque es opcional en la base: null = duracion no definida
     private Integer duracionEstimada;
 
     public Servicio() {
     }
 
-    public Servicio(int id, boolean activo, String nombre, double precioBase, String descripcion,
-                    TipoServicio tipo, boolean requiereTriaje,
-                    boolean requiereVacuna, int duracionEstimada) {
-        super(id, activo, nombre, precioBase, descripcion);
+    public Servicio(int idProducto, boolean activo, String nombre, double precioBase, String descripcion,
+                    TipoServicio tipo, Integer duracionEstimada) {
+        super(idProducto, activo, nombre, precioBase, descripcion);
         setTipo(tipo);
-        setRequiereTriaje(requiereTriaje);
-        setRequiereVacuna(requiereVacuna);
         setDuracionEstimada(duracionEstimada);
     }
 
     // Constructor de copia
     public Servicio(final Servicio servicio) {
         if (servicio == null) {
-            throw new IllegalArgumentException("Servicio no puede ser nulo");
+            throw new IllegalArgumentException("servicio no puede ser nulo");
         }
         super(servicio);
         setTipo(servicio.getTipo());
-        setRequiereTriaje(servicio.isRequiereTriaje());
-        setRequiereVacuna(servicio.isRequiereVacuna());
         setDuracionEstimada(servicio.getDuracionEstimada());
     }
 
-    // setters y getters
-
+    // Getters y Setters
     public TipoServicio getTipo() {
         return tipo;
     }
@@ -44,37 +37,24 @@ public class Servicio extends Producto {
         this.tipo = tipo;
     }
 
-    public boolean isRequiereTriaje() {
-        return requiereTriaje;
-    }
-
-    public void setRequiereTriaje(boolean requiereTriaje) {
-        this.requiereTriaje = requiereTriaje;
-    }
-
-    public boolean isRequiereVacuna() {
-        return requiereVacuna;
-    }
-
-    public void setRequiereVacuna(boolean requiereVacuna) {
-        this.requiereVacuna = requiereVacuna;
-    }
-
     public Integer getDuracionEstimada() {
         return duracionEstimada;
     }
 
     public void setDuracionEstimada(Integer duracionEstimada) {
+        // duracionEstimada es opcional; si se indica, debe ser positiva (en minutos)
+        if (duracionEstimada != null && duracionEstimada <= 0) {
+            throw new IllegalArgumentException("duracionEstimada debe ser mayor que 0");
+        }
         this.duracionEstimada = duracionEstimada;
     }
 
+    @Override
     public String toString() {
         return "Servicio{" +
                 super.toString() +
+                ", tipo=" + tipo +
                 ", duracionEstimada=" + duracionEstimada +
-                ", requiereVacuna=" + requiereVacuna +
-                ", requiereTriaje=" + requiereTriaje +
-                ", tipoServicio=" + tipo +
                 '}';
     }
 }

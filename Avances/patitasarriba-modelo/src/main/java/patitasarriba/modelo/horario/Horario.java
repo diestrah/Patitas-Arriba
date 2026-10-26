@@ -5,6 +5,7 @@ import patitasarriba.modelo.Registro;
 import java.time.LocalTime;
 
 public class Horario extends Registro {
+    private int idHorario;
     private DiaSemana diaSemana;
     private LocalTime horaInicio;
     private LocalTime horaFin;
@@ -12,8 +13,9 @@ public class Horario extends Registro {
     public Horario() {
     }
 
-    public Horario(int id, boolean activo, DiaSemana diaSemana, LocalTime horaInicio, LocalTime horaFin) {
-        super(id, activo);
+    public Horario(int idHorario, boolean activo, DiaSemana diaSemana, LocalTime horaInicio, LocalTime horaFin) {
+        super(activo);
+        setIdHorario(idHorario);
         setDiaSemana(diaSemana);
         setHoraInicio(horaInicio);
         setHoraFin(horaFin);
@@ -21,13 +23,27 @@ public class Horario extends Registro {
 
     // Constructor de copia
     public Horario(final Horario horario) {
+        if (horario == null) {
+            throw new IllegalArgumentException("horario no puede ser nulo");
+        }
         super(horario);
+        setIdHorario(horario.getIdHorario());
         setDiaSemana(horario.getDiaSemana());
         setHoraInicio(horario.getHoraInicio());
         setHoraFin(horario.getHoraFin());
     }
 
     // Getters y Setters
+    public int getIdHorario() {
+        return idHorario;
+    }
+
+    public void setIdHorario(int idHorario) {
+        if (idHorario < 0) {
+            throw new IllegalArgumentException("idHorario no puede ser negativo");
+        }
+        this.idHorario = idHorario;
+    }
 
     public DiaSemana getDiaSemana() {
         return diaSemana;
@@ -45,8 +61,9 @@ public class Horario extends Registro {
     }
 
     public void setHoraInicio(LocalTime horaInicio) {
+        // Que horaInicio sea anterior a horaFin lo valida la capa de negocio
         if (horaInicio == null) {
-            throw new IllegalArgumentException("horaInicio no puede ser nulo");
+            throw new IllegalArgumentException("horaInicio no puede ser nula");
         }
         this.horaInicio = horaInicio;
     }
@@ -57,7 +74,7 @@ public class Horario extends Registro {
 
     public void setHoraFin(LocalTime horaFin) {
         if (horaFin == null) {
-            throw new IllegalArgumentException("horaFin no puede ser nulo");
+            throw new IllegalArgumentException("horaFin no puede ser nula");
         }
         this.horaFin = horaFin;
     }
@@ -65,7 +82,8 @@ public class Horario extends Registro {
     @Override
     public String toString() {
         return "Horario{" +
-                super.toString() +
+                "idHorario=" + idHorario +
+                ", " + super.toString() +
                 ", diaSemana=" + diaSemana +
                 ", horaInicio=" + horaInicio +
                 ", horaFin=" + horaFin +

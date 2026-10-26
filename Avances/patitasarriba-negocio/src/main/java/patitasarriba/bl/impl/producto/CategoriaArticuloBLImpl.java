@@ -4,7 +4,6 @@ import patitasarriba.bl.BLException;
 import patitasarriba.bl.CategoriaArticuloBL;
 import patitasarriba.dao.CategoriaArticuloDAO;
 import patitasarriba.dao.impl.producto.CategoriaArticuloDAOImpl;
-import patitasarriba.modelo.producto.CategoriaArticulo;
 
 import java.sql.SQLException;
 import java.util.List;

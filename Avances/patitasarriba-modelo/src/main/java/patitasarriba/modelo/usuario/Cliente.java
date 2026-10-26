@@ -1,58 +1,27 @@
 package patitasarriba.modelo.usuario;
 
-import patitasarriba.modelo.mascota.Mascota;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 public class Cliente extends Persona {
-    private List<Mascota> mascotas;
 
     public Cliente() {
-        mascotas = new ArrayList<>();
     }
 
-    public Cliente(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno, String telefono, String dni,
-                   Cuenta cuenta, List<Mascota> mascotas) {
-        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta);
-        setMascotas(mascotas);
+    public Cliente(int idPersona, boolean activo, Cuenta cuenta, String dni, String nombres,
+                   String apellidoPaterno, String apellidoMaterno, String telefono) {
+        super(idPersona, activo, cuenta, dni, nombres, apellidoPaterno, apellidoMaterno, telefono);
     }
 
     // Constructor de copia
     public Cliente(final Cliente cliente) {
-        if(cliente == null){
-            throw new IllegalArgumentException("Cliente no puede ser nulo");
+        if (cliente == null) {
+            throw new IllegalArgumentException("cliente no puede ser nulo");
         }
         super(cliente);
-        setMascotas(cliente.getMascotas());
-    }
-
-    // Getters y Setters
-    public List<Mascota> getMascotas() {
-        return Collections.unmodifiableList(mascotas);
-    }
-
-    public void setMascotas(List<Mascota> mascotas) {
-        if (mascotas == null) {
-            throw new IllegalArgumentException("mascotas no puede ser nulo");
-        }
-        this.mascotas = new ArrayList<>(mascotas);
-    }
-
-    public void agregarMascota(Mascota mascota) {
-        this.mascotas.add(mascota);
-    }
-
-    public void eliminarMascota(Mascota mascota) {
-        this.mascotas.remove(mascota);
     }
 
     @Override
     public String toString() {
         return "Cliente{" +
-                super.toString() + '\'' +
-                ", mascotas=" + mascotas +
+                super.toString() +
                 '}';
     }
 }

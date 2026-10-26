@@ -12,11 +12,13 @@
     <artifactId>patitasarriba-app</artifactId>
 
     <dependencies>
+
         <dependency>
             <groupId>pe.edu.pucp.patitasarriba</groupId>
-            <artifactId>patitasarriba-negocio</artifactId>
+            <artifactId>patitasarriba-modelo</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
+
     </dependencies>
 
 </project>

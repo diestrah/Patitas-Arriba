@@ -2,35 +2,33 @@ package patitasarriba.modelo.mascota;
 
 import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.usuario.Cliente;
-import patitasarriba.modelo.cita.Cita;
-import patitasarriba.modelo.atencion.AtencionMedica;
 
 import java.time.LocalDate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class Mascota extends Registro {
+    private int idMascota;
+    private Cliente cliente;
     private String nombre;
     private SexoMascota sexo;
     private double peso;
     private LocalDate fechaNacimiento;
-    private TipoMascota tipoMascota;
     private String raza;
-    private Cliente cliente;
+    private TipoMascota tipoMascota;
 
     public Mascota() {
     }
 
-    public Mascota(int id, boolean activo, String nombre, SexoMascota sexo, double peso, LocalDate fechaNacimiento, TipoMascota tipoMascota, String raza, Cliente cliente) {
-        super(id, activo);
+    public Mascota(int idMascota, boolean activo, Cliente cliente, String nombre, SexoMascota sexo, double peso,
+                   LocalDate fechaNacimiento, String raza, TipoMascota tipoMascota) {
+        super(activo);
+        setIdMascota(idMascota);
+        setCliente(cliente);
         setNombre(nombre);
         setSexo(sexo);
         setPeso(peso);
         setFechaNacimiento(fechaNacimiento);
-        setTipoMascota(tipoMascota);
         setRaza(raza);
-        setCliente(cliente);
+        setTipoMascota(tipoMascota);
     }
 
     // Constructor de copia
@@ -39,23 +37,48 @@ public class Mascota extends Registro {
             throw new IllegalArgumentException("mascota no puede ser nula");
         }
         super(mascota);
+        setIdMascota(mascota.getIdMascota());
+        setCliente(mascota.getCliente());
         setNombre(mascota.getNombre());
         setSexo(mascota.getSexo());
         setPeso(mascota.getPeso());
         setFechaNacimiento(mascota.getFechaNacimiento());
-        setTipoMascota(mascota.getTipoMascota());
         setRaza(mascota.getRaza());
-        setCliente(mascota.getCliente());
+        setTipoMascota(mascota.getTipoMascota());
     }
 
     // Getters y Setters
+    public int getIdMascota() {
+        return idMascota;
+    }
+
+    public void setIdMascota(int idMascota) {
+        if (idMascota < 0) {
+            throw new IllegalArgumentException("idMascota no puede ser negativo");
+        }
+        this.idMascota = idMascota;
+    }
+
+    public Cliente getCliente() {
+        if (cliente == null) {
+            return null;
+        }
+        return new Cliente(cliente);
+    }
+
+    public void setCliente(Cliente cliente) {
+        if (cliente == null) {
+            throw new IllegalArgumentException("cliente no puede ser nulo");
+        }
+        this.cliente = new Cliente(cliente);
+    }
 
     public String getNombre() {
         return nombre;
     }
 
     public void setNombre(String nombre) {
-        if (nombre == null || nombre.isEmpty()) {
+        if (nombre == null || nombre.isBlank()) {
             throw new IllegalArgumentException("nombre no puede ser nulo o vacío");
         }
         this.nombre = nombre;
@@ -77,6 +100,10 @@ public class Mascota extends Registro {
     }
 
     public void setPeso(double peso) {
+        // peso es opcional en la base: 0 significa que no se registro
+        if (peso < 0) {
+            throw new IllegalArgumentException("peso no puede ser negativo");
+        }
         this.peso = peso;
     }
 
@@ -85,7 +112,19 @@ public class Mascota extends Registro {
     }
 
     public void setFechaNacimiento(LocalDate fechaNacimiento) {
+        if (fechaNacimiento == null) {
+            throw new IllegalArgumentException("fechaNacimiento no puede ser nula");
+        }
         this.fechaNacimiento = fechaNacimiento;
+    }
+
+    public String getRaza() {
+        return raza;
+    }
+
+    public void setRaza(String raza) {
+        // raza es opcional: puede ser mestiza o desconocida
+        this.raza = raza;
     }
 
     public TipoMascota getTipoMascota() {
@@ -99,25 +138,6 @@ public class Mascota extends Registro {
         this.tipoMascota = tipoMascota;
     }
 
-    public String getRaza() {
-        return raza;
-    }
-
-    public void setRaza(String raza) {
-        this.raza = raza;
-    }
-
-    public Cliente getCliente() {
-        return cliente;
-    }
-
-    public void setCliente(Cliente cliente) {
-        if (cliente == null) {
-            throw new IllegalArgumentException("cliente no puede ser nulo");
-        }
-        this.cliente = cliente;
-    }
-
     @Override
     public String toString() {
         String dniCliente = null;
@@ -126,14 +146,15 @@ public class Mascota extends Registro {
         }
 
         return "Mascota{" +
-                super.toString() +
-                ", nombre='" + nombre + "'" +
+                "idMascota=" + idMascota +
+                ", " + super.toString() +
+                ", cliente=" + dniCliente +
+                ", nombre='" + nombre + '\'' +
                 ", sexo=" + sexo +
                 ", peso=" + peso +
                 ", fechaNacimiento=" + fechaNacimiento +
+                ", raza='" + raza + '\'' +
                 ", tipoMascota=" + tipoMascota +
-                ", raza='" + raza + "'" +
-                ", cliente=" + dniCliente +
                 '}';
     }
 }

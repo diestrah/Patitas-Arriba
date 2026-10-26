@@ -5,7 +5,6 @@ import patitasarriba.bl.BLException;
 import patitasarriba.dao.AtencionMedicaDAO;
 import patitasarriba.dao.impl.atencion.AtencionMedicaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
-import patitasarriba.modelo.atencion.AtencionMedica;
 
 import java.sql.SQLException;
 import java.util.List;

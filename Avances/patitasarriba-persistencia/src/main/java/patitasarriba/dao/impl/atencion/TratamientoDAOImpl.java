@@ -2,7 +2,6 @@ package patitasarriba.dao.impl.atencion;
 
 import conexion.DBManager;
 import patitasarriba.dao.impl.RegistroDAOImpl;
-import patitasarriba.modelo.atencion.Tratamiento;
 import patitasarriba.dao.TratamientoDAO;
 
 import java.sql.CallableStatement;
@@ -12,7 +11,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TratamientoDAOImpl extends RegistroDAOImpl<Tratamiento> implements TratamientoDAO {
+//public class TratamientoDAOImpl extends RegistroDAOImpl<Tratamiento> implements TratamientoDAO {
     @Override
     public List<Tratamiento> findAll() throws SQLException {
 

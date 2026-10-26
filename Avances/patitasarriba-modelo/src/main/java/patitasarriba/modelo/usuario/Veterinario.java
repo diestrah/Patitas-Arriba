@@ -1,7 +1,6 @@
 package patitasarriba.modelo.usuario;
 
 import patitasarriba.modelo.horario.Horario;
-import patitasarriba.modelo.horario.HorarioPersonal;
 
 import java.util.List;
 
@@ -11,18 +10,17 @@ public class Veterinario extends Personal {
     public Veterinario() {
     }
 
-    public Veterinario(int id, boolean activo, String nombres, String apellidoPaterno, String apellidoMaterno,
-                       String telefono, String dni,
-                       Cuenta cuenta, List<HorarioPersonal> horariosPersonal,
+    public Veterinario(int idPersona, boolean activo, Cuenta cuenta, String dni, String nombres,
+                       String apellidoPaterno, String apellidoMaterno, String telefono, List<Horario> horarios,
                        String numeroColegiatura) {
-        super(id, activo, nombres, apellidoPaterno, apellidoMaterno, telefono, dni, cuenta, horariosPersonal);
+        super(idPersona, activo, cuenta, dni, nombres, apellidoPaterno, apellidoMaterno, telefono, horarios);
         setNumeroColegiatura(numeroColegiatura);
     }
 
     // Constructor de copia
     public Veterinario(final Veterinario veterinario) {
         if (veterinario == null) {
-            throw new IllegalArgumentException("Veterinario no puede ser nulo");
+            throw new IllegalArgumentException("veterinario no puede ser nulo");
         }
         super(veterinario);
         setNumeroColegiatura(veterinario.getNumeroColegiatura());
@@ -34,8 +32,8 @@ public class Veterinario extends Personal {
     }
 
     public void setNumeroColegiatura(String numeroColegiatura) {
-        if (numeroColegiatura == null || numeroColegiatura.isEmpty()) {
-            throw new IllegalArgumentException("numero de colegiatura no puede ser nulo");
+        if (numeroColegiatura == null || numeroColegiatura.isBlank()) {
+            throw new IllegalArgumentException("numeroColegiatura no puede ser nulo o vacío");
         }
         this.numeroColegiatura = numeroColegiatura;
     }

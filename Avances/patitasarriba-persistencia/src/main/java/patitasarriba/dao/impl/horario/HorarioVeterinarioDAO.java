@@ -1,7 +1,5 @@
 package patitasarriba.dao.impl.horario;
 
-import patitasarriba.modelo.horario.HorarioPersonal;
-
 import java.sql.SQLException;
 import java.util.List;
 

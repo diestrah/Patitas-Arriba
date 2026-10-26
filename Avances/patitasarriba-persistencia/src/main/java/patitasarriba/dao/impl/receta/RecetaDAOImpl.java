@@ -5,7 +5,6 @@ import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.receta.DetalleReceta;
 import patitasarriba.modelo.receta.Receta;
-import patitasarriba.modelo.atencion.AtencionMedica;
 import patitasarriba.dao.RecetaDAO;
 
 import java.sql.*;

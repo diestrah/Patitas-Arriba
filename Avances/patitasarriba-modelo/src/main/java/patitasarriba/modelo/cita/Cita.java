@@ -3,6 +3,7 @@ package patitasarriba.modelo.cita;
 import patitasarriba.modelo.Registro;
 import patitasarriba.modelo.mascota.Mascota;
 import patitasarriba.modelo.producto.Servicio;
+import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.time.LocalDateTime;
@@ -11,22 +12,26 @@ import java.util.Collections;
 import java.util.List;
 
 public class Cita extends Registro {
+    private int idCita;
     private LocalDateTime fechaHora;
     private EstadoCita estado;
     private Mascota mascota;
-    private Veterinario veterinario;
+    private Administrador administrador;
+    private boolean esEmergencia;
     private List<DetalleCita> detalles;
 
     public Cita(){
         this.detalles = new ArrayList<>();
     }
 
-    public Cita(int id, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Veterinario veterinario, List<DetalleCita> detalles) {
-        super(id, activo);
+    public Cita(int idCita, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean esEmergencia, List<DetalleCita> detalles) {
+        super(activo);
+        setIdCita(idCita);
         setFechaHora(fechaHora);
         setEstado(estado);
         setMascota(mascota);
-        setVeterinario(veterinario);
+        setAdministrador(administrador);
+        setEsEmergencia(esEmergencia);
         setDetalles(detalles);
     }
 
@@ -36,14 +41,27 @@ public class Cita extends Registro {
             throw new IllegalArgumentException("Cita no puede ser nula");
         }
         super(cita);
+        setIdCita(cita.getIdCita());
         setFechaHora(cita.getFechaHora());
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
-        setVeterinario(cita.getVeterinario());
+        setAdministrador(cita.getAdministrador());
+        setEsEmergencia(cita.isEsEmergencia());
         setDetalles(cita.getDetalles());
     }
 
     // Getters y Setters
+
+    public int getIdCita() {
+        return idCita;
+    }
+
+    public void setIdCita(int idCita) {
+        if (idCita < 0) {
+            throw new IllegalArgumentException("idCita no puede ser negativo");
+        }
+        this.idCita = idCita;
+    }
 
     public LocalDateTime getFechaHora() {
         return fechaHora;
@@ -68,25 +86,41 @@ public class Cita extends Registro {
     }
 
     public Mascota getMascota() {
-        return mascota;
+        if (mascota == null) {
+            return null;
+        }
+        return new Mascota(mascota);
     }
 
     public void setMascota(Mascota mascota) {
         if (mascota == null) {
             throw new IllegalArgumentException("mascota no puede ser nula");
         }
-        this.mascota = mascota;
+        this.mascota = new Mascota(mascota);
     }
 
-    public Veterinario getVeterinario() {
-        return veterinario;
-    }
-
-    public void setVeterinario(Veterinario veterinario) {
-        if (veterinario == null) {
-            throw new IllegalArgumentException("veterinario no puede ser nulo");
+    public Administrador getAdministrador() {
+        if (administrador == null) {
+            return null;
         }
-        this.veterinario = veterinario;
+        return new Administrador(administrador);
+    }
+
+    public void setAdministrador(Administrador administrador) {
+        // administrador es opcional: lo asigna quien aprueba o rechaza la cita
+        if (administrador == null) {
+            this.administrador = null;
+        } else {
+            this.administrador = new Administrador(administrador);
+        }
+    }
+
+    public boolean isEsEmergencia() {
+        return esEmergencia;
+    }
+
+    public void setEsEmergencia(boolean esEmergencia) {
+        this.esEmergencia = esEmergencia;
     }
 
     public List<DetalleCita> getDetalles() {
@@ -97,11 +131,16 @@ public class Cita extends Registro {
         if (detalles == null) {
             throw new IllegalArgumentException("detalles no puede ser nulo");
         }
+        for (DetalleCita detalle : detalles) {
+            if (detalle == null) {
+                throw new IllegalArgumentException("detalles no puede contener elementos nulos");
+            }
+        }
         this.detalles = new ArrayList<>(detalles);
     }
 
-    public void agregarDetalle(int id, boolean activo, String observaciones, Servicio servicio) {
-        detalles.add(new DetalleCita(id, activo, observaciones, servicio));
+    public void agregarDetalle(int idDetalleCita, boolean activo, String observaciones, Servicio servicio, Veterinario veterinario) {
+        detalles.add(new DetalleCita(idDetalleCita, activo, observaciones, servicio, veterinario, this));
     }
 
     @Override
@@ -111,17 +150,19 @@ public class Cita extends Registro {
             nombreMascota = mascota.getNombre();
         }
 
-        String dniPersonalAtencion = null;
-        if (veterinario != null) {
-            dniPersonalAtencion = veterinario.getDni();
+        String dniAdministrador = null;
+        if (administrador != null) {
+            dniAdministrador = administrador.getDni();
         }
 
         return "Cita{" +
-                super.toString() +
+                "idCita=" + idCita +
+                ", " + super.toString() +
                 ", fechaHora=" + fechaHora +
                 ", estado=" + estado +
                 ", mascota=" + nombreMascota +
-                ", personalAtencion=" + dniPersonalAtencion +
+                ", administrador=" + dniAdministrador +
+                ", esEmergencia=" + esEmergencia +
                 ", detalles=" + detalles +
                 '}';
     }

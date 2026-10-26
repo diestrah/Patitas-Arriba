@@ -3,7 +3,6 @@ package patitasarriba.dao.impl.producto;
 import conexion.DBManager;
 import patitasarriba.dao.CategoriaArticuloDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
-import patitasarriba.modelo.producto.CategoriaArticulo;
 
 import java.sql.*;
 import java.util.ArrayList;
