@@ -3,17 +3,18 @@ package patitasarriba.bl.impl.producto;
 import patitasarriba.bl.ArticuloBL;
 import patitasarriba.bl.BLException;
 import patitasarriba.dao.ArticuloDAO;
-import patitasarriba.dao.CategoriaArticuloDAO;
+import patitasarriba.dao.CategoriaDAO;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
-import patitasarriba.dao.impl.producto.CategoriaArticuloDAOImpl;
+import patitasarriba.dao.impl.producto.CategoriaDAOImpl;
 import patitasarriba.modelo.producto.Articulo;
+import patitasarriba.modelo.producto.Categoria;
 
 import java.sql.SQLException;
 import java.util.List;
 
 public class ArticuloBLImpl implements ArticuloBL {
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
-    private final CategoriaArticuloDAO categoriaArticuloDAO = new CategoriaArticuloDAOImpl();
+    private final CategoriaDAO categoriaDAO = new CategoriaDAOImpl();
 
     @Override
     public List<Articulo> findAll() throws BLException {
@@ -81,12 +82,14 @@ public class ArticuloBLImpl implements ArticuloBL {
     }
 
     private void validarCategoriaExiste(Articulo articulo) throws BLException {
-        if (articulo.getCategoria() == null) {
-            throw new BLException("El articulo debe tener una categoria");
+        if (articulo.getCategorias() == null || articulo.getCategorias().isEmpty()) {
+            throw new BLException("El articulo debe tener al menos una categoria");
         }
         try {
-            if (categoriaArticuloDAO.findById(articulo.getCategoria().getId()) == null) {
-                throw new BLException("La categoria asignada al articulo no existe");
+            for (Categoria categoria : articulo.getCategorias()) {
+                if (categoria == null || categoriaDAO.findById(categoria.getId()) == null) {
+                    throw new BLException("Una de las categorias asignadas al articulo no existe");
+                }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la categoria del articulo", e);

@@ -1,43 +1,44 @@
 package patitasarriba.bl.impl.atencion;
 
-import patitasarriba.bl.AtencionMedicaBL;
+import patitasarriba.bl.AtencionBL;
 import patitasarriba.bl.BLException;
-import patitasarriba.dao.AtencionMedicaDAO;
-import patitasarriba.dao.impl.atencion.AtencionMedicaDAOImpl;
+import patitasarriba.dao.AtencionDAO;
+import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.modelo.atencion.Atencion;
 
 import java.sql.SQLException;
 import java.util.List;
 
-public class AtencionMedicaBLImpl implements AtencionMedicaBL {
+public class AtencionBLImpl implements AtencionBL {
 
-    private final AtencionMedicaDAO atencionMedicaDAO = new AtencionMedicaDAOImpl();
+    private final AtencionDAO atencionDAO = new AtencionDAOImpl();
 
     @Override
-    public List<AtencionMedica> findAll() throws BLException {
+    public List<Atencion> findAll() throws BLException {
         try {
-            return atencionMedicaDAO.findAll();
+            return atencionDAO.findAll();
         } catch (SQLException e) {
             throw new BLException("No se pudo listar las atenciones medicas", e);
         }
     }
 
     @Override
-    public AtencionMedica findById(Integer id) throws BLException {
+    public Atencion findById(Integer id) throws BLException {
         try {
-            return atencionMedicaDAO.findById(id);
+            return atencionDAO.findById(id);
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la atencion medica", e);
         }
     }
 
     @Override
-    public void insert(AtencionMedica atencionMedica) throws BLException {
-        validar(atencionMedica);
+    public void insert(Atencion atencion) throws BLException {
+        validar(atencion);
 
         TransactionsManager.iniciar();
         try {
-            atencionMedicaDAO.insert(atencionMedica);
+            atencionDAO.insert(atencion);
             TransactionsManager.commit();
         } catch (SQLException e) {
             TransactionsManager.rollback();
@@ -46,13 +47,13 @@ public class AtencionMedicaBLImpl implements AtencionMedicaBL {
     }
 
     @Override
-    public void update(AtencionMedica atencionMedica) throws BLException {
-        validar(atencionMedica);
-        validarExiste(atencionMedica.getId());
+    public void update(Atencion atencion) throws BLException {
+        validar(atencion);
+        validarExiste(atencion.getId());
 
         TransactionsManager.iniciar();
         try {
-            atencionMedicaDAO.update(atencionMedica);
+            atencionDAO.update(atencion);
             TransactionsManager.commit();
         } catch (SQLException e) {
             TransactionsManager.rollback();
@@ -64,7 +65,7 @@ public class AtencionMedicaBLImpl implements AtencionMedicaBL {
     public void delete(Integer id) throws BLException {
         TransactionsManager.iniciar();
         try {
-            atencionMedicaDAO.delete(id);
+            atencionDAO.delete(id);
             TransactionsManager.commit();
         } catch (SQLException e) {
             TransactionsManager.rollback();
@@ -72,21 +73,21 @@ public class AtencionMedicaBLImpl implements AtencionMedicaBL {
         }
     }
 
-    private void validar(AtencionMedica atencionMedica) throws BLException {
-        if (atencionMedica == null) {
+    private void validar(Atencion atencion) throws BLException {
+        if (atencion == null) {
             throw new BLException("La atencion medica no puede ser nula");
         }
-        if (atencionMedica.getMascota() == null) {
-            throw new BLException("La atencion medica debe tener una mascota asociada");
+        if (atencion.getDetalleCita() == null) {
+            throw new BLException("La atencion medica debe estar asociada a un detalle de cita");
         }
-        if (atencionMedica.getCita() == null) {
-            throw new BLException("La atencion medica debe tener una cita asociada");
+        if (atencion.getFechaHora() == null) {
+            throw new BLException("La atencion medica debe tener fecha y hora");
         }
     }
 
     private void validarExiste(int id) throws BLException {
         try {
-            if (atencionMedicaDAO.findById(id) == null) {
+            if (atencionDAO.findById(id) == null) {
                 throw new BLException("No existe una atencion medica con id " + id);
             }
         } catch (SQLException e) {

@@ -1,50 +1,51 @@
 package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
-import patitasarriba.bl.CategoriaArticuloBL;
-import patitasarriba.dao.CategoriaArticuloDAO;
-import patitasarriba.dao.impl.producto.CategoriaArticuloDAOImpl;
+import patitasarriba.bl.CategoriaBL;
+import patitasarriba.dao.CategoriaDAO;
+import patitasarriba.dao.impl.producto.CategoriaDAOImpl;
+import patitasarriba.modelo.producto.Categoria;
 
 import java.sql.SQLException;
 import java.util.List;
 
-public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
-    private final CategoriaArticuloDAO categoriaArticuloDAO = new CategoriaArticuloDAOImpl();
+public class CategoriaBLImpl implements CategoriaBL {
+    private final CategoriaDAO categoriaDAO = new CategoriaDAOImpl();
 
     @Override
-    public List<CategoriaArticulo> findAll() throws BLException {
+    public List<Categoria> findAll() throws BLException {
         try {
-            return categoriaArticuloDAO.findAll();
+            return categoriaDAO.findAll();
         } catch (SQLException e) {
             throw new BLException("No se pudo listar las categorias de articulo", e);
         }
     }
 
     @Override
-    public CategoriaArticulo findById(Integer id) throws BLException {
+    public Categoria findById(Integer id) throws BLException {
         try {
-            return categoriaArticuloDAO.findById(id);
+            return categoriaDAO.findById(id);
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la categoria de articulo", e);
         }
     }
 
     @Override
-    public void insert(CategoriaArticulo categoria) throws BLException {
+    public void insert(Categoria categoria) throws BLException {
         validar(categoria);
         try {
-            categoriaArticuloDAO.insert(categoria);
+            categoriaDAO.insert(categoria);
         } catch (SQLException e) {
             throw new BLException("No se pudo registrar la categoria de articulo", e);
         }
     }
 
     @Override
-    public void update(CategoriaArticulo categoria) throws BLException {
+    public void update(Categoria categoria) throws BLException {
         validar(categoria);
         validarExiste(categoria.getId());
         try {
-            categoriaArticuloDAO.update(categoria);
+            categoriaDAO.update(categoria);
         } catch (SQLException e) {
             throw new BLException("No se pudo actualizar la categoria de articulo", e);
         }
@@ -53,7 +54,7 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
     @Override
     public void delete(Integer id) throws BLException {
         try {
-            categoriaArticuloDAO.delete(id);
+            categoriaDAO.delete(id);
         } catch (SQLException e) {
             throw new BLException("No se pudo eliminar la categoria de articulo", e);
         }
@@ -61,7 +62,7 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
 
     private void validarExiste(int id) throws BLException {
         try {
-            if (categoriaArticuloDAO.findById(id) == null) {
+            if (categoriaDAO.findById(id) == null) {
                 throw new BLException("No existe una categoria de articulo con id " + id);
             }
         } catch (SQLException e) {
@@ -70,7 +71,7 @@ public class CategoriaArticuloBLImpl implements CategoriaArticuloBL {
 
     }
 
-    private void validar(CategoriaArticulo categoria) throws BLException {
+    private void validar(Categoria categoria) throws BLException {
         if (categoria == null) {
             throw new BLException("La categoria de articulo no puede ser nula");
         }
