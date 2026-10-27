@@ -1,29 +1,31 @@
+-- Vacia todas las tablas (conserva la estructura y los procedures) y reinicia los AUTO_INCREMENT.
+-- Orden: primero las tablas hijas; las llaves foraneas se desactivan mientras se vacian.
+
 USE patitasarriba;
 SET FOREIGN_KEY_CHECKS = 0;
 
-TRUNCATE TABLE insumo_utilizado;
-TRUNCATE TABLE detalle_receta;
-TRUNCATE TABLE atencion_tratamiento;
-TRUNCATE TABLE atencion_diagnostico;
-TRUNCATE TABLE receta;
-TRUNCATE TABLE detalle_boleta_serv;
-TRUNCATE TABLE detalle_cita;
-TRUNCATE TABLE atencion_medica;
 TRUNCATE TABLE detalle_boleta_art;
+TRUNCATE TABLE detalle_boleta_serv;
+TRUNCATE TABLE insumo_utilizado;
+TRUNCATE TABLE atencion_diagnostico;
+TRUNCATE TABLE detalle_receta;
+TRUNCATE TABLE receta;
+TRUNCATE TABLE atencion;
+TRUNCATE TABLE detalle_cita;
 TRUNCATE TABLE cita;
+TRUNCATE TABLE boleta;
+TRUNCATE TABLE articulo_categoria;
 TRUNCATE TABLE horario_veterinario;
 TRUNCATE TABLE horario_administrador;
-TRUNCATE TABLE boleta;
 TRUNCATE TABLE mascota;
-TRUNCATE TABLE articulo;
+TRUNCATE TABLE cliente;
 TRUNCATE TABLE veterinario;
 TRUNCATE TABLE administrador;
-TRUNCATE TABLE cliente;
-TRUNCATE TABLE tratamiento;
+TRUNCATE TABLE cuenta;
+TRUNCATE TABLE horario;
 TRUNCATE TABLE diagnostico;
 TRUNCATE TABLE servicio;
-TRUNCATE TABLE categoria_articulo;
-TRUNCATE TABLE horario;
-TRUNCATE TABLE cuenta;
+TRUNCATE TABLE categoria;
+TRUNCATE TABLE articulo;
 
 SET FOREIGN_KEY_CHECKS = 1;
