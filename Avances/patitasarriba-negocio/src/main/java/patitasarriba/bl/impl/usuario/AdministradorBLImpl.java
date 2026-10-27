@@ -3,7 +3,9 @@ package patitasarriba.bl.impl.usuario;
 import patitasarriba.bl.AdministradorBL;
 import patitasarriba.bl.BLException;
 import patitasarriba.dao.AdministradorDAO;
+import patitasarriba.dao.CuentaDAO;
 import patitasarriba.dao.impl.usuario.AdministradorDAOImpl;
+import patitasarriba.dao.impl.usuario.CuentaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.usuario.Administrador;
 
@@ -12,6 +14,7 @@ import java.util.List;
 
 public class AdministradorBLImpl implements AdministradorBL {
     private final AdministradorDAO administradorDAO = new AdministradorDAOImpl();
+    private final CuentaDAO cuentaDAO = new CuentaDAOImpl();
 
     @Override
     public List<Administrador> findAll() throws BLException {
@@ -43,13 +46,13 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public void insert(Administrador admin) throws BLException {
         validar(admin);
-
+        validarCuentaActiva (admin);
         TransactionsManager.iniciar();
         try {
             administradorDAO.insert(admin);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo registrar el administrador", e);
         }
     }
@@ -57,14 +60,14 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public void update(Administrador admin) throws BLException {
         validar(admin);
-
+        validarCuentaActiva(admin);
         TransactionsManager.iniciar();
         try {
             administradorDAO.update(admin);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo actualizar el administrador", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar el administrador", e);
         }
     }
 
@@ -72,11 +75,15 @@ public class AdministradorBLImpl implements AdministradorBL {
     public void delete(Integer id) throws BLException {
         TransactionsManager.iniciar();
         try {
+            //para que no nos quedemos en 0
+            if (administradorDAO.findAll().size() <= 1) {
+                throw new BLException("No se puede eliminar al único administrador activo");
+            }
             administradorDAO.delete(id);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo eliminar el administrador", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar el administrador", e);
         }
     }
 
@@ -91,4 +98,15 @@ public class AdministradorBLImpl implements AdministradorBL {
             throw new BLException("El nombre del administrador es obligatorio");
         }
     }
+
+    private void validarCuentaActiva(Administrador admin) throws BLException {
+        if (admin.getCuenta() == null) throw new BLException("El administrador debe tener una cuenta");
+        try {
+            if (cuentaDAO.findById(admin.getCuenta().getId()) == null) {
+                throw new BLException("La cuenta no existe o está dada de baja");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la cuenta del administrador", e);
+        }
+        }
 }

@@ -2,7 +2,11 @@ package patitasarriba.bl.impl.receta;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.RecetaBL;
+import patitasarriba.dao.ArticuloDAO;
+import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.RecetaDAO;
+import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
+import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.receta.Receta;
@@ -13,7 +17,8 @@ import java.util.List;
 
 public class RecetaBLImpl implements RecetaBL {
     private final RecetaDAO recetaDAO = new RecetaDAOImpl();
-
+    private final AtencionDAO atencionDAO = new AtencionDAOImpl();
+    private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
     @Override
     public List<Receta> findAll() throws BLException {
         try {
@@ -35,27 +40,28 @@ public class RecetaBLImpl implements RecetaBL {
     @Override
     public void insert(Receta entidad) throws BLException {
         validar(entidad);
+        validarExistentes(entidad);
         TransactionsManager.iniciar();
         try {
             recetaDAO.insert(entidad);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo insertar la receta", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar la receta", e);
         }
     }
 
     @Override
     public void update(Receta entidad) throws BLException {
         validar(entidad);
-
+        validarExistentes(entidad);
         TransactionsManager.iniciar();
         try {
             recetaDAO.update(entidad);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo actualizar la receta", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar la receta", e);
         }
     }
 
@@ -65,9 +71,9 @@ public class RecetaBLImpl implements RecetaBL {
         try {
             recetaDAO.delete(integer);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo eliminar la receta", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar la receta", e);
         }
     }
 
@@ -94,6 +100,21 @@ public class RecetaBLImpl implements RecetaBL {
                     || detalle.getDuracionDias() <= 0 || detalle.getCantidadTotal() <= 0) {
                 throw new BLException("Cada detalle de receta debe tener articulo, dosis, frecuencia, duración y cantidad válidos");
             }
+        }
+    }
+    private void validarExistentes(Receta receta) throws BLException {
+        try {
+            if (atencionDAO.findById(receta.getAtencion().getId()) == null) {
+                throw new BLException("La atención no existe o fue anulada");
+            }
+            for (DetalleReceta detalle : receta.getDetalles()) {
+                if (articuloDAO.findById(detalle.getArticulo().getId()) == null) {
+                    throw new BLException("El artículo " + detalle.getArticulo().getNombre()
+                            + " no existe o está dado de baja");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la atención o los artículos de la receta", e);
         }
     }
 }

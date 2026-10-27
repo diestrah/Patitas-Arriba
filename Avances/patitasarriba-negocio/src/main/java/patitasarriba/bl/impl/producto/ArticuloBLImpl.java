@@ -2,12 +2,21 @@ package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.ArticuloBL;
 import patitasarriba.bl.BLException;
-import patitasarriba.dao.ArticuloDAO;
-import patitasarriba.dao.CategoriaDAO;
+import patitasarriba.dao.*;
+import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
+import patitasarriba.dao.impl.boleta.BoletaDAOImpl;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.producto.CategoriaDAOImpl;
+import patitasarriba.dao.impl.receta.RecetaDAOImpl;
+import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.InsumoUtilizado;
+import patitasarriba.modelo.boleta.Boleta;
+import patitasarriba.modelo.boleta.DetalleBoleta;
+import patitasarriba.modelo.boleta.DetalleBoletaArticulo;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.Categoria;
+import patitasarriba.modelo.receta.DetalleReceta;
+import patitasarriba.modelo.receta.Receta;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -15,7 +24,9 @@ import java.util.List;
 public class ArticuloBLImpl implements ArticuloBL {
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
     private final CategoriaDAO categoriaDAO = new CategoriaDAOImpl();
-
+    private final AtencionDAO atencionDAO = new AtencionDAOImpl();
+    private final RecetaDAO recetaDAO = new RecetaDAOImpl();
+    private final BoletaDAO boletaDAO = new BoletaDAOImpl();
     @Override
     public List<Articulo> findAll() throws BLException {
         try {
@@ -63,6 +74,7 @@ public class ArticuloBLImpl implements ArticuloBL {
     @Override
     public void delete(Integer id) throws BLException {
         validarExiste(id);
+        validarSinUso (id);
         try {
             articuloDAO.delete(id);
         } catch (SQLException e) {
@@ -107,6 +119,36 @@ public class ArticuloBLImpl implements ArticuloBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia del articulo", e);
+        }
+    }
+
+    // Si el articulo se uso y se da de baja, atenciones, recetas o boletas dejarian de poder leerse
+    private void validarSinUso(int idArticulo) throws BLException {
+        try {
+            for (Atencion atencion : atencionDAO.findAll()) {
+                for (InsumoUtilizado insumo : atencion.getInsumosUtilizados()) {
+                    if (insumo.getArticulo().getId() == idArticulo) {
+                        throw new BLException("No se puede eliminar: el artículo se usó en la atención " + atencion.getId());
+                    }
+                }
+            }
+            for (Receta receta : recetaDAO.findAll()) {
+                for (DetalleReceta detalle : receta.getDetalles()) {
+                    if (detalle.getArticulo().getId() == idArticulo) {
+                        throw new BLException("No se puede eliminar: el artículo está en la receta " + receta.getId());
+                    }
+                }
+            }
+            for (Boleta boleta : boletaDAO.findAll()) {
+                for (DetalleBoleta detalle : boleta.getDetalles()) {
+                    if (detalle instanceof DetalleBoletaArticulo linea && linea.getArticulo().getId() == idArticulo) {
+                        throw new BLException("No se puede eliminar: el artículo se vendió en la boleta "
+                                + boleta.getSerieCorrelativo());
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar si el artículo está en uso", e);
         }
     }
 }

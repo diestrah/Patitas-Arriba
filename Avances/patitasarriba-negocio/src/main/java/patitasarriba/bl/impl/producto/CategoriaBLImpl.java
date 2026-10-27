@@ -107,5 +107,9 @@ public class CategoriaBLImpl implements CategoriaBL {
         if (categoria.getNombre() == null || categoria.getNombre().isBlank()) {
             throw new BLException("El nombre de la categoria es obligatorio");
         }
+
+        if (categoria.getDescripcion() == null || categoria.getDescripcion().isBlank()) {
+            throw new BLException("La descripción es obligatoria");
+        }
     }
 }

@@ -2,8 +2,12 @@ package patitasarriba.bl.impl.atencion;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.DiagnosticoBL;
+import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.DiagnosticoDAO;
+import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.atencion.DiagnosticoDAOImpl;
+import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.Diagnostico;
 
 import java.sql.SQLException;
@@ -11,6 +15,7 @@ import java.util.List;
 
 public class DiagnosticoBLImpl implements DiagnosticoBL {
     private final DiagnosticoDAO diagnosticoDAO = new DiagnosticoDAOImpl();
+    private final AtencionDAO atencionDAO = new AtencionDAOImpl();
 
     @Override
     public Diagnostico findByNombreEnfermedad(String nombreEnfermedad) throws BLException {
@@ -63,15 +68,23 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
         }
     }
 
+
     @Override
     public void delete(Integer integer) throws BLException {
         try {
+            for (Atencion atencion : atencionDAO.findAll()) {
+                for (AtencionDiagnostico ad : atencion.getDiagnosticos()) {
+                    if (ad.getDiagnostico().getId() == integer) {
+                        throw new BLException("No se puede eliminar: el diagnostico está asignado a la atención "
+                                + atencion.getId());
+                    }
+                }
+            }
             diagnosticoDAO.delete(integer);
         } catch (SQLException e) {
             throw new BLException("No se pudo eliminar el diagnostico", e);
         }
     }
-
     private void validarNombreEnfermedad(Diagnostico diagnostico) throws BLException {
         if (diagnostico == null) {
             throw new BLException("El diagnostico no puede ser nulo");

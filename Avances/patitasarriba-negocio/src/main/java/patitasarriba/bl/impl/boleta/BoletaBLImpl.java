@@ -58,9 +58,9 @@ public class BoletaBLImpl implements BoletaBL {
             descontarStock(boleta);
 
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la boleta", e);
+        }  catch (SQLException | RuntimeException e) {
+        if (TransactionsManager.activa()) TransactionsManager.rollback();
+        throw new BLException("No se pudo registrar la boleta", e);
         }
     }
 
@@ -72,9 +72,9 @@ public class BoletaBLImpl implements BoletaBL {
         try {
             boletaDAO.update(boleta);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo actualizar la boleta", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar la boleta", e);
         }
     }
 
@@ -84,9 +84,9 @@ public class BoletaBLImpl implements BoletaBL {
         try {
             boletaDAO.delete(id);
             TransactionsManager.commit();
-        } catch (SQLException e) {
-            TransactionsManager.rollback();
-            throw new BLException("No se pudo eliminar la boleta", e);
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new BLException("No se pudo registrar la boleta", e);
         }
     }
 
@@ -170,7 +170,7 @@ public class BoletaBLImpl implements BoletaBL {
             if (subTotalSeguro <= 0) {
                 throw new BLException("El subtotal de cada detalle debe ser mayor a 0");
             }
-
+            detalle.setPrecioUnitario(subTotalSeguro / detalle.getCantidad());
             // Actualización segura del subtotal
             detalle.setSubtotal(subTotalSeguro);
             totalCalculado += subTotalSeguro;
@@ -183,7 +183,7 @@ public class BoletaBLImpl implements BoletaBL {
     private void descontarStock(Boleta boleta) throws SQLException {
         for (DetalleBoleta detalle : boleta.getDetalles()) {
             // Filtro para aplicar actualización solo a Artículos
-            if (detalle instanceof DetalleBoletaArticulo detalleArticulo) {
+            if (detalle instanceof DetalleBoletaArticulo detalleArticulo  && detalleArticulo.getInsumoUtilizado() == null) {
                 // Se relee el articulo de la BD: el DAO reescribe todos sus campos
                 // y sus categorias, asi que no se puede usar el que viene del frontend
                 Articulo art = articuloDAO.findById(detalleArticulo.getArticulo().getId());
