@@ -111,6 +111,10 @@ public class BoletaBLImpl implements BoletaBL {
             throw new BLException("La boleta debe tener una fecha");
         }
 
+        if (boleta.getSerieCorrelativo() == null || boleta.getSerieCorrelativo().isBlank()) {
+            throw new BLException("La boleta debe tener serie y correlativo");
+        }
+
         double totalCalculado = 0.0;
 
         for (DetalleBoleta detalle : boleta.getDetalles()) {
@@ -180,7 +184,9 @@ public class BoletaBLImpl implements BoletaBL {
         for (DetalleBoleta detalle : boleta.getDetalles()) {
             // Filtro para aplicar actualización solo a Artículos
             if (detalle instanceof DetalleBoletaArticulo detalleArticulo) {
-                Articulo art = detalleArticulo.getArticulo();
+                // Se relee el articulo de la BD: el DAO reescribe todos sus campos
+                // y sus categorias, asi que no se puede usar el que viene del frontend
+                Articulo art = articuloDAO.findById(detalleArticulo.getArticulo().getId());
 
                 // Cálculo de nuevo stock
                 int nuevoStock = art.getStockActual() - detalle.getCantidad();

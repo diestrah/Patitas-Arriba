@@ -6,6 +6,8 @@ import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.AtencionDiagnostico;
+import patitasarriba.modelo.atencion.InsumoUtilizado;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -35,6 +37,7 @@ public class AtencionBLImpl implements AtencionBL {
     @Override
     public void insert(Atencion atencion) throws BLException {
         validar(atencion);
+        validarDetalleCitaLibre(atencion);
 
         TransactionsManager.iniciar();
         try {
@@ -49,6 +52,7 @@ public class AtencionBLImpl implements AtencionBL {
     @Override
     public void update(Atencion atencion) throws BLException {
         validar(atencion);
+        validarDetalleCitaLibre(atencion);
         validarExiste(atencion.getId());
 
         TransactionsManager.iniciar();
@@ -82,6 +86,31 @@ public class AtencionBLImpl implements AtencionBL {
         }
         if (atencion.getFechaHora() == null) {
             throw new BLException("La atencion medica debe tener fecha y hora");
+        }
+        for (InsumoUtilizado insumo : atencion.getInsumosUtilizados()) {
+            if (insumo == null || insumo.getArticulo() == null || insumo.getCantidadUtilizada() <= 0) {
+                throw new BLException("Cada insumo utilizado debe tener un articulo y una cantidad mayor a 0");
+            }
+        }
+        for (AtencionDiagnostico diagnostico : atencion.getDiagnosticos()) {
+            if (diagnostico == null || diagnostico.getDiagnostico() == null || diagnostico.getNivelGravedad() == null) {
+                throw new BLException("Cada diagnostico debe tener un diagnostico y un nivel de gravedad");
+            }
+        }
+    }
+
+    // En la BD id_detalle_cita es UNIQUE: un servicio de la cita tiene una sola atencion
+    private void validarDetalleCitaLibre(Atencion atencion) throws BLException {
+        try {
+            for (Atencion otra : atencionDAO.findAll()) {
+                if (otra.getId() != atencion.getId()
+                        && otra.getDetalleCita() != null
+                        && otra.getDetalleCita().getId() == atencion.getDetalleCita().getId()) {
+                    throw new BLException("Ese servicio de la cita ya tiene una atencion registrada");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar si el servicio de la cita ya fue atendido", e);
         }
     }
 

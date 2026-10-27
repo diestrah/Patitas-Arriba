@@ -81,10 +81,10 @@ public class RecetaBLImpl implements RecetaBL {
         if (receta.getAtencion() == null){
             throw new BLException("La receta debe estar asociada a una atención médica");
         }
-        if (receta.getDetalles().isEmpty()) {
+        if (receta.getDetalles() == null || receta.getDetalles().isEmpty()) {
             throw new BLException("La receta debe tener al menos un detalle");
         }
-        if (receta.getIndicacionesGenerales() == null) {
+        if (receta.getIndicacionesGenerales() == null || receta.getIndicacionesGenerales().isBlank()) {
             throw new BLException("La receta debe tener indicaciones");
         }
         for (DetalleReceta detalle : receta.getDetalles()) {
