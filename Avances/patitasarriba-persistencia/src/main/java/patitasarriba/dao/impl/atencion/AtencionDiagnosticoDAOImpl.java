@@ -3,87 +3,99 @@ package patitasarriba.dao.impl.atencion;
 import conexion.DBManager;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
+import patitasarriba.modelo.atencion.Diagnostico;
 import patitasarriba.modelo.atencion.NivelGravedad;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-class AtencionDiagnosticoDAOImpl extends RegistroDAOImpl<AtencionDiagnostico>
-        implements AtencionDiagnosticoDAO {
+class AtencionDiagnosticoDAOImpl
+extends RegistroDAOImpl<AtencionDiagnostico>
+implements AtencionDiagnosticoDAO {
 
     @Override
-    public void insertDiagnosticos(int idAtencionMedica, List<AtencionDiagnostico> diagnosticos) throws SQLException {
+    public void insertDiagnosticos(int idAtencion, List<AtencionDiagnostico> diagnosticos) throws SQLException {
+
         Connection conn = TransactionsManager.getConnection();
+        String sql = "{call insertar_atencion_diagnostico(?,?,?,?)}";
 
-        String sql = "{call insertar_atencion_diagnostico(?, ?, ?, ?, ?, ?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            for (AtencionDiagnostico atencionDiagnostico : diagnosticos) {
-                cmd.setInt("p_id_atencion_medica", idAtencionMedica);
-                cmd.setInt("p_id_diagnostico", atencionDiagnostico.getDiagnostico().getId());
-                if (atencionDiagnostico.getNivelGravedad() == null) {
-                    cmd.setNull("p_nivel_gravedad", Types.VARCHAR);
-                } else {
-                    cmd.setString("p_nivel_gravedad", atencionDiagnostico.getNivelGravedad().name());
-                }
-                cmd.setString("p_detalle_diagnostico", atencionDiagnostico.getDetalleDiagnostico());
-                cmd.setBoolean("p_activo", atencionDiagnostico.isActivo());
-                cmd.registerOutParameter("p_id", Types.INTEGER);
-
-                if (cmd.executeUpdate() == 0) {
-                    throw new SQLException("No se pudo insertar el diagnostico de la atencion medica");
+            for (AtencionDiagnostico detalle : diagnosticos) {
+                if (!detalle.isActivo()) {
+                    continue;
                 }
 
-                atencionDiagnostico.setId(cmd.getInt("p_id"));
+                cmd.setInt("p_id_atencion", idAtencion);
+                cmd.setInt("p_id_diagnostico", detalle.getDiagnostico().getId());
+                cmd.setString("p_nivel_gravedad", detalle.getNivelGravedad().name());
+                cmd.setString("p_detalle_diagnostico",detalle.getDetalleDiagnostico());
+
+                cmd.execute();
             }
         }
     }
 
     @Override
-    public void deleteDiagnosticos(int idAtencionMedica) throws SQLException {
+    public void deleteDiagnosticos(int idAtencion) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
+        String sql = "{call eliminar_diagnosticos_por_atencion(?)}";
 
-        String sql = "{call eliminar_atencion_diagnosticos_por_atencion_medica(?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_atencion_medica", idAtencionMedica);
-            cmd.executeUpdate();
+            cmd.setInt("p_id_atencion", idAtencion);
+            cmd.execute();
         }
     }
 
     @Override
-    public List<AtencionDiagnostico> findByAtencionMedicaId(int idAtencionMedica) throws SQLException {
-        String sql = "{call listar_atencion_diagnosticos_por_atencion_medica(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
+    public List<AtencionDiagnostico> findByAtencionId(
+        int idAtencion
+    ) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call listar_diagnosticos_por_atencion(?)}";
 
-            cmd.setInt("p_id_atencion_medica", idAtencionMedica);
-            try (ResultSet rs = cmd.executeQuery()) {
-                List<AtencionDiagnostico> diagnosticos = new ArrayList<>();
-                while (rs.next()) {
-                    diagnosticos.add(mapear(rs, new AtencionDiagnostico()));
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setInt("p_id_atencion", idAtencion);
+                try (ResultSet rs = cmd.executeQuery()) {
+                    List<AtencionDiagnostico> diagnosticos = new ArrayList<>();
+                    while (rs.next()) {
+                        diagnosticos.add(mapear(rs, new AtencionDiagnostico()));
+                    }
+                    return diagnosticos;
                 }
-                return diagnosticos;
             }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
-    protected AtencionDiagnostico mapear(ResultSet rs, AtencionDiagnostico atencionDiagnostico) throws SQLException {
-        super.mapear(rs, atencionDiagnostico);
-        atencionDiagnostico.setId(rs.getInt("id_atencion_diagnostico"));
-        String nivelGravedad = rs.getString("nivel_gravedad");
-        atencionDiagnostico.setNivelGravedad(
-                nivelGravedad == null ? null : NivelGravedad.valueOf(nivelGravedad));
-        atencionDiagnostico.setDetalleDiagnostico(rs.getString("detalle_diagnostico"));
+    protected AtencionDiagnostico mapear(ResultSet rs,AtencionDiagnostico detalle) throws SQLException {
+        super.mapear(rs, detalle);
 
-        // Diagnostico se carga completo porque ya existe DiagnosticoDAOImpl
-        atencionDiagnostico.setDiagnostico(new DiagnosticoDAOImpl().findById(rs.getInt("id_diagnostico")));
+        Atencion atencion = new Atencion();
+        atencion.setId(rs.getInt("id_atencion"));
+        detalle.setAtencion(atencion);
 
-        return atencionDiagnostico;
+        Diagnostico diagnostico = new DiagnosticoDAOImpl().findById(rs.getInt("id_diagnostico"));
+
+        if (diagnostico == null) {
+            throw new SQLException("No se encontró el diagnóstico asociado a la atención");
+        }
+
+        detalle.setDiagnostico(diagnostico);
+        detalle.setNivelGravedad(NivelGravedad.valueOf(rs.getString("nivel_gravedad")));
+        detalle.setDetalleDiagnostico(rs.getString("detalle_diagnostico"));
+
+        return detalle;
     }
 }

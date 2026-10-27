@@ -1,79 +1,59 @@
 package patitasarriba.dao.impl.horario;
 
 import conexion.DBManager;
-import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
-
-import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
+import patitasarriba.modelo.horario.Horario;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-class HorarioAdministradorDAOImpl extends RegistroDAOImpl<HorarioPersonal>
-        implements HorarioAdministradorDAO {
-
+public class HorarioAdministradorDAOImpl implements HorarioAdministradorDAO {
     @Override
-    public void insertarPorAdministrador(int idAdministrador, List<HorarioPersonal> horarios) throws SQLException {
-        if (horarios == null) {
-            throw new IllegalArgumentException("La lista de horarios no puede ser nula");
-        }
+    public void insertarPorAdministrador(int idAdministrador, List<Horario> horarios) throws SQLException {
+        insertarPorAdministrador(TransactionsManager.getConnection(), idAdministrador, horarios);
+    }
 
-        Connection conn = TransactionsManager.getConnection();
-        String sql = "{call insertar_horario_administrador(?,?,?,?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            for (HorarioPersonal horarioPersonal : horarios) {
+    public void insertarPorAdministrador(Connection conn, int idAdministrador, List<Horario> horarios) throws SQLException {
+        try (CallableStatement cmd = conn.prepareCall("{call insertar_horario_administrador(?,?)}")) {
+            for (Horario horario : horarios) {
+                if (!horario.isActivo()) continue;
                 cmd.setInt("p_id_administrador", idAdministrador);
-                cmd.setInt("p_id_horario", horarioPersonal.getHorario().getId());
-                cmd.setBoolean("p_activo", true);
-                cmd.registerOutParameter("p_id", Types.INTEGER);
-
-                if (cmd.executeUpdate() == 0) {
-                    throw new SQLException("No se pudo insertar la línea de la orden de venta");
-                }
-                horarioPersonal.setId(cmd.getInt("p_id"));
+                cmd.setInt("p_id_horario", horario.getId());
+                cmd.execute();
             }
         }
     }
 
     @Override
-    public List<HorarioPersonal> listarPorAdministrador(int idAdministrador) throws SQLException {
-        String sql = "{call listar_horarios_por_administrador(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_administrador", idAdministrador);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                List<HorarioPersonal> horarios = new ArrayList<>();
-                while (rs.next()) {
-                    horarios.add(mapear(rs, new HorarioPersonal()));
+    public List<Horario> listarPorAdministrador(int idAdministrador) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            try (CallableStatement cmd = conn.prepareCall("{call listar_horarios_por_administrador(?)}")) {
+                cmd.setInt("p_id_administrador", idAdministrador);
+                try (ResultSet rs = cmd.executeQuery()) {
+                    List<Horario> horarios = new ArrayList<>();
+                    while (rs.next()) {
+                        horarios.add(new HorarioDAOImpl().mapear(rs, new Horario()));
+                    }
+                    return horarios;
                 }
-                return horarios;
             }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public void eliminarPorAdministrador(int idAdministrador) throws SQLException {
-        Connection conn = TransactionsManager.getConnection();
-
-        String sql = "{call eliminar_horarios_por_administrador(?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_administrador", idAdministrador);
-            cmd.executeUpdate();
-        }
+        eliminarPorAdministrador(TransactionsManager.getConnection(), idAdministrador);
     }
 
-    @Override
-    protected HorarioPersonal mapear(ResultSet rs, HorarioPersonal horarioPersonal)
-            throws SQLException {
-        super.mapear(rs, horarioPersonal);
-        horarioPersonal.setId(rs.getInt("ID_HORARIO_ADMIN"));
-        horarioPersonal.setHorario(
-                new HorarioDAOImpl().findById(rs.getInt("ID_HORARIO")));
-        return horarioPersonal;
+    public void eliminarPorAdministrador(Connection conn, int idAdministrador) throws SQLException {
+        try (CallableStatement cmd = conn.prepareCall("{call eliminar_horarios_por_administrador(?)}")) {
+            cmd.setInt("p_id_administrador", idAdministrador);
+            cmd.execute();
+        }
     }
 }

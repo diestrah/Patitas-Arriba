@@ -1,5 +1,7 @@
 package patitasarriba.dao.impl.atencion;
 
+import patitasarriba.dao.transacciones.TransactionsManager;
+
 import conexion.DBManager;
 import patitasarriba.dao.DiagnosticoDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
@@ -17,124 +19,148 @@ public class DiagnosticoDAOImpl extends RegistroDAOImpl<Diagnostico> implements 
 
     @Override
     public List<Diagnostico> findAll() throws SQLException {
-        String sql = "{call listar_diagnosticos()}";
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call listar_diagnosticos()}";
 
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql);
+            try (CallableStatement cmd = conn.prepareCall(sql);
                 ResultSet rs = cmd.executeQuery()) {
 
-            List<Diagnostico> diagnosticos = new ArrayList<>();
-            while (rs.next()) {
-                diagnosticos.add(mapear(rs, new Diagnostico()));
+                List<Diagnostico> diagnosticos = new ArrayList<>();
+                while (rs.next()) {
+                    diagnosticos.add(mapear(rs, new Diagnostico()));
+                }
+                return diagnosticos;
             }
-            return diagnosticos;
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public Diagnostico findById(Integer integer) throws SQLException {
-        if (integer == null) {
-            throw new IllegalArgumentException("El id no puede ser nulo");
-        }
-
-        String sql = "{call buscar_diagnostico_por_id(?)}";
-
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setInt("p_id", integer);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new Diagnostico()) : null;
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (integer == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
             }
+
+            String sql = "{call buscar_diagnostico_por_id(?)}";
+
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setInt("p_id", integer);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Diagnostico()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public void insert(Diagnostico modelo) throws SQLException {
-        if (modelo == null) {
-            throw new IllegalArgumentException("El diagnostico no puede ser nulo");
-        }
-
-        String sql = "{call insertar_diagnostico(?, ?, ?, ?)}";
-
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setString("p_nombre_enfermedad", modelo.getNombreEnfermedad());
-            cmd.setString("p_descripcion", modelo.getDescripcion());
-            cmd.setInt("p_estado", modelo.isActivo() ? 1 : 0);
-            cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo insertar el diagnostico");
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (modelo == null) {
+                throw new IllegalArgumentException("El diagnostico no puede ser nulo");
             }
 
-            modelo.setId(cmd.getInt("p_id"));
+            String sql = "{call insertar_diagnostico(?, ?, ?, ?)}";
+
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setString("p_nombre_enfermedad", modelo.getNombreEnfermedad());
+                cmd.setString("p_descripcion", modelo.getDescripcion());
+                cmd.setBoolean("p_activo", modelo.isActivo());
+                cmd.registerOutParameter("p_id", Types.INTEGER);
+
+                cmd.execute();
+
+                modelo.setId(cmd.getInt("p_id"));
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public void update(Diagnostico modelo) throws SQLException {
-        if (modelo == null) {
-            throw new IllegalArgumentException("El diagnostico no puede ser nulo");
-        }
-
-        String sql = "{call actualizar_diagnostico(?, ?, ?, ?)}";
-
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setInt("p_id", modelo.getId());
-            cmd.setString("p_nombre_enfermedad", modelo.getNombreEnfermedad());
-            cmd.setString("p_descripcion", modelo.getDescripcion());
-            cmd.setInt("p_estado", modelo.isActivo() ? 1 : 0);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo actualizar el diagnostico");
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (modelo == null) {
+                throw new IllegalArgumentException("El diagnostico no puede ser nulo");
             }
+
+            String sql = "{call modificar_diagnostico(?, ?, ?, ?)}";
+
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setInt("p_id", modelo.getId());
+                cmd.setString("p_nombre_enfermedad", modelo.getNombreEnfermedad());
+                cmd.setString("p_descripcion", modelo.getDescripcion());
+                cmd.setBoolean("p_activo", modelo.isActivo());
+
+                cmd.execute();
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public void delete(Integer integer) throws SQLException {
-        if (integer == null) {
-            throw new IllegalArgumentException("El id no puede ser nulo");
-        }
-
-        String sql = "{call eliminar_diagnostico(?)}";
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setInt("p_id", integer);
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo eliminar el diagnostico");
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (integer == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
             }
+
+            String sql = "{call eliminar_diagnostico(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setInt("p_id", integer);
+                cmd.execute();
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public Diagnostico findByNombreEnfermedad(String nombreEnfermedad) throws SQLException {
-        if (nombreEnfermedad == null) {
-            throw new IllegalArgumentException("El nombre de la enfermedad no puede ser nulo");
-        }
-
-        String sql = "{call buscar_diagnostico_por_nombre_enfermedad(?)}";
-
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)) {
-
-            cmd.setString("p_nombre_enfermedad", nombreEnfermedad);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new Diagnostico()) : null;
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (nombreEnfermedad == null) {
+                throw new IllegalArgumentException("El nombre de la enfermedad no puede ser nulo");
             }
+
+            String sql = "{call buscar_diagnostico_por_nombre_enfermedad(?)}";
+
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+
+                cmd.setString("p_nombre_enfermedad", nombreEnfermedad);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Diagnostico()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 

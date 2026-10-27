@@ -1,4 +1,6 @@
 package patitasarriba.dao;
 
-public interface AtencionMedicaDAO extends DAO<AtencionMedica, Integer> {
+import patitasarriba.modelo.atencion.Atencion;
+
+public interface AtencionDAO extends DAO<Atencion, Integer> {
 }

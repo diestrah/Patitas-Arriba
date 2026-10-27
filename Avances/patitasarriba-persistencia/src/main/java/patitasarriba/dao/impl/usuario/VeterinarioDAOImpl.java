@@ -1,6 +1,8 @@
 package patitasarriba.dao.impl.usuario;
 
 import conexion.DBManager;
+import patitasarriba.dao.impl.horario.HorarioVeterinarioDAOImpl;
+import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.dao.VeterinarioDAO;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.modelo.usuario.Veterinario;
@@ -13,84 +15,119 @@ public class VeterinarioDAOImpl extends RegistroDAOImpl<Veterinario> implements 
 
     @Override
     public List<Veterinario> findAll() throws SQLException {
-        String sql = "{call listar_veterinarios()}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql);
-             ResultSet rs = cmd.executeQuery()) {
-            List<Veterinario> veterinarios = new ArrayList<>();
-            while (rs.next()) {
-                veterinarios.add(mapear(rs, new Veterinario()));
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call listar_veterinarios()}";
+            try (CallableStatement cmd = conn.prepareCall(sql);
+                ResultSet rs = cmd.executeQuery()) {
+                List<Veterinario> veterinarios = new ArrayList<>();
+                while (rs.next()) {
+                    veterinarios.add(mapear(rs, new Veterinario()));
+                }
+                return veterinarios;
             }
-            return veterinarios;
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public Veterinario findById(Integer id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("El id no puede ser nulo");
-        }
-
-        String sql = "{call buscar_veterinario_por_id(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", id);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new Veterinario()) : null;
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (id == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
             }
+
+            String sql = "{call buscar_veterinario_por_id(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id", id);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Veterinario()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public Veterinario findByDni(String dni) throws SQLException {
-        if (dni == null || dni.isBlank()) {
-            throw new IllegalArgumentException("El dni no puede ser nulo o vacío");
-        }
-
-        String sql = "{call buscar_veterinario_por_dni(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setString("p_dni", dni);
-
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new Veterinario()) : null;
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (dni == null || dni.isBlank()) {
+                throw new IllegalArgumentException("El dni no puede ser nulo o vacío");
             }
+
+            String sql = "{call buscar_veterinario_por_dni(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setString("p_dni", dni);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Veterinario()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public void insert(Veterinario veterinario) throws SQLException {
-        if (veterinario == null) {
-            throw new IllegalArgumentException("El veterinario no puede ser nulo");
-        }
+        boolean propia = !TransactionsManager.activa();
+        if (propia) TransactionsManager.iniciar();
+        Connection conn = TransactionsManager.getConnection();
+        try {
+            if (veterinario == null) {
+                throw new IllegalArgumentException("El veterinario no puede ser nulo");
+            }
 
-        String sql = "{call insertar_veterinario(?,?,?,?,?,?,?,?,?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            setParametrosComunes(cmd, veterinario);
-            cmd.registerOutParameter("p_id", Types.INTEGER);
+            String sql = "{call insertar_veterinario(?,?,?,?,?,?,?,?,?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                setParametrosComunes(cmd, veterinario);
+                cmd.registerOutParameter("p_id", Types.INTEGER);
 
-            cmd.execute();
-            veterinario.setId(cmd.getInt("p_id"));
+                cmd.execute();
+                veterinario.setId(cmd.getInt("p_id"));
+                new HorarioVeterinarioDAOImpl().insertarPorVeterinario(TransactionsManager.getConnection(), veterinario.getId(), veterinario.getHorarios());
+            }
+            if (propia) TransactionsManager.commit();
+        } catch (SQLException | RuntimeException ex) {
+            if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
+            throw ex;
         }
     }
 
     @Override
     public void update(Veterinario veterinario) throws SQLException {
-        if (veterinario == null) {
-            throw new IllegalArgumentException("El veterinario no puede ser nulo");
-        }
-
-        String sql = "{call modificar_veterinario(?,?,?,?,?,?,?,?,?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            setParametrosComunes(cmd, veterinario);
-            cmd.setInt("p_id", veterinario.getId());
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo modificar el veterinario");
+        boolean propia = !TransactionsManager.activa();
+        if (propia) TransactionsManager.iniciar();
+        Connection conn = TransactionsManager.getConnection();
+        try {
+            if (veterinario == null) {
+                throw new IllegalArgumentException("El veterinario no puede ser nulo");
             }
+
+            String sql = "{call modificar_veterinario(?,?,?,?,?,?,?,?,?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                setParametrosComunes(cmd, veterinario);
+                cmd.setInt("p_id", veterinario.getId());
+
+                cmd.execute();
+            }
+            new HorarioVeterinarioDAOImpl().eliminarPorVeterinario(TransactionsManager.getConnection(), veterinario.getId());
+            new HorarioVeterinarioDAOImpl().insertarPorVeterinario(TransactionsManager.getConnection(), veterinario.getId(), veterinario.getHorarios());
+            if (propia) TransactionsManager.commit();
+        } catch (SQLException | RuntimeException ex) {
+            if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
+            throw ex;
         }
     }
 
@@ -108,18 +145,25 @@ public class VeterinarioDAOImpl extends RegistroDAOImpl<Veterinario> implements 
 
     @Override
     public void delete(Integer id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("El id no puede ser nulo");
-        }
-
-        String sql = "{call eliminar_veterinario(?)}";
-        try (Connection conn = DBManager.getInstance().getConnection();
-             CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", id);
-
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo eliminar el veterinario");
+        boolean propia = !TransactionsManager.activa();
+        if (propia) TransactionsManager.iniciar();
+        Connection conn = TransactionsManager.getConnection();
+        try {
+            if (id == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
             }
+
+            new HorarioVeterinarioDAOImpl().eliminarPorVeterinario(TransactionsManager.getConnection(), id);
+            String sql = "{call eliminar_veterinario(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id", id);
+
+                cmd.execute();
+            }
+            if (propia) TransactionsManager.commit();
+        } catch (SQLException | RuntimeException ex) {
+            if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
+            throw ex;
         }
     }
 
@@ -137,6 +181,7 @@ public class VeterinarioDAOImpl extends RegistroDAOImpl<Veterinario> implements 
         // FK obligatoria: se resuelve el objeto completo
         int idCuenta = rs.getInt("id_cuenta");
         veterinario.setCuenta(new CuentaDAOImpl().findById(idCuenta));
+        veterinario.setHorarios(new HorarioVeterinarioDAOImpl().listarPorVeterinario(veterinario.getId()));
 
         return veterinario;
     }

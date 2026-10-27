@@ -3,6 +3,7 @@ package patitasarriba.dao.impl.receta;
 import conexion.DBManager;
 import patitasarriba.dao.impl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.receta.DetalleReceta;
 import patitasarriba.modelo.receta.Receta;
 import patitasarriba.dao.RecetaDAO;
@@ -14,37 +15,47 @@ import java.util.List;
 public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO {
     @Override
     public List<Receta> findAll() throws SQLException {
-        String sql = "{call listar_recetas()}";
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call listar_recetas()}";
 
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql);
+            try (CallableStatement cmd = conn.prepareCall(sql);
                 ResultSet rs = cmd.executeQuery()) {
 
-            List<Receta> recetas = new ArrayList<>();
-            while (rs.next()) {
-                recetas.add(mapear(rs, new Receta()));
+                List<Receta> recetas = new ArrayList<>();
+                while (rs.next()) {
+                    recetas.add(mapear(rs, new Receta()));
+                }
+                return recetas;
             }
-            return recetas;
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
     @Override
     public Receta findById(Integer id) throws SQLException {
-        if (id == null) {
-            throw new IllegalArgumentException("El id no puede ser nulo");
-        }
-
-        String sql = "{call buscar_receta_por_id(?)}";
-
-        try (
-                Connection conn = DBManager.getInstance().getConnection();
-                CallableStatement cmd = conn.prepareCall(sql)){
-
-            cmd.setInt("p_id", id);
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? mapear(rs, new Receta()) : null;
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (id == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
             }
+
+            String sql = "{call buscar_receta_por_id(?)}";
+
+            try (CallableStatement cmd = conn.prepareCall(sql)){
+
+                cmd.setInt("p_id", id);
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Receta()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
         }
     }
 
@@ -55,17 +66,17 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
         }
         Connection conn = TransactionsManager.getConnection();
 
-        if (receta.getAtencionMedica() == null) {
+        if (receta.getAtencion() == null) {
             throw new IllegalArgumentException("La receta debe tener una atención médica");
         }
 
         String sql = "{call insertar_receta(?,?,?,?,?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
+            cmd.setInt("p_id_atencion", receta.getAtencion().getId());
             cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
             cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setBoolean("p_estado", receta.isActivo());
+            cmd.setBoolean("p_activo", receta.isActivo());
             cmd.registerOutParameter("p_id", Types.INTEGER);
             cmd.execute();
             receta.setId(cmd.getInt("p_id"));
@@ -83,22 +94,20 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
 
         Connection conn = TransactionsManager.getConnection();
 
-        if (receta.getAtencionMedica() == null) {
+        if (receta.getAtencion() == null) {
             throw new IllegalArgumentException("La receta debe tener una atención médica");
         }
 
         String sql = "{call modificar_receta(?,?,?,?,?)}";
 
         try (CallableStatement cmd = conn.prepareCall(sql)){
-            cmd.setInt("p_id_atencion_medica", receta.getAtencionMedica().getId());
+            cmd.setInt("p_id_atencion", receta.getAtencion().getId());
             cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
             cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setBoolean("p_estado", receta.isActivo());
+            cmd.setBoolean("p_activo", receta.isActivo());
             cmd.setInt("p_id", receta.getId());
 
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo actualizar la receta");
-            }
+            cmd.execute();
 
             DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
             detalleRecetaDAO.eliminarDetalles(receta.getId());
@@ -121,39 +130,32 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
 
         try (CallableStatement cmd = conn.prepareCall(sql)){
             cmd.setInt("p_id", id);
-            if (cmd.executeUpdate() == 0) {
-                throw new SQLException("No se pudo eliminar la receta");
-            }
+            cmd.execute();
         }
     }
 
     protected Receta mapear(ResultSet rs, Receta receta) throws SQLException {
         super.mapear(rs, receta);
-        mapearAtencionMedica(rs, receta);
+        mapearAtencion(rs, receta);
         receta.setId(rs.getInt("id_receta"));
         receta.setFechaEmision(rs.getDate("fecha_emision").toLocalDate());
         receta.setIndicacionesGenerales(rs.getString("indicaciones_generales"));
-        
+
         mapearDetalles(rs, receta);
         return receta;
     }
 
-    private void mapearAtencionMedica(ResultSet rs, Receta receta) throws SQLException {
-        int idAtencionMedica = rs.getInt("id_atencion_medica");
-        if (rs.wasNull()) {
-            receta.setAtencionMedica(null);
-            return;
-        }
-
-        AtencionMedica atencionMedica = new AtencionMedica();
-        atencionMedica.setId(idAtencionMedica);
-        receta.setAtencionMedica(atencionMedica);
+    private void mapearAtencion(ResultSet rs, Receta receta) throws SQLException {
+        Atencion atencion = new patitasarriba.dao.impl.atencion.AtencionDAOImpl()
+        .findById(rs.getInt("id_atencion"));
+        if (atencion == null) throw new SQLException("No existe la atencion activa de la receta");
+        receta.setAtencion(atencion);
     }
-
     private void mapearDetalles(ResultSet rs, Receta receta) throws SQLException{
         DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
         List<DetalleReceta> detalles = detalleRecetaDAO.buscarPorIdReceta(rs.getInt("id_receta"));
         receta.setDetalles(detalles);
     }
+
 
 }
