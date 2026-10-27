@@ -163,6 +163,28 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
     }
 
     @Override
+    public List<Articulo> findByCategoriaId(int idCategoria) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call listar_articulos_por_categoria(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id_categoria", idCategoria);
+                try (ResultSet rs = cmd.executeQuery()) {
+                    List<Articulo> articulos = new ArrayList<>();
+                    while (rs.next()) {
+                        articulos.add(mapear(rs, new Articulo()));
+                    }
+                    return articulos;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     protected Articulo mapear(ResultSet rs, Articulo articulo) throws SQLException {
         super.mapear(rs, articulo);
         articulo.setId(rs.getInt("id_articulo"));

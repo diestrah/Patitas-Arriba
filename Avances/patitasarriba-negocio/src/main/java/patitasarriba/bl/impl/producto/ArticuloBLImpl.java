@@ -62,6 +62,7 @@ public class ArticuloBLImpl implements ArticuloBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         try {
             articuloDAO.delete(id);
         } catch (SQLException e) {
@@ -72,6 +73,9 @@ public class ArticuloBLImpl implements ArticuloBL {
     private void validarPrecio(Articulo articulo) throws BLException {
         if (articulo == null) {
             throw new BLException("El articulo no puede ser nulo");
+        }
+        if (articulo.getNombre() == null || articulo.getNombre().isBlank()) {
+            throw new BLException("El nombre del articulo es obligatorio");
         }
         if (articulo.getPrecioBase() <= 0) {
             throw new BLException("El precio base del articulo debe ser mayor a 0");

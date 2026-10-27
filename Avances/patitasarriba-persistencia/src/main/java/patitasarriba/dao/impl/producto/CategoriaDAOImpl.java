@@ -154,6 +154,24 @@ public class CategoriaDAOImpl extends RegistroDAOImpl<Categoria> implements Cate
     }
 
     @Override
+    public Categoria findByNombre(String nombre) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            String sql = "{call buscar_categoria_por_nombre(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setString("p_nombre", nombre);
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Categoria()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     protected Categoria mapear(ResultSet rs, Categoria categoria) throws SQLException {
         super.mapear(rs, categoria);
         categoria.setId(rs.getInt("id_categoria"));
