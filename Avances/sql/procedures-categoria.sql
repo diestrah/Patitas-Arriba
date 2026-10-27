@@ -8,7 +8,7 @@ DROP PROCEDURE IF EXISTS eliminar_categoria;
 DROP PROCEDURE IF EXISTS buscar_categoria_por_id;
 DROP PROCEDURE IF EXISTS buscar_categoria_por_nombre;
 DROP PROCEDURE IF EXISTS listar_categoria;
-DROP PROCEDURE IF EXISTS listar_categoria_por_articulo;
+
 DELIMITER //
 
 -- Crea una categoria y devuelve el id generado
@@ -71,18 +71,6 @@ BEGIN
     SELECT *
     FROM categoria
     WHERE activo = 1;
-END //
-
-
-CREATE PROCEDURE listar_categoria_por_articulo (IN p_id_articulo INT)
-BEGIN
-    SELECT c.*
-    FROM categoria c
-    INNER JOIN articulo_categoria ac
-        ON ac.id_categoria = c.id_categoria
-    WHERE ac.id_articulo = p_id_articulo
-        AND c.activo = 1
-        AND ac.activo = 1;
 END //
 
 DELIMITER ;

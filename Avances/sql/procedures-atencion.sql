@@ -90,4 +90,15 @@ BEGIN
     WHERE activo = 1;
 END //
 
+-- Historial clinico: atenciones activas de una mascota (atencion -> detalle_cita -> cita -> mascota)
+CREATE PROCEDURE listar_atenciones_por_mascota (IN p_id_mascota INT)
+BEGIN
+    SELECT a.*
+    FROM atencion a
+    INNER JOIN detalle_cita dc ON dc.id_detalle_cita = a.id_detalle_cita
+    INNER JOIN cita c ON c.id_cita = dc.id_cita
+    WHERE c.id_mascota = p_id_mascota
+      AND a.activo = 1;
+END //
+
 DELIMITER ;

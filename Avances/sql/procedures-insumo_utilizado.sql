@@ -35,7 +35,7 @@ BEGIN
     SET p_id = LAST_INSERT_ID();
 END //
 
--- Actualiza todos los campos de un insumo existente (la atencion no cambia)
+-- Actualiza los campos de un insumo existente; valida que el insumo pertenezca a la atencion indicada
 CREATE PROCEDURE modificar_insumo_utilizado (
     IN p_id INT,
     IN p_id_atencion INT,
@@ -43,7 +43,7 @@ CREATE PROCEDURE modificar_insumo_utilizado (
     IN p_cantidad_utilizada INT,
     IN p_es_cobrable TINYINT(1),
     IN p_activo TINYINT(1)
-        )
+)
 BEGIN
     IF NOT EXISTS (
         SELECT 1
@@ -53,15 +53,15 @@ BEGIN
     ) THEN
         SIGNAL SQLSTATE '45000'
             SET MESSAGE_TEXT = 'El insumo no existe o no pertenece a esta atencion';
-END IF;
+    END IF;
 
-UPDATE insumo_utilizado
-SET id_articulo = p_id_articulo,
-    cantidad_utilizada = p_cantidad_utilizada,
-    es_cobrable = p_es_cobrable,
-    activo = p_activo
-WHERE id_insumo_utilizado = p_id
-  AND id_atencion = p_id_atencion;
+    UPDATE insumo_utilizado
+    SET id_articulo = p_id_articulo,
+        cantidad_utilizada = p_cantidad_utilizada,
+        es_cobrable = p_es_cobrable,
+        activo = p_activo
+    WHERE id_insumo_utilizado = p_id
+      AND id_atencion = p_id_atencion;
 END //
 
 -- Borrado logico de un insumo
