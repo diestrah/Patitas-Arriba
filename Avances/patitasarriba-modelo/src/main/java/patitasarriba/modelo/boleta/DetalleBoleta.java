@@ -14,7 +14,7 @@ public abstract class DetalleBoleta extends Registro {
 
     public DetalleBoleta(int idDetalleBoleta, boolean activo, Boleta boleta, int cantidad, double precioUnitario) {
         super(activo);
-        setIdDetalleBoleta(idDetalleBoleta);
+        setId(idDetalleBoleta);
         setBoleta(boleta);
         setCantidad(cantidad);
         setPrecioUnitario(precioUnitario);
@@ -26,7 +26,7 @@ public abstract class DetalleBoleta extends Registro {
             throw new IllegalArgumentException("detalleBoleta no puede ser nulo");
         }
         super(detalleBoleta);
-        setIdDetalleBoleta(detalleBoleta.getIdDetalleBoleta());
+        setId(detalleBoleta.getId());
         setBoleta(detalleBoleta.getBoleta());
         setCantidad(detalleBoleta.getCantidad());
         setPrecioUnitario(detalleBoleta.getPrecioUnitario());
@@ -34,11 +34,11 @@ public abstract class DetalleBoleta extends Registro {
     }
 
     // Getters y Setters
-    public int getIdDetalleBoleta() {
+    public int getId() {
         return idDetalleBoleta;
     }
 
-    public void setIdDetalleBoleta(int idDetalleBoleta) {
+    public void setId(int idDetalleBoleta) {
         if (idDetalleBoleta < 0) {
             throw new IllegalArgumentException("idDetalleBoleta no puede ser negativo");
         }
@@ -103,7 +103,7 @@ public abstract class DetalleBoleta extends Registro {
     public String toString() {
         int idBoleta = -1;
         if (boleta != null) {
-            idBoleta = boleta.getIdBoleta();
+            idBoleta = boleta.getId();
         }
 
         return "idDetalleBoleta=" + idDetalleBoleta +

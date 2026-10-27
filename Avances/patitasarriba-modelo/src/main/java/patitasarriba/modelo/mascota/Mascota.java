@@ -21,7 +21,7 @@ public class Mascota extends Registro {
     public Mascota(int idMascota, boolean activo, Cliente cliente, String nombre, SexoMascota sexo, double peso,
                    LocalDate fechaNacimiento, String raza, TipoMascota tipoMascota) {
         super(activo);
-        setIdMascota(idMascota);
+        setId(idMascota);
         setCliente(cliente);
         setNombre(nombre);
         setSexo(sexo);
@@ -37,7 +37,7 @@ public class Mascota extends Registro {
             throw new IllegalArgumentException("mascota no puede ser nula");
         }
         super(mascota);
-        setIdMascota(mascota.getIdMascota());
+        setId(mascota.getId());
         setCliente(mascota.getCliente());
         setNombre(mascota.getNombre());
         setSexo(mascota.getSexo());
@@ -48,11 +48,11 @@ public class Mascota extends Registro {
     }
 
     // Getters y Setters
-    public int getIdMascota() {
+    public int getId() {
         return idMascota;
     }
 
-    public void setIdMascota(int idMascota) {
+    public void setId(int idMascota) {
         if (idMascota < 0) {
             throw new IllegalArgumentException("idMascota no puede ser negativo");
         }

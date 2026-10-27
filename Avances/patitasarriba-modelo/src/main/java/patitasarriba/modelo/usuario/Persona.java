@@ -17,7 +17,7 @@ public abstract class Persona extends Registro {
     public Persona(int idPersona, boolean activo, Cuenta cuenta, String dni, String nombres,
                    String apellidoPaterno, String apellidoMaterno, String telefono) {
         super(activo);
-        setIdPersona(idPersona);
+        setId(idPersona);
         setCuenta(cuenta);
         setDni(dni);
         setNombres(nombres);
@@ -32,7 +32,7 @@ public abstract class Persona extends Registro {
             throw new IllegalArgumentException("persona no puede ser nula");
         }
         super(persona);
-        setIdPersona(persona.getIdPersona());
+        setId(persona.getId());
         setCuenta(persona.getCuenta());
         setDni(persona.getDni());
         setNombres(persona.getNombres());
@@ -42,11 +42,11 @@ public abstract class Persona extends Registro {
     }
 
     // Getters y Setters
-    public int getIdPersona() {
+    public int getId() {
         return idPersona;
     }
 
-    public void setIdPersona(int idPersona) {
+    public void setId(int idPersona) {
         if (idPersona < 0) {
             throw new IllegalArgumentException("idPersona no puede ser negativo");
         }

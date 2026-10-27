@@ -17,7 +17,7 @@ public class InsumoUtilizado extends Registro {
     public InsumoUtilizado(int idInsumoUtilizado, boolean activo, Atencion atencion, Articulo articulo,
                            int cantidadUtilizada, boolean esCobrable) {
         super(activo);
-        setIdInsumoUtilizado(idInsumoUtilizado);
+        setId(idInsumoUtilizado);
         setAtencion(atencion);
         setArticulo(articulo);
         setCantidadUtilizada(cantidadUtilizada);
@@ -30,7 +30,7 @@ public class InsumoUtilizado extends Registro {
             throw new IllegalArgumentException("insumoUtilizado no puede ser nulo");
         }
         super(insumoUtilizado);
-        setIdInsumoUtilizado(insumoUtilizado.getIdInsumoUtilizado());
+        setId(insumoUtilizado.getId());
         setAtencion(insumoUtilizado.getAtencion());
         setArticulo(insumoUtilizado.getArticulo());
         setCantidadUtilizada(insumoUtilizado.getCantidadUtilizada());
@@ -38,11 +38,11 @@ public class InsumoUtilizado extends Registro {
     }
 
     // Getters y Setters
-    public int getIdInsumoUtilizado() {
+    public int getId() {
         return idInsumoUtilizado;
     }
 
-    public void setIdInsumoUtilizado(int idInsumoUtilizado) {
+    public void setId(int idInsumoUtilizado) {
         if (idInsumoUtilizado < 0) {
             throw new IllegalArgumentException("idInsumoUtilizado no puede ser negativo");
         }
@@ -99,7 +99,7 @@ public class InsumoUtilizado extends Registro {
     public String toString() {
         int idAtencion = -1;
         if (atencion != null) {
-            idAtencion = atencion.getIdAtencion();
+            idAtencion = atencion.getId();
         }
 
         String nombreArticulo = null;

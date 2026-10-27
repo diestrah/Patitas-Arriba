@@ -15,7 +15,7 @@ public class Horario extends Registro {
 
     public Horario(int idHorario, boolean activo, DiaSemana diaSemana, LocalTime horaInicio, LocalTime horaFin) {
         super(activo);
-        setIdHorario(idHorario);
+        setId(idHorario);
         setDiaSemana(diaSemana);
         setHoraInicio(horaInicio);
         setHoraFin(horaFin);
@@ -27,18 +27,18 @@ public class Horario extends Registro {
             throw new IllegalArgumentException("horario no puede ser nulo");
         }
         super(horario);
-        setIdHorario(horario.getIdHorario());
+        setId(horario.getId());
         setDiaSemana(horario.getDiaSemana());
         setHoraInicio(horario.getHoraInicio());
         setHoraFin(horario.getHoraFin());
     }
 
     // Getters y Setters
-    public int getIdHorario() {
+    public int getId() {
         return idHorario;
     }
 
-    public void setIdHorario(int idHorario) {
+    public void setId(int idHorario) {
         if (idHorario < 0) {
             throw new IllegalArgumentException("idHorario no puede ser negativo");
         }

@@ -86,7 +86,7 @@ public class AtencionDiagnostico extends Registro {
     public String toString() {
         int idAtencion = -1;
         if (atencion != null) {
-            idAtencion = atencion.getIdAtencion();
+            idAtencion = atencion.getId();
         }
 
         String nombreEnfermedad = null;

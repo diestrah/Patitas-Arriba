@@ -17,7 +17,7 @@ public class Cuenta extends Registro {
     public Cuenta(int idCuenta, boolean activo, String password, String correo, LocalDate fechaCreacion,
                   String nombreUsuario) {
         super(activo);
-        setIdCuenta(idCuenta);
+        setId(idCuenta);
         setPassword(password);
         setCorreo(correo);
         setFechaCreacion(fechaCreacion);
@@ -30,7 +30,7 @@ public class Cuenta extends Registro {
             throw new IllegalArgumentException("cuenta no puede ser nula");
         }
         super(cuenta);
-        setIdCuenta(cuenta.getIdCuenta());
+        setId(cuenta.getId());
         setPassword(cuenta.getPassword());
         setCorreo(cuenta.getCorreo());
         setFechaCreacion(cuenta.getFechaCreacion());
@@ -38,11 +38,11 @@ public class Cuenta extends Registro {
     }
 
     // Getters y Setters
-    public int getIdCuenta() {
+    public int getId() {
         return idCuenta;
     }
 
-    public void setIdCuenta(int idCuenta) {
+    public void setId(int idCuenta) {
         if (idCuenta < 0) {
             throw new IllegalArgumentException("idCuenta no puede ser negativo");
         }

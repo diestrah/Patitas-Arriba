@@ -27,7 +27,7 @@ public class Cita extends Registro {
 
     public Cita(int idCita, boolean activo, LocalDateTime fechaHora, EstadoCita estado, Mascota mascota, Administrador administrador, boolean esEmergencia, List<DetalleCita> detalles) {
         super(activo);
-        setIdCita(idCita);
+        setId(idCita);
         setFechaHora(fechaHora);
         setEstado(estado);
         setMascota(mascota);
@@ -42,7 +42,7 @@ public class Cita extends Registro {
             throw new IllegalArgumentException("Cita no puede ser nula");
         }
         super(cita);
-        setIdCita(cita.getIdCita());
+        setId(cita.getId());
         setFechaHora(cita.getFechaHora());
         setEstado(cita.getEstado());
         setMascota(cita.getMascota());
@@ -55,11 +55,11 @@ public class Cita extends Registro {
 
     // Getters y Setters
 
-    public int getIdCita() {
+    public int getId() {
         return idCita;
     }
 
-    public void setIdCita(int idCita) {
+    public void setId(int idCita) {
         if (idCita < 0) {
             throw new IllegalArgumentException("idCita no puede ser negativo");
         }

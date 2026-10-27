@@ -23,7 +23,7 @@ public class Receta extends Registro {
     public Receta(int idReceta, boolean activo, Atencion atencion, List<DetalleReceta> detalles,
                   LocalDate fechaEmision, String indicacionesGenerales) {
         super(activo);
-        setIdReceta(idReceta);
+        setId(idReceta);
         setAtencion(atencion);
         setDetalles(detalles);
         setFechaEmision(fechaEmision);
@@ -36,7 +36,7 @@ public class Receta extends Registro {
             throw new IllegalArgumentException("receta no puede ser nula");
         }
         super(receta);
-        setIdReceta(receta.getIdReceta());
+        setId(receta.getId());
         setAtencion(receta.getAtencion());
         setDetalles(receta.getDetalles());
         setFechaEmision(receta.getFechaEmision());
@@ -44,11 +44,11 @@ public class Receta extends Registro {
     }
 
     // Getters y Setters
-    public int getIdReceta() {
+    public int getId() {
         return idReceta;
     }
 
-    public void setIdReceta(int idReceta) {
+    public void setId(int idReceta) {
         if (idReceta < 0) {
             throw new IllegalArgumentException("idReceta no puede ser negativo");
         }
@@ -116,7 +116,7 @@ public class Receta extends Registro {
     public String toString() {
         int idAtencion = -1;
         if (atencion != null) {
-            idAtencion = atencion.getIdAtencion();
+            idAtencion = atencion.getId();
         }
 
         return "Receta{" +

@@ -27,7 +27,7 @@ public class Boleta extends Registro {
     public Boleta(int idBoleta, boolean activo, Cliente cliente, List<DetalleBoleta> detalles, String serieCorrelativo,
                   LocalDateTime fecha, double total, MetodoPago metodoPago) {
         super(activo);
-        setIdBoleta(idBoleta);
+        setId(idBoleta);
         setCliente(cliente);
         setDetalles(detalles);
         setSerieCorrelativo(serieCorrelativo);
@@ -42,7 +42,7 @@ public class Boleta extends Registro {
             throw new IllegalArgumentException("boleta no puede ser nula");
         }
         super(boleta);
-        setIdBoleta(boleta.getIdBoleta());
+        setId(boleta.getId());
         setCliente(boleta.getCliente());
         setDetalles(boleta.getDetalles());
         setSerieCorrelativo(boleta.getSerieCorrelativo());
@@ -52,11 +52,11 @@ public class Boleta extends Registro {
     }
 
     // Getters y Setters
-    public int getIdBoleta() {
+    public int getId() {
         return idBoleta;
     }
 
-    public void setIdBoleta(int idBoleta) {
+    public void setId(int idBoleta) {
         if (idBoleta < 0) {
             throw new IllegalArgumentException("idBoleta no puede ser negativo");
         }

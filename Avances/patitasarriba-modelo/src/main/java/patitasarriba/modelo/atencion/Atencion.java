@@ -28,7 +28,7 @@ public class Atencion extends Registro {
                     List<AtencionDiagnostico> diagnosticos, LocalDateTime fechaHora, String motivoConsulta,
                     String observaciones) {
         super(activo);
-        setIdAtencion(idAtencion);
+        setId(idAtencion);
         setDetalleCita(detalleCita);
         setInsumosUtilizados(insumosUtilizados);
         setDiagnosticos(diagnosticos);
@@ -43,7 +43,7 @@ public class Atencion extends Registro {
             throw new IllegalArgumentException("atencion no puede ser nula");
         }
         super(atencion);
-        setIdAtencion(atencion.getIdAtencion());
+        setId(atencion.getId());
         setDetalleCita(atencion.getDetalleCita());
         setInsumosUtilizados(atencion.getInsumosUtilizados());
         setDiagnosticos(atencion.getDiagnosticos());
@@ -53,11 +53,11 @@ public class Atencion extends Registro {
     }
 
     // Getters y Setters
-    public int getIdAtencion() {
+    public int getId() {
         return idAtencion;
     }
 
-    public void setIdAtencion(int idAtencion) {
+    public void setId(int idAtencion) {
         if (idAtencion < 0) {
             throw new IllegalArgumentException("idAtencion no puede ser negativo");
         }
@@ -156,7 +156,7 @@ public class Atencion extends Registro {
     public String toString() {
         int idDetalleCita = -1;
         if (detalleCita != null) {
-            idDetalleCita = detalleCita.getIdDetalleCita();
+            idDetalleCita = detalleCita.getId();
         }
 
         return "Atencion{" +

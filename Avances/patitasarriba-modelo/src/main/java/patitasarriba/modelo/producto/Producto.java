@@ -13,7 +13,7 @@ public abstract class Producto extends Registro {
 
     public Producto(int idProducto, boolean activo, String nombre, double precioBase, String descripcion) {
         super(activo);
-        setIdProducto(idProducto);
+        setId(idProducto);
         setNombre(nombre);
         setPrecioBase(precioBase);
         setDescripcion(descripcion);
@@ -25,18 +25,18 @@ public abstract class Producto extends Registro {
             throw new IllegalArgumentException("producto no puede ser nulo");
         }
         super(producto);
-        setIdProducto(producto.getIdProducto());
+        setId(producto.getId());
         setNombre(producto.getNombre());
         setPrecioBase(producto.getPrecioBase());
         setDescripcion(producto.getDescripcion());
     }
 
     // Getters y Setters
-    public int getIdProducto() {
+    public int getId() {
         return idProducto;
     }
 
-    public void setIdProducto(int idProducto) {
+    public void setId(int idProducto) {
         if (idProducto < 0) {
             throw new IllegalArgumentException("idProducto no puede ser negativo");
         }

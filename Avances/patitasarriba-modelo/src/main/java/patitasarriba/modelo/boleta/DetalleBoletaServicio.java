@@ -42,7 +42,7 @@ public class DetalleBoletaServicio extends DetalleBoleta {
     public String toString() {
         int idDetalleCita = -1;
         if (detalleCita != null) {
-            idDetalleCita = detalleCita.getIdDetalleCita();
+            idDetalleCita = detalleCita.getId();
         }
 
         return "DetalleBoletaServicio{" +

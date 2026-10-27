@@ -12,7 +12,7 @@ public class Diagnostico extends Registro {
 
     public Diagnostico(int idDiagnostico, boolean activo, String nombreEnfermedad, String descripcion) {
         super(activo);
-        setIdDiagnostico(idDiagnostico);
+        setId(idDiagnostico);
         setNombreEnfermedad(nombreEnfermedad);
         setDescripcion(descripcion);
     }
@@ -23,17 +23,17 @@ public class Diagnostico extends Registro {
             throw new IllegalArgumentException("diagnostico no puede ser nulo");
         }
         super(diagnostico);
-        setIdDiagnostico(diagnostico.getIdDiagnostico());
+        setId(diagnostico.getId());
         setNombreEnfermedad(diagnostico.getNombreEnfermedad());
         setDescripcion(diagnostico.getDescripcion());
     }
 
     // Getters y Setters
-    public int getIdDiagnostico() {
+    public int getId() {
         return idDiagnostico;
     }
 
-    public void setIdDiagnostico(int idDiagnostico) {
+    public void setId(int idDiagnostico) {
         if (idDiagnostico < 0) {
             throw new IllegalArgumentException("idDiagnostico no puede ser negativo");
         }

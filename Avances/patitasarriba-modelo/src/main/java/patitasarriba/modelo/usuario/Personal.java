@@ -56,7 +56,7 @@ public abstract class Personal extends Persona {
         if (horario == null) {
             throw new IllegalArgumentException("horario no puede ser nulo");
         }
-        horarios.removeIf(h -> h.getIdHorario() == horario.getIdHorario());
+        horarios.removeIf(h -> h.getId() == horario.getId());
     }
 
     @Override

@@ -69,7 +69,7 @@ public class DetalleBoletaArticulo extends DetalleBoleta {
 
         int idInsumoUtilizado = -1;
         if (insumoUtilizado != null) {
-            idInsumoUtilizado = insumoUtilizado.getIdInsumoUtilizado();
+            idInsumoUtilizado = insumoUtilizado.getId();
         }
 
         return "DetalleBoletaArticulo{" +

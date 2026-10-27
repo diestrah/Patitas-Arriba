@@ -18,7 +18,7 @@ public class DetalleReceta extends Registro {
     public DetalleReceta(int idDetalleReceta, boolean activo, Receta receta, Articulo articulo, String dosis,
                          String frecuencia, int duracionDias, int cantidadTotal) {
         super(activo);
-        setIdDetalleReceta(idDetalleReceta);
+        setId(idDetalleReceta);
         setReceta(receta);
         setArticulo(articulo);
         setDosis(dosis);
@@ -33,7 +33,7 @@ public class DetalleReceta extends Registro {
             throw new IllegalArgumentException("detalleReceta no puede ser nulo");
         }
         super(detalleReceta);
-        setIdDetalleReceta(detalleReceta.getIdDetalleReceta());
+        setId(detalleReceta.getId());
         setReceta(detalleReceta.getReceta());
         setArticulo(detalleReceta.getArticulo());
         setDosis(detalleReceta.getDosis());
@@ -43,11 +43,11 @@ public class DetalleReceta extends Registro {
     }
 
     // Getters y Setters
-    public int getIdDetalleReceta() {
+    public int getId() {
         return idDetalleReceta;
     }
 
-    public void setIdDetalleReceta(int idDetalleReceta) {
+    public void setId(int idDetalleReceta) {
         if (idDetalleReceta < 0) {
             throw new IllegalArgumentException("idDetalleReceta no puede ser negativo");
         }
@@ -129,7 +129,7 @@ public class DetalleReceta extends Registro {
     public String toString() {
         int idReceta = -1;
         if (receta != null) {
-            idReceta = receta.getIdReceta();
+            idReceta = receta.getId();
         }
 
         String nombreArticulo = null;

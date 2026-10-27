@@ -12,7 +12,7 @@ public class Categoria extends Registro {
 
     public Categoria(int idCategoria, boolean activo, String nombre, String descripcion) {
         super(activo);
-        setIdCategoria(idCategoria);
+        setId(idCategoria);
         setNombre(nombre);
         setDescripcion(descripcion);
     }
@@ -23,17 +23,17 @@ public class Categoria extends Registro {
             throw new IllegalArgumentException("categoria no puede ser nula");
         }
         super(categoria);
-        setIdCategoria(categoria.getIdCategoria());
+        setId(categoria.getId());
         setNombre(categoria.getNombre());
         setDescripcion(categoria.getDescripcion());
     }
 
     // Getters y Setters
-    public int getIdCategoria() {
+    public int getId() {
         return idCategoria;
     }
 
-    public void setIdCategoria(int idCategoria) {
+    public void setId(int idCategoria) {
         if (idCategoria < 0) {
             throw new IllegalArgumentException("idCategoria no puede ser negativo");
         }

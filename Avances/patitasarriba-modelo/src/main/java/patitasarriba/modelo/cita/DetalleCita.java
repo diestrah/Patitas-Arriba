@@ -18,7 +18,7 @@ public class DetalleCita extends Registro {
 
     public DetalleCita(int idDetalleCita, boolean activo, String observaciones, Servicio servicio, Veterinario veterinario, Cita cita) {
         super(activo);
-        setIdDetalleCita(idDetalleCita);
+        setId(idDetalleCita);
         setObservaciones(observaciones);
         setServicio(servicio);
         setVeterinario(veterinario);
@@ -31,7 +31,7 @@ public class DetalleCita extends Registro {
             throw new IllegalArgumentException("DetalleCita no puede ser nulo");
         }
         super(detalleCita);
-        setIdDetalleCita(detalleCita.getIdDetalleCita());
+        setId(detalleCita.getId());
         setObservaciones(detalleCita.getObservaciones());
         setServicio(detalleCita.getServicio());
         setVeterinario(detalleCita.getVeterinario());
@@ -41,11 +41,11 @@ public class DetalleCita extends Registro {
 
     // Getters y Setters
 
-    public int getIdDetalleCita() {
+    public int getId() {
         return idDetalleCita;
     }
 
-    public void setIdDetalleCita(int idDetalleCita) {
+    public void setId(int idDetalleCita) {
         if (idDetalleCita < 0) {
             throw new IllegalArgumentException("idDetalleCita no puede ser negativo");
         }
@@ -117,12 +117,12 @@ public class DetalleCita extends Registro {
     public String toString() {
         int idCita = -1;
         if (cita != null) {
-            idCita = cita.getIdCita();
+            idCita = cita.getId();
         }
 
         int idAtencion = -1;
         if (atencion != null) {
-            idAtencion = atencion.getIdAtencion();
+            idAtencion = atencion.getId();
         }
 
         String nombreServicio = null;

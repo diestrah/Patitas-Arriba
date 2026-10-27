@@ -82,7 +82,7 @@ public class Articulo extends Producto {
         if (categoria == null) {
             throw new IllegalArgumentException("categoria no puede ser nula");
         }
-        categorias.removeIf(c -> c.getIdCategoria() == categoria.getIdCategoria());
+        categorias.removeIf(c -> c.getId() == categoria.getId());
     }
 
     @Override
