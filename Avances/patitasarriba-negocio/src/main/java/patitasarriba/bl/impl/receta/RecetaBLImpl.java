@@ -78,21 +78,21 @@ public class RecetaBLImpl implements RecetaBL {
         if (receta.getFechaEmision() == null){
             throw new BLException("La receta debe tener una fecha");
         }
-        if (receta.getAtencionMedica() == null){
+        if (receta.getAtencion() == null){
             throw new BLException("La receta debe estar asociada a una atención médica");
         }
-        if (receta.getDetalles().isEmpty()) {
+        if (receta.getDetalles() == null || receta.getDetalles().isEmpty()) {
             throw new BLException("La receta debe tener al menos un detalle");
         }
-        if (receta.getIndicacionesGenerales() == null) {
+        if (receta.getIndicacionesGenerales() == null || receta.getIndicacionesGenerales().isBlank()) {
             throw new BLException("La receta debe tener indicaciones");
         }
         for (DetalleReceta detalle : receta.getDetalles()) {
-            if (detalle == null || detalle.getProducto() == null
+            if (detalle == null || detalle.getArticulo() == null
                     || detalle.getDosis() == null || detalle.getDosis().isBlank()
                     || detalle.getFrecuencia() == null || detalle.getFrecuencia().isBlank()
                     || detalle.getDuracionDias() <= 0 || detalle.getCantidadTotal() <= 0) {
-                throw new BLException("Cada detalle de receta debe tener producto, dosis, frecuencia, duración y cantidad válidos");
+                throw new BLException("Cada detalle de receta debe tener articulo, dosis, frecuencia, duración y cantidad válidos");
             }
         }
     }

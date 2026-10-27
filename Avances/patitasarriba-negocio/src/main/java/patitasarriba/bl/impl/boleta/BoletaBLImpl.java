@@ -14,8 +14,9 @@ import patitasarriba.dao.impl.producto.ServicioDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.boleta.Boleta;
 import patitasarriba.modelo.boleta.DetalleBoleta;
+import patitasarriba.modelo.boleta.DetalleBoletaArticulo;
+import patitasarriba.modelo.boleta.DetalleBoletaServicio;
 import patitasarriba.modelo.producto.Articulo;
-import patitasarriba.modelo.producto.Producto;
 import patitasarriba.modelo.producto.Servicio;
 
 public class BoletaBLImpl implements BoletaBL {
@@ -110,6 +111,10 @@ public class BoletaBLImpl implements BoletaBL {
             throw new BLException("La boleta debe tener una fecha");
         }
 
+        if (boleta.getSerieCorrelativo() == null || boleta.getSerieCorrelativo().isBlank()) {
+            throw new BLException("La boleta debe tener serie y correlativo");
+        }
+
         double totalCalculado = 0.0;
 
         for (DetalleBoleta detalle : boleta.getDetalles()) {
@@ -120,19 +125,17 @@ public class BoletaBLImpl implements BoletaBL {
                 throw new BLException("La cantidad debe ser al menos 1");
             }
 
-            Producto prodFrontend = detalle.getProducto();
-            if (prodFrontend == null) {
-                throw new BLException("Cada detalle debe tener un producto");
-            }
-
             double subTotalSeguro;
 
             try {
-                // Enrutamiento polimórfico para búsqueda de producto
-                if (prodFrontend instanceof Articulo) {
+                // Enrutamiento polimórfico según el tipo de detalle
+                if (detalle instanceof DetalleBoletaArticulo detalleArticulo) {
+                    if (detalleArticulo.getArticulo() == null) {
+                        throw new BLException("Cada detalle de articulo debe tener un articulo");
+                    }
 
                     // Validaciones específicas para Artículos (incluye stock)
-                    Articulo artReal = articuloDAO.findById(prodFrontend.getId());
+                    Articulo artReal = articuloDAO.findById(detalleArticulo.getArticulo().getId());
 
                     if (artReal == null || !artReal.isActivo()) {
                         throw new BLException("El artículo no existe o está inactivo en el catálogo");
@@ -143,10 +146,13 @@ public class BoletaBLImpl implements BoletaBL {
                     }
                     subTotalSeguro = artReal.getPrecioBase() * detalle.getCantidad();
 
-                } else if (prodFrontend instanceof Servicio) {
+                } else if (detalle instanceof DetalleBoletaServicio detalleServicio) {
+                    if (detalleServicio.getDetalleCita() == null || detalleServicio.getDetalleCita().getServicio() == null) {
+                        throw new BLException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
+                    }
 
                     // Validaciones específicas para Servicios
-                    Servicio servReal = servicioDAO.findById(prodFrontend.getId());
+                    Servicio servReal = servicioDAO.findById(detalleServicio.getDetalleCita().getServicio().getId());
 
                     if (servReal == null || !servReal.isActivo()) {
                         throw new BLException("El servicio no existe o está inactivo en el catálogo");
@@ -154,7 +160,7 @@ public class BoletaBLImpl implements BoletaBL {
                     subTotalSeguro = servReal.getPrecioBase() * detalle.getCantidad();
 
                 } else {
-                    throw new BLException("Tipo de producto no reconocido por el sistema");
+                    throw new BLException("Tipo de detalle de boleta no reconocido por el sistema");
                 }
 
             } catch (SQLException e) {
@@ -166,7 +172,7 @@ public class BoletaBLImpl implements BoletaBL {
             }
 
             // Actualización segura del subtotal
-            detalle.setSubTotal(subTotalSeguro);
+            detalle.setSubtotal(subTotalSeguro);
             totalCalculado += subTotalSeguro;
         }
 
@@ -176,11 +182,11 @@ public class BoletaBLImpl implements BoletaBL {
     // Descuenta la cantidad vendida del stock actual de los artículos.
     private void descontarStock(Boleta boleta) throws SQLException {
         for (DetalleBoleta detalle : boleta.getDetalles()) {
-            Producto prod = detalle.getProducto();
-
             // Filtro para aplicar actualización solo a Artículos
-            if (prod instanceof Articulo) {
-                Articulo art = (Articulo) prod;
+            if (detalle instanceof DetalleBoletaArticulo detalleArticulo) {
+                // Se relee el articulo de la BD: el DAO reescribe todos sus campos
+                // y sus categorias, asi que no se puede usar el que viene del frontend
+                Articulo art = articuloDAO.findById(detalleArticulo.getArticulo().getId());
 
                 // Cálculo de nuevo stock
                 int nuevoStock = art.getStockActual() - detalle.getCantidad();

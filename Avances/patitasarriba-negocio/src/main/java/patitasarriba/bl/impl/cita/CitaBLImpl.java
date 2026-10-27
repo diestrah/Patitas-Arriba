@@ -6,6 +6,7 @@ import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.cita.Cita;
+import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.cita.EstadoCita;
 
 import java.sql.SQLException;
@@ -90,11 +91,16 @@ public class CitaBLImpl implements CitaBL {
 
     private void validar(Cita cita) throws BLException {
         validarFecha(cita);
-        if (cita.getMascota() == null || cita.getVeterinario() == null) {
-            throw new BLException("La cita debe tener mascota y veterinario");
+        if (cita.getMascota() == null) {
+            throw new BLException("La cita debe tener una mascota");
         }
         if (cita.getDetalles() == null || cita.getDetalles().isEmpty()) {
             throw new BLException("La cita debe tener al menos un servicio");
+        }
+        for (DetalleCita detalle : cita.getDetalles()) {
+            if (detalle == null || detalle.getServicio() == null || detalle.getVeterinario() == null) {
+                throw new BLException("Cada servicio de la cita debe tener servicio y veterinario");
+            }
         }
     }
 
@@ -102,8 +108,8 @@ public class CitaBLImpl implements CitaBL {
         if (cita == null) {
             throw new BLException("La cita no puede ser nula");
         }
-        if (cita.getEstado() != EstadoCita.AGENDADA) {
-            throw new BLException("Toda cita nueva debe registrarse con estado AGENDADA");
+        if (cita.getEstado() != EstadoCita.PENDIENTE) {
+            throw new BLException("Toda cita nueva debe registrarse con estado PENDIENTE");
         }
     }
 
