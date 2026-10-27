@@ -1,0 +1,59 @@
+@page "/atenciones"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Atenciones</PageTitle>
+
+<h3 class="mb-3">Atenciones</h3>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Mascota o dueño:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Atenciones.Any()) {
+    <div class="alert alert-info">No hay atenciones registradas.</div>
+}
+else {
+    <QuickGrid Items="Atenciones" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Fecha" Property="a => a.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+        <PropertyColumn Title="Mascota" Property="a => a.NombreMascota" Sortable="true" />
+        <PropertyColumn Title="Dueño" Property="a => a.NombreCliente" />
+        <PropertyColumn Title="Servicio" Property="a => a.NombreServicio" />
+        <PropertyColumn Title="Veterinario" Property="a => a.NombreVeterinario" />
+        <PropertyColumn Title="Motivo" Property="a => a.MotivoConsulta" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarAtencion(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-outline-success btn-sm" @onclick="() => NuevaReceta(context.Id)">
+                Registrar receta
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<AtencionViewModel> Atenciones { get; set; } = Enumerable.Empty<AtencionViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    protected override void OnInitialized() {
+        Atenciones = DatosEjemplo.Atenciones().AsQueryable();
+    }
+
+    private void EditarAtencion(int id) {
+        Nav.NavigateTo($"/atenciones/editar/{id}");
+    }
+
+    private void NuevaReceta(int idAtencion) {
+        Nav.NavigateTo($"/recetas/nueva/{idAtencion}");
+    }
+}

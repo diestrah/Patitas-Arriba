@@ -1,0 +1,49 @@
+@page "/categorias"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Categorías</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Categorías de artículos</h3>
+    <button tabindex="1" class="btn btn-success" @onclick="() => NuevaCategoria()">
+        Nueva categoría
+    </button>
+</div>
+
+@if (!Categorias.Any()) {
+    <div class="alert alert-info">No hay categorías registradas.</div>
+}
+else {
+    <QuickGrid Items="Categorias" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Nombre" Property="c => c.Nombre" Sortable="true" />
+        <PropertyColumn Title="Descripción" Property="c => c.Descripcion" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarCategoria(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<CategoriaViewModel> Categorias { get; set; } = Enumerable.Empty<CategoriaViewModel>().AsQueryable();
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+
+    protected override void OnInitialized() {
+        Categorias = DatosEjemplo.Categorias().AsQueryable();
+    }
+
+    private void NuevaCategoria() {
+        Nav.NavigateTo("/categorias/nuevo");
+    }
+
+    private void EditarCategoria(int id) {
+        Nav.NavigateTo($"/categorias/editar/{id}");
+    }
+}

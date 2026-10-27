@@ -1,0 +1,66 @@
+@page "/cuentas-usuario/nuevo"
+@page "/cuentas-usuario/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Cuentas de usuario</PageTitle>
+
+<div class="col-md-7">
+    <h3 class="mb-3">@(Id == null ? "Nueva cuenta de usuario" : "Editar cuenta de usuario")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Nombre de usuario</label>
+            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.NombreUsuario" />
+            <ValidationMessage For="() => ViewModel.NombreUsuario" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Correo electrónico</label>
+            <InputText tabindex="2" type="email" class="form-control" @bind-Value="ViewModel.Correo" />
+            <ValidationMessage For="() => ViewModel.Correo" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">@(Id == null ? "Contraseña" : "Nueva contraseña")</label>
+            <InputText tabindex="3" type="password" class="form-control" @bind-Value="ViewModel.Password" />
+            <div class="form-text">
+                @(Id == null ? "Mínimo 8 caracteres." : "Déjela vacía para mantener la contraseña actual.")
+            </div>
+            <ValidationMessage For="() => ViewModel.Password" />
+        </div>
+        @if (Id != null) {
+            <div class="mb-3">
+                <label class="form-label">Pertenece a</label>
+                <input class="form-control" value="@($"{ViewModel.NombrePersona} ({TextoEnum.De(ViewModel.Rol)})")" disabled />
+            </div>
+        }
+
+        <button tabindex="5" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="6" class="btn btn-outline-secondary" href="cuentas-usuario">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CuentaUsuarioViewModel ViewModel { get; set; } = new();
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new CuentaUsuarioViewModel();
+            return;
+        }
+        CuentaUsuarioViewModel? cuenta = DatosEjemplo.CuentasUsuario().FirstOrDefault(c => c.Id == Id);
+        if (cuenta == null) {
+            Nav.NavigateTo("/cuentas-usuario");
+            return;
+        }
+        ViewModel = cuenta;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/cuentas-usuario");
+    }
+}

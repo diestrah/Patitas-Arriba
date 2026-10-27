@@ -1,0 +1,61 @@
+@page "/recetas/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Receta médica</PageTitle>
+
+<div class="d-flex gap-2 mb-3 no-print">
+    <a class="btn btn-outline-secondary" href="recetas">Volver</a>
+    <a class="btn btn-primary" href="@($"recetas/editar/{Id}")">Editar</a>
+    <button class="btn btn-success">Imprimir / exportar PDF</button>
+</div>
+
+@if (Receta == null) {
+    <div class="alert alert-warning">No se encontró la receta.</div>
+}
+else {
+    <div class="card col-lg-9">
+        <div class="card-body p-4">
+            <div class="d-flex justify-content-between border-bottom pb-3 mb-3">
+                <div>
+                    <h4 class="mb-0">Patas Arriba</h4>
+                    <p class="text-muted small mb-0">Clínica y estética veterinaria · Los Cedros Mz. A, San Miguel</p>
+                </div>
+                <div class="text-end">
+                    <h5 class="mb-0">RECETA MÉDICA</h5>
+                    <p class="mb-0">N.° @Receta.Id.ToString("D6")</p>
+                    <p class="small mb-0">Fecha: @(Receta.FechaEmision?.ToString("dd/MM/yyyy"))</p>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Paciente:</strong> @Receta.NombreMascota (@TextoEnum.De(Receta.TipoMascota))</p>
+                    <p class="mb-1"><strong>Propietario:</strong> @Receta.NombreCliente</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Diagnóstico:</strong> @Receta.Diagnostico</p>
+                </div>
+            </div>
+
+            <DetalleReceta Receta="Receta" />
+
+            <div class="mt-5 pt-4 text-center">
+                <div class="border-top d-inline-block px-5 pt-2">
+                    @Receta.NombreVeterinario<br />
+                    <span class="small text-muted">Médico veterinario · @Receta.NumeroColegiatura</span>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private RecetaViewModel? Receta { get; set; }
+
+    protected override void OnParametersSet() {
+        Receta = DatosEjemplo.Recetas().FirstOrDefault(r => r.Id == Id);
+    }
+}

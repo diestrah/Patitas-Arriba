@@ -1,0 +1,92 @@
+@* Lista editable de servicios de una cita: cada servicio con el veterinario que lo atiende.
+   Se usa en la reserva del cliente y en el registro de citas del administrador. *@
+
+<h5 class="mt-4">Servicios</h5>
+<div class="d-flex gap-2 mb-3">
+    <select class="form-select" @bind="IdServicioAgregar">
+        <option value="0">Seleccione un servicio</option>
+        @foreach (ServicioViewModel servicio in Servicios) {
+            <option value="@servicio.Id">@servicio.Nombre</option>
+        }
+    </select>
+    <select class="form-select" @bind="IdVeterinarioAgregar">
+        <option value="0">Seleccione un veterinario</option>
+        @foreach (VeterinarioViewModel veterinario in Veterinarios) {
+            <option value="@veterinario.Id">@veterinario.NombreCompleto</option>
+        }
+    </select>
+    <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarServicio()">
+        Agregar
+    </button>
+</div>
+
+@if (MensajeError != null) {
+    <div class="alert alert-warning">@MensajeError</div>
+}
+
+@if (Detalles.Count == 0) {
+    <div class="alert alert-info">Agregue al menos un servicio.</div>
+}
+else {
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Servicio</th>
+                <th>Veterinario</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (DetalleCitaViewModel detalle in Detalles) {
+                <tr>
+                    <td>@detalle.NombreServicio</td>
+                    <td>@detalle.NombreVeterinario</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarServicio(detalle)">
+                            Quitar
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public List<DetalleCitaViewModel> Detalles { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public List<ServicioViewModel> Servicios { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public List<VeterinarioViewModel> Veterinarios { get; set; } = default!;
+
+    private int IdServicioAgregar { get; set; }
+    private int IdVeterinarioAgregar { get; set; }
+    private string? MensajeError { get; set; }
+
+    private void AgregarServicio() {
+        ServicioViewModel? servicio = Servicios.Find(s => s.Id == IdServicioAgregar);
+        VeterinarioViewModel? veterinario = Veterinarios.Find(v => v.Id == IdVeterinarioAgregar);
+        if (servicio == null || veterinario == null) {
+            MensajeError = "Seleccione el servicio y el veterinario";
+            return;
+        }
+
+        Detalles.Add(new DetalleCitaViewModel {
+            IdServicio = servicio.Id,
+            NombreServicio = servicio.Nombre,
+            IdVeterinario = veterinario.Id,
+            NombreVeterinario = veterinario.NombreCompleto
+        });
+
+        MensajeError = null;
+        IdServicioAgregar = 0;
+        IdVeterinarioAgregar = 0;
+    }
+
+    private void QuitarServicio(DetalleCitaViewModel detalle) {
+        Detalles.Remove(detalle);
+    }
+}

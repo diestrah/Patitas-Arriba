@@ -1,0 +1,70 @@
+@page "/mis-citas"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Mis citas</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Mis citas</h3>
+    <button tabindex="1" class="btn btn-success" @onclick="() => NuevaReserva()">
+        Reservar cita
+    </button>
+</div>
+
+@if (!Citas.Any()) {
+    <div class="alert alert-info">Todavía no tiene citas reservadas.</div>
+}
+else {
+    <div class="row">
+        <div class="col-lg-7">
+            <QuickGrid Items="Citas" Pagination="Paginacion" Class="table table-striped table-hover">
+                <PropertyColumn Title="Fecha y hora" Property="c => c.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+                <PropertyColumn Title="Mascota" Property="c => c.NombreMascota" />
+                <PropertyColumn Title="Servicios" Property="c => c.TextoServicios" />
+                <TemplateColumn Title="Estado">
+                    <BadgeEstadoCita Estado="context.Estado" />
+                </TemplateColumn>
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarCita(context)">
+                        Ver
+                    </button>
+                </TemplateColumn>
+            </QuickGrid>
+            <Paginator State="Paginacion"></Paginator>
+        </div>
+        <div class="col-lg-5">
+            @if (CitaSeleccionada == null) {
+                <div class="alert alert-info">Seleccione una cita para ver su detalle.</div>
+            } else {
+                <DetalleCita Cita="CitaSeleccionada">
+                    <button class="btn btn-primary btn-sm" @onclick="() => ModificarReserva(CitaSeleccionada.Id)">Modificar</button>
+                    <button class="btn btn-outline-danger btn-sm">Cancelar reserva</button>
+                </DetalleCita>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    // Lab 9: se muestran las citas de un cliente de ejemplo (Ana Torres).
+    private IQueryable<CitaViewModel> Citas { get; set; } = Enumerable.Empty<CitaViewModel>().AsQueryable();
+    private CitaViewModel? CitaSeleccionada { get; set; }
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    protected override void OnInitialized() {
+        Citas = DatosEjemplo.CitasDeCliente(1).AsQueryable();
+    }
+
+    private void SeleccionarCita(CitaViewModel cita) {
+        CitaSeleccionada = cita;
+    }
+
+    private void NuevaReserva() {
+        Nav.NavigateTo("/mis-citas/nueva");
+    }
+
+    private void ModificarReserva(int id) {
+        Nav.NavigateTo($"/mis-citas/editar/{id}");
+    }
+}

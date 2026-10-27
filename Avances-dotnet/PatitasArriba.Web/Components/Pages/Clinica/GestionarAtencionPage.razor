@@ -1,0 +1,103 @@
+@page "/atenciones/registrar/{IdDetalleCita:int}"
+@page "/atenciones/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Atención</PageTitle>
+
+<h3 class="mb-3">@(Id == null ? "Registrar atención" : "Editar atención")</h3>
+
+@* Datos del servicio de la cita que se está atendiendo *@
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3"><span class="text-muted small d-block">Mascota</span><strong>@ViewModel.NombreMascota</strong></div>
+            <div class="col-md-3"><span class="text-muted small d-block">Dueño</span>@ViewModel.NombreCliente</div>
+            <div class="col-md-3"><span class="text-muted small d-block">Servicio</span>@ViewModel.NombreServicio</div>
+            <div class="col-md-3"><span class="text-muted small d-block">Veterinario</span>@ViewModel.NombreVeterinario</div>
+        </div>
+    </div>
+</div>
+
+<EditForm Model="ViewModel" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label class="form-label">Fecha y hora de la atención</label>
+            <InputDate tabindex="1" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+            <ValidationMessage For="() => ViewModel.FechaHora" />
+        </div>
+        <div class="col-md-8 mb-3">
+            <label class="form-label">Motivo de consulta</label>
+            <InputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
+            <ValidationMessage For="() => ViewModel.MotivoConsulta" />
+        </div>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Observaciones</label>
+        <InputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Observaciones" />
+        <ValidationMessage For="() => ViewModel.Observaciones" />
+    </div>
+
+    <h5 class="mt-4">Diagnósticos</h5>
+    <TablaDiagnosticos Diagnosticos="ViewModel.Diagnosticos" Catalogo="Diagnosticos" />
+
+    <h5 class="mt-4">Insumos utilizados</h5>
+    <TablaInsumos Insumos="ViewModel.Insumos" Articulos="Articulos" />
+
+    <div class="mt-4">
+        <button tabindex="4" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="5" class="btn btn-outline-secondary" href="atenciones">Cancelar</a>
+    </div>
+</EditForm>
+
+@code {
+    // Registrar: viene el servicio de la cita (detalle_cita) desde la agenda
+    [Parameter]
+    public int? IdDetalleCita { get; set; }
+
+    // Editar: viene la atención ya registrada
+    [Parameter]
+    public int? Id { get; set; }
+
+    private AtencionViewModel ViewModel { get; set; } = new();
+    private List<DiagnosticoViewModel> Diagnosticos { get; set; } = [];
+    private List<ArticuloViewModel> Articulos { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Diagnosticos = DatosEjemplo.Diagnosticos();
+        Articulos = DatosEjemplo.Articulos();
+    }
+
+    protected override void OnParametersSet() {
+        if (Id != null) {
+            AtencionViewModel? atencion = DatosEjemplo.Atenciones().FirstOrDefault(a => a.Id == Id);
+            if (atencion == null) {
+                Nav.NavigateTo("/atenciones");
+                return;
+            }
+            ViewModel = atencion;
+            return;
+        }
+
+        ItemAgendaViewModel? item = DatosEjemplo.AgendaDeHoy().FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
+        if (item == null) {
+            Nav.NavigateTo("/mi-agenda");
+            return;
+        }
+        ViewModel = new AtencionViewModel {
+            IdDetalleCita = item.IdDetalleCita,
+            IdMascota = item.IdMascota,
+            NombreMascota = item.NombreMascota,
+            NombreCliente = item.NombreCliente,
+            NombreServicio = item.NombreServicio,
+            NombreVeterinario = item.NombreVeterinario,
+            FechaHora = DateTime.Now
+        };
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/atenciones");
+    }
+}

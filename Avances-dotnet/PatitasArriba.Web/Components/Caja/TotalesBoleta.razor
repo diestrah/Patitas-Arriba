@@ -1,0 +1,27 @@
+<table class="table table-sm w-auto ms-auto mb-0">
+    <tbody>
+        <tr>
+            <td>Servicios</td>
+            <td class="text-end">S/ @TotalServicios.ToString("N2")</td>
+        </tr>
+        <tr>
+            <td>Insumos y artículos</td>
+            <td class="text-end">S/ @TotalArticulos.ToString("N2")</td>
+        </tr>
+        <tr class="fw-bold">
+            <td>Total a pagar</td>
+            <td class="text-end">S/ @Total.ToString("N2")</td>
+        </tr>
+    </tbody>
+</table>
+
+@code {
+    [Parameter]
+    public double TotalServicios { get; set; }
+
+    [Parameter]
+    public double TotalArticulos { get; set; }
+
+    [Parameter]
+    public double Total { get; set; }
+}

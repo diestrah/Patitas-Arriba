@@ -1,0 +1,59 @@
+@page "/veterinarios"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Veterinarios</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Veterinarios</h3>
+    <button tabindex="4" class="btn btn-success" @onclick="() => NuevoVeterinario()">
+        Nuevo veterinario
+    </button>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">DNI, nombre o colegiatura:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el texto a buscar..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Veterinarios.Any()) {
+    <div class="alert alert-info">No hay veterinarios registrados.</div>
+}
+else {
+    <QuickGrid Items="Veterinarios" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="DNI" Property="v => v.Dni" Sortable="true" />
+        <PropertyColumn Title="Nombre completo" Property="v => v.NombreCompleto" Sortable="true" />
+        <PropertyColumn Title="Colegiatura" Property="v => v.NumeroColegiatura" />
+        <PropertyColumn Title="Teléfono" Property="v => v.Telefono" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarVeterinario(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<VeterinarioViewModel> Veterinarios { get; set; } = Enumerable.Empty<VeterinarioViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    protected override void OnInitialized() {
+        Veterinarios = DatosEjemplo.Veterinarios().AsQueryable();
+    }
+
+    private void NuevoVeterinario() {
+        Nav.NavigateTo("/veterinarios/nuevo");
+    }
+
+    private void EditarVeterinario(int id) {
+        Nav.NavigateTo($"/veterinarios/editar/{id}");
+    }
+}

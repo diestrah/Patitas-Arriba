@@ -1,0 +1,84 @@
+@page "/administradores/nuevo"
+@page "/administradores/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Administradores</PageTitle>
+
+<div class="col-md-7">
+    <h3 class="mb-3">@(Id == null ? "Nuevo administrador" : "Editar administrador")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Cuenta de usuario</label>
+            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCuenta">
+                <option value="0">Seleccione una cuenta</option>
+                @foreach (CuentaUsuarioViewModel cuenta in Cuentas) {
+                    <option value="@cuenta.Id">@cuenta.NombreUsuario (@cuenta.Correo)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => ViewModel.IdCuenta" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">DNI</label>
+            <InputText tabindex="3" class="form-control" maxlength="8" @bind-Value="ViewModel.Dni" />
+            <ValidationMessage For="() => ViewModel.Dni" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nombres</label>
+            <InputText tabindex="4" class="form-control" @bind-Value="ViewModel.Nombres" />
+            <ValidationMessage For="() => ViewModel.Nombres" />
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Apellido paterno</label>
+                <InputText tabindex="5" class="form-control" @bind-Value="ViewModel.ApellidoPaterno" />
+                <ValidationMessage For="() => ViewModel.ApellidoPaterno" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Apellido materno</label>
+                <InputText tabindex="6" class="form-control" @bind-Value="ViewModel.ApellidoMaterno" />
+                <ValidationMessage For="() => ViewModel.ApellidoMaterno" />
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Teléfono</label>
+            <InputText tabindex="7" class="form-control" maxlength="9" @bind-Value="ViewModel.Telefono" />
+            <ValidationMessage For="() => ViewModel.Telefono" />
+        </div>
+
+        <button tabindex="9" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="10" class="btn btn-outline-secondary" href="administradores">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private AdministradorViewModel ViewModel { get; set; } = new();
+    private List<CuentaUsuarioViewModel> Cuentas { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Cuentas = DatosEjemplo.CuentasUsuario().Where(c => c.Rol == RolUsuario.ADMINISTRADOR).ToList();
+    }
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new AdministradorViewModel();
+            return;
+        }
+        AdministradorViewModel? administrador = DatosEjemplo.Administradores().FirstOrDefault(a => a.Id == Id);
+        if (administrador == null) {
+            Nav.NavigateTo("/administradores");
+            return;
+        }
+        ViewModel = administrador;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/administradores");
+    }
+}

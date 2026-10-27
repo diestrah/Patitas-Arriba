@@ -1,0 +1,99 @@
+@page "/mascotas/nuevo"
+@page "/mascotas/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Mascotas</PageTitle>
+
+<div class="col-md-7">
+    <h3 class="mb-3">@(Id == null ? "Nueva mascota" : "Editar mascota")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Dueño</label>
+            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
+                <option value="0">Seleccione el dueño</option>
+                @foreach (ClienteViewModel cliente in Clientes) {
+                    <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => ViewModel.IdCliente" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <InputText tabindex="2" class="form-control" @bind-Value="ViewModel.Nombre" />
+            <ValidationMessage For="() => ViewModel.Nombre" />
+        </div>
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Tipo</label>
+                <InputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.TipoMascota">
+                    @foreach (TipoMascota tipo in Tipos) {
+                        <option value="@tipo">@TextoEnum.De(tipo)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Raza</label>
+                <InputText tabindex="4" class="form-control" @bind-Value="ViewModel.Raza" />
+                <ValidationMessage For="() => ViewModel.Raza" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Sexo</label>
+                <InputSelect tabindex="5" class="form-select" @bind-Value="ViewModel.Sexo">
+                    @foreach (SexoMascota sexo in Sexos) {
+                        <option value="@sexo">@TextoEnum.De(sexo)</option>
+                    }
+                </InputSelect>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Peso (kg)</label>
+                <InputNumber tabindex="6" class="form-control" @bind-Value="ViewModel.Peso" />
+                <ValidationMessage For="() => ViewModel.Peso" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Fecha de nacimiento</label>
+                <InputDate tabindex="7" class="form-control" @bind-Value="ViewModel.FechaNacimiento" />
+                <ValidationMessage For="() => ViewModel.FechaNacimiento" />
+            </div>
+        </div>
+
+        <button tabindex="9" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="10" class="btn btn-outline-secondary" href="mascotas">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MascotaViewModel ViewModel { get; set; } = new();
+    private List<ClienteViewModel> Clientes { get; set; } = [];
+    private TipoMascota[] Tipos { get; } = Enum.GetValues<TipoMascota>();
+    private SexoMascota[] Sexos { get; } = Enum.GetValues<SexoMascota>();
+
+    protected override void OnInitialized() {
+        Clientes = DatosEjemplo.Clientes();
+    }
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new MascotaViewModel();
+            return;
+        }
+        MascotaViewModel? mascota = DatosEjemplo.Mascotas().FirstOrDefault(m => m.Id == Id);
+        if (mascota == null) {
+            Nav.NavigateTo("/mascotas");
+            return;
+        }
+        ViewModel = mascota;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/mascotas");
+    }
+}

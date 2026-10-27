@@ -1,0 +1,82 @@
+@page "/citas"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Gestión de citas</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Gestión de citas</h3>
+    <button tabindex="3" class="btn btn-success" @onclick="() => NuevaCita()">
+        Registrar cita
+    </button>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Fecha:</label>
+    <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+</div>
+
+@if (!Citas.Any()) {
+    <div class="alert alert-info">No hay citas registradas.</div>
+}
+else {
+    <div class="row">
+        <div class="col-lg-7">
+            <QuickGrid Items="Citas" Pagination="Paginacion" Class="table table-striped table-hover">
+                <PropertyColumn Title="N.°" Property="c => c.Id" Sortable="true" />
+                <PropertyColumn Title="Fecha y hora" Property="c => c.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+                <PropertyColumn Title="Mascota" Property="c => c.NombreMascota" />
+                <PropertyColumn Title="Cliente" Property="c => c.NombreCliente" />
+                <TemplateColumn Title="Estado">
+                    <BadgeEstadoCita Estado="context.Estado" />
+                </TemplateColumn>
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarCita(context)">
+                        Ver
+                    </button>
+                    <button class="btn btn-primary btn-sm" @onclick="() => EditarCita(context.Id)">
+                        Editar
+                    </button>
+                </TemplateColumn>
+            </QuickGrid>
+            <Paginator State="Paginacion"></Paginator>
+        </div>
+        <div class="col-lg-5">
+            @if (CitaSeleccionada == null) {
+                <div class="alert alert-info">Seleccione una cita para ver su detalle.</div>
+            } else {
+                <DetalleCita Cita="CitaSeleccionada">
+                    <button class="btn btn-success btn-sm">Aprobar</button>
+                    <button class="btn btn-outline-danger btn-sm">Rechazar</button>
+                    <button class="btn btn-outline-secondary btn-sm">Cancelar cita</button>
+                </DetalleCita>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private IQueryable<CitaViewModel> Citas { get; set; } = Enumerable.Empty<CitaViewModel>().AsQueryable();
+    private CitaViewModel? CitaSeleccionada { get; set; }
+    private DateTime FechaFiltro { get; set; } = DateTime.Today;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    protected override void OnInitialized() {
+        Citas = DatosEjemplo.Citas().AsQueryable();
+    }
+
+    // Maestro-detalle: al hacer clic en "Ver" se muestra el detalle de la cita a la derecha
+    private void SeleccionarCita(CitaViewModel cita) {
+        CitaSeleccionada = cita;
+    }
+
+    private void NuevaCita() {
+        Nav.NavigateTo("/citas/nueva");
+    }
+
+    private void EditarCita(int id) {
+        Nav.NavigateTo($"/citas/editar/{id}");
+    }
+}

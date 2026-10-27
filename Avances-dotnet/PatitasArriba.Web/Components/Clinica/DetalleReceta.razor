@@ -1,0 +1,34 @@
+@* Medicamentos e indicaciones de una receta (solo lectura).
+   Se usa en la receta para imprimir y en el historial clínico. *@
+
+<table class="table table-sm table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>Medicamento</th>
+            <th>Dosis</th>
+            <th>Frecuencia</th>
+            <th class="text-end">Duración</th>
+            <th class="text-end">Cantidad</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (DetalleRecetaViewModel medicamento in Receta.Medicamentos) {
+            <tr>
+                <td>@medicamento.NombreArticulo</td>
+                <td>@medicamento.Dosis</td>
+                <td>@medicamento.Frecuencia</td>
+                <td class="text-end">@medicamento.DuracionDias días</td>
+                <td class="text-end">@medicamento.CantidadTotal</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!string.IsNullOrWhiteSpace(Receta.IndicacionesGenerales)) {
+    <p class="mb-0"><strong>Indicaciones:</strong> @Receta.IndicacionesGenerales</p>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public RecetaViewModel Receta { get; set; } = default!;
+}

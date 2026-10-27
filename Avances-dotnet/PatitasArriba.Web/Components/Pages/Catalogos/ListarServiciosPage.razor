@@ -1,0 +1,67 @@
+@page "/servicios"
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Servicios</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Catálogo de servicios</h3>
+    @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
+    @if (Sesion.EsAdministrador) {
+        <button tabindex="5" class="btn btn-success" @onclick="() => NuevoServicio()">
+            Nuevo servicio
+        </button>
+    }
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Nombre:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre..." @bind="Filtro" />
+    <button tabindex="3" class="btn btn-primary">Filtrar</button>
+    <button tabindex="4" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Servicios.Any()) {
+    <div class="alert alert-info">No hay servicios registrados.</div>
+}
+else {
+    <QuickGrid Items="Servicios" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Nombre" Property="s => s.Nombre" Sortable="true" />
+        <PropertyColumn Title="Tipo" Property="s => TextoEnum.De(s.TipoServicio)" />
+        <PropertyColumn Title="Descripción" Property="s => s.Descripcion" />
+        <PropertyColumn Title="Duración (min)" Property="s => s.DuracionEstimada" Align="Align.Right" />
+        <PropertyColumn Title="Precio (S/)" Property="s => s.PrecioBase" Format="N2"
+                        Sortable="true" Align="Align.Right" />
+        @if (Sesion.EsAdministrador) {
+            <TemplateColumn Title="Acciones">
+                <button class="btn btn-primary btn-sm" @onclick="() => EditarServicio(context.Id)">
+                    Editar
+                </button>
+                <button class="btn btn-danger btn-sm">
+                    Eliminar
+                </button>
+            </TemplateColumn>
+        }
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<ServicioViewModel> Servicios { get; set; } = Enumerable.Empty<ServicioViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 7 };
+
+    protected override void OnInitialized() {
+        Servicios = DatosEjemplo.Servicios().AsQueryable();
+    }
+
+    private void NuevoServicio() {
+        Nav.NavigateTo("/servicios/nuevo");
+    }
+
+    private void EditarServicio(int id) {
+        Nav.NavigateTo($"/servicios/editar/{id}");
+    }
+}

@@ -1,0 +1,79 @@
+@page "/boletas"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Boletas</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Boletas de venta</h3>
+    <button tabindex="4" class="btn btn-success" @onclick="() => NuevaBoleta()">
+        Nueva boleta
+    </button>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Cliente o N.° de boleta:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el cliente o la serie-correlativo..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Boletas.Any()) {
+    <div class="alert alert-info">No hay boletas registradas.</div>
+}
+else {
+    <div class="row">
+        <div class="col-lg-7">
+            <QuickGrid Items="Boletas" Pagination="Paginacion" Class="table table-striped table-hover">
+                <PropertyColumn Title="N.° boleta" Property="b => b.SerieCorrelativo" Sortable="true" />
+                <PropertyColumn Title="Fecha" Property="b => b.Fecha" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+                <PropertyColumn Title="Cliente" Property="b => b.NombreCliente" />
+                <PropertyColumn Title="Total (S/)" Property="b => b.Total" Format="N2" Align="Align.Right" />
+                <TemplateColumn Title="Estado">
+                    @if (context.IsActivo) {
+                        <span class="badge text-bg-success">Emitida</span>
+                    } else {
+                        <span class="badge text-bg-danger">Anulada</span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarBoleta(context)">
+                        Ver
+                    </button>
+                </TemplateColumn>
+            </QuickGrid>
+            <Paginator State="Paginacion"></Paginator>
+        </div>
+        <div class="col-lg-5">
+            @if (BoletaSeleccionada == null) {
+                <div class="alert alert-info">Seleccione una boleta para ver su detalle.</div>
+            } else {
+                <DetalleBoleta Boleta="BoletaSeleccionada">
+                    <button class="btn btn-success btn-sm">Imprimir</button>
+                    <button class="btn btn-outline-danger btn-sm">Anular boleta</button>
+                </DetalleBoleta>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private IQueryable<BoletaViewModel> Boletas { get; set; } = Enumerable.Empty<BoletaViewModel>().AsQueryable();
+    private BoletaViewModel? BoletaSeleccionada { get; set; }
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    protected override void OnInitialized() {
+        Boletas = DatosEjemplo.Boletas().AsQueryable();
+    }
+
+    // Maestro-detalle: al hacer clic en "Ver" se muestra la boleta a la derecha
+    private void SeleccionarBoleta(BoletaViewModel boleta) {
+        BoletaSeleccionada = boleta;
+    }
+
+    private void NuevaBoleta() {
+        Nav.NavigateTo("/boletas/nueva");
+    }
+}

@@ -1,0 +1,41 @@
+<div class="card">
+    <div class="card-header fw-bold">
+        @Cliente.NombreCompleto
+    </div>
+    <div class="card-body">
+        <p class="small mb-3">
+            DNI: @Cliente.Dni · Teléfono: @Cliente.Telefono
+        </p>
+
+        <h6 class="mb-2">Mascotas (@Mascotas.Count)</h6>
+
+        @if (Mascotas.Count == 0) {
+            <div class="alert alert-info mb-0">El cliente no tiene mascotas registradas.</div>
+        }
+        else {
+            <div class="row g-2">
+                @foreach (MascotaViewModel mascota in Mascotas) {
+                    <div class="col-12">
+                        <TarjetaMascota Mascota="mascota">
+                            @if (PermitirEditar) {
+                                <a class="btn btn-primary btn-sm" href="@($"mascotas/editar/{mascota.Id}")">Editar</a>
+                            }
+                            <a class="btn btn-outline-secondary btn-sm" href="@($"reportes/historial-clinico/{mascota.Id}")">Historial clínico</a>
+                        </TarjetaMascota>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClienteViewModel Cliente { get; set; } = default!;
+
+    [Parameter, EditorRequired]
+    public List<MascotaViewModel> Mascotas { get; set; } = default!;
+
+    [Parameter]
+    public bool PermitirEditar { get; set; }
+}

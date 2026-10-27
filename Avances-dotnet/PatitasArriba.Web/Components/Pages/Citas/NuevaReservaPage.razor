@@ -1,0 +1,79 @@
+@page "/mis-citas/nueva"
+@page "/mis-citas/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Reservar cita</PageTitle>
+
+<div class="col-lg-9">
+    <h3 class="mb-3">@(Id == null ? "Reservar cita" : "Modificar reserva")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row align-items-end">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Mascota</label>
+                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdMascota">
+                    <option value="0">Seleccione su mascota</option>
+                    @foreach (MascotaViewModel mascota in Mascotas) {
+                        <option value="@mascota.Id">@mascota.Nombre</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => ViewModel.IdMascota" />
+            </div>
+            <div class="col-md-5 mb-3">
+                <label class="form-label">Fecha y hora</label>
+                <InputDate tabindex="2" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+                <ValidationMessage For="() => ViewModel.FechaHora" />
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="form-check">
+                    <InputCheckbox tabindex="3" id="reserva-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" />
+                    <label class="form-check-label" for="reserva-emergencia">Es una emergencia</label>
+                </div>
+            </div>
+        </div>
+
+        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" />
+
+        <button tabindex="4" type="submit" class="btn btn-primary">@(Id == null ? "Reservar" : "Guardar cambios")</button>
+        <a tabindex="5" class="btn btn-outline-secondary" href="mis-citas">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CitaViewModel ViewModel { get; set; } = new();
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
+
+    // Lab 9: cliente de ejemplo (Ana Torres)
+    private const int IdClienteEjemplo = 1;
+
+    protected override void OnInitialized() {
+        Mascotas = DatosEjemplo.MascotasDeCliente(IdClienteEjemplo);
+        Servicios = DatosEjemplo.Servicios();
+        Veterinarios = DatosEjemplo.Veterinarios();
+    }
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new CitaViewModel { IdCliente = IdClienteEjemplo };
+            return;
+        }
+        CitaViewModel? cita = DatosEjemplo.CitasDeCliente(IdClienteEjemplo).FirstOrDefault(c => c.Id == Id);
+        if (cita == null) {
+            Nav.NavigateTo("/mis-citas");
+            return;
+        }
+        ViewModel = cita;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/mis-citas");
+    }
+}

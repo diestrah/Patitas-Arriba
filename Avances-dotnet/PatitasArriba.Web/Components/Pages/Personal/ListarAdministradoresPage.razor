@@ -1,0 +1,58 @@
+@page "/administradores"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Administradores</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Administradores</h3>
+    <button tabindex="4" class="btn btn-success" @onclick="() => NuevoAdministrador()">
+        Nuevo administrador
+    </button>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">DNI o nombre:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Administradores.Any()) {
+    <div class="alert alert-info">No hay administradores registrados.</div>
+}
+else {
+    <QuickGrid Items="Administradores" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="DNI" Property="a => a.Dni" Sortable="true" />
+        <PropertyColumn Title="Nombre completo" Property="a => a.NombreCompleto" Sortable="true" />
+        <PropertyColumn Title="Teléfono" Property="a => a.Telefono" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarAdministrador(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<AdministradorViewModel> Administradores { get; set; } = Enumerable.Empty<AdministradorViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    protected override void OnInitialized() {
+        Administradores = DatosEjemplo.Administradores().AsQueryable();
+    }
+
+    private void NuevoAdministrador() {
+        Nav.NavigateTo("/administradores/nuevo");
+    }
+
+    private void EditarAdministrador(int id) {
+        Nav.NavigateTo($"/administradores/editar/{id}");
+    }
+}

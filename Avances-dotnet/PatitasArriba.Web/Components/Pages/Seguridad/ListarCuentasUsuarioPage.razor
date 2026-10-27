@@ -1,0 +1,59 @@
+@page "/cuentas-usuario"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Cuentas de usuario</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Cuentas de usuario</h3>
+    <button tabindex="5" class="btn btn-success" @onclick="() => NuevaCuenta()">
+        Nueva cuenta
+    </button>
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Usuario o correo:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el usuario o el correo..." @bind="Filtro" />
+    <button tabindex="3" class="btn btn-primary">Filtrar</button>
+    <button tabindex="4" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Cuentas.Any()) {
+    <div class="alert alert-info">No hay cuentas registradas.</div>
+}
+else {
+    <QuickGrid Items="Cuentas" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Usuario" Property="c => c.NombreUsuario" Sortable="true" />
+        <PropertyColumn Title="Correo" Property="c => c.Correo" />
+        <PropertyColumn Title="Rol" Property="c => TextoEnum.De(c.Rol)" />
+        <PropertyColumn Title="Pertenece a" Property="c => c.NombrePersona" Sortable="true" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarCuenta(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<CuentaUsuarioViewModel> Cuentas { get; set; } = Enumerable.Empty<CuentaUsuarioViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+
+    protected override void OnInitialized() {
+        Cuentas = DatosEjemplo.CuentasUsuario().AsQueryable();
+    }
+
+    private void NuevaCuenta() {
+        Nav.NavigateTo("/cuentas-usuario/nuevo");
+    }
+
+    private void EditarCuenta(int id) {
+        Nav.NavigateTo($"/cuentas-usuario/editar/{id}");
+    }
+}

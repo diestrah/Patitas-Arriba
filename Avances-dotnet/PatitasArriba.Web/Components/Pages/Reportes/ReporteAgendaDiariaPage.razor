@@ -1,0 +1,54 @@
+@page "/reportes/agenda-diaria"
+
+<PageTitle>Reporte de agenda diaria</PageTitle>
+
+<h3 class="mb-3">Reporte de agenda diaria</h3>
+
+<div class="d-flex align-items-center gap-2 mb-3 no-print">
+    <label class="text-nowrap">Fecha:</label>
+    <input tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" />
+    <button tabindex="2" class="btn btn-primary">Generar</button>
+    <button tabindex="3" class="btn btn-success">Exportar PDF</button>
+</div>
+
+<div class="card">
+    <div class="card-header fw-bold">Citas pendientes del día · @Fecha.ToString("dd/MM/yyyy")</div>
+    <div class="card-body">
+        <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th>Hora</th>
+                    <th>Mascota</th>
+                    <th>Dueño</th>
+                    <th>Servicio</th>
+                    <th>Veterinario</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (ItemAgendaViewModel item in Agenda) {
+                    <tr>
+                        <td>@item.FechaHora.ToString("HH:mm")</td>
+                        <td>
+                            @item.NombreMascota
+                            @if (item.EsEmergencia) {
+                                <span class="badge text-bg-danger ms-1">Emergencia</span>
+                            }
+                        </td>
+                        <td>@item.NombreCliente</td>
+                        <td>@item.NombreServicio</td>
+                        <td>@item.NombreVeterinario</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@code {
+    private DateTime Fecha { get; set; } = DateTime.Today;
+    private List<ItemAgendaViewModel> Agenda { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Agenda = DatosEjemplo.AgendaDeHoy();
+    }
+}

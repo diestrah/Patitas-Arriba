@@ -1,0 +1,50 @@
+@page "/horarios"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Horarios de atención</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Horarios de atención</h3>
+    <button tabindex="3" class="btn btn-success" @onclick="() => NuevoHorario()">
+        Nuevo horario
+    </button>
+</div>
+
+@if (!Horarios.Any()) {
+    <div class="alert alert-info">No hay horarios registrados.</div>
+}
+else {
+    <QuickGrid Items="Horarios" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Día" Property="h => TextoEnum.De(h.DiaSemana)" />
+        <PropertyColumn Title="Horario" Property="h => h.Rango" />
+        <PropertyColumn Title="Personal asignado" Property="h => h.PersonalAsignado" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarHorario(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<HorarioViewModel> Horarios { get; set; } = Enumerable.Empty<HorarioViewModel>().AsQueryable();
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 7 };
+
+    protected override void OnInitialized() {
+        Horarios = DatosEjemplo.Horarios().AsQueryable();
+    }
+
+    private void NuevoHorario() {
+        Nav.NavigateTo("/horarios/nuevo");
+    }
+
+    private void EditarHorario(int id) {
+        Nav.NavigateTo($"/horarios/editar/{id}");
+    }
+}

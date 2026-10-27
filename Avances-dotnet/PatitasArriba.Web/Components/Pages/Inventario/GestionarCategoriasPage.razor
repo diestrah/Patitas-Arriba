@@ -1,0 +1,52 @@
+@page "/categorias/nuevo"
+@page "/categorias/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Categorías</PageTitle>
+
+<div class="col-md-7">
+    <h3 class="mb-3">@(Id == null ? "Nueva categoría" : "Editar categoría")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
+            <ValidationMessage For="() => ViewModel.Nombre" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Descripción</label>
+            <InputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
+            <ValidationMessage For="() => ViewModel.Descripcion" />
+        </div>
+
+        <button tabindex="4" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="5" class="btn btn-outline-secondary" href="categorias">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CategoriaViewModel ViewModel { get; set; } = new();
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new CategoriaViewModel();
+            return;
+        }
+        CategoriaViewModel? categoria = DatosEjemplo.Categorias().FirstOrDefault(c => c.Id == Id);
+        if (categoria == null) {
+            Nav.NavigateTo("/categorias");
+            return;
+        }
+        ViewModel = categoria;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/categorias");
+    }
+}

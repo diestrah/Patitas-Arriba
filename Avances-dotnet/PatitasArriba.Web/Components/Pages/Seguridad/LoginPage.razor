@@ -1,0 +1,45 @@
+@page "/login"
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+
+<PageTitle>Iniciar sesión</PageTitle>
+
+<div class="col-md-4 mx-auto">
+    <h3 class="mb-3">Iniciar sesión</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Ingresar">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label class="form-label">Usuario</label>
+            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.NombreUsuario" />
+            <ValidationMessage For="() => ViewModel.NombreUsuario" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Contraseña</label>
+            <InputText tabindex="2" type="password" class="form-control" @bind-Value="ViewModel.Password" />
+            <ValidationMessage For="() => ViewModel.Password" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Ingresar como</label>
+            <InputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.Perfil">
+                @foreach (RolUsuario rol in Roles) {
+                    <option value="@rol">@TextoEnum.De(rol)</option>
+                }
+            </InputSelect>
+            <div class="form-text">Solo para el Lab 9: simula el rol de la cuenta.</div>
+        </div>
+        <button tabindex="4" type="submit" class="btn btn-primary w-100">Ingresar</button>
+    </EditForm>
+</div>
+
+@code {
+    private LoginViewModel ViewModel { get; set; } = new();
+    private RolUsuario[] Roles { get; } = Enum.GetValues<RolUsuario>();
+
+    // Lab 9: no se valida la cuenta contra el backend, solo se simula el rol elegido
+    private void Ingresar() {
+        Sesion.IniciarSesion(ViewModel.Perfil);
+        Nav.NavigateTo("/");
+    }
+}

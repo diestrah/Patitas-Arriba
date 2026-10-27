@@ -1,0 +1,102 @@
+@* Diagnósticos de una atención con su nivel de gravedad.
+   Editable al registrar la atención y de solo lectura en el historial clínico. *@
+
+@if (!SoloLectura) {
+    <div class="d-flex gap-2 mb-3">
+        <select class="form-select" @bind="IdDiagnosticoAgregar">
+            <option value="0">Seleccione un diagnóstico</option>
+            @foreach (DiagnosticoViewModel diagnostico in Catalogo) {
+                <option value="@diagnostico.Id">@diagnostico.NombreEnfermedad</option>
+            }
+        </select>
+        <select class="form-select w-auto" @bind="NivelAgregar">
+            @foreach (NivelGravedad nivel in Niveles) {
+                <option value="@nivel">@TextoEnum.De(nivel)</option>
+            }
+        </select>
+        <input class="form-control" placeholder="Detalle (opcional)" @bind="DetalleAgregar" />
+        <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarDiagnostico()">
+            Agregar
+        </button>
+    </div>
+}
+
+@if (Diagnosticos.Count == 0) {
+    <p class="text-muted small">Sin diagnósticos registrados.</p>
+}
+else {
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Diagnóstico</th>
+                <th>Gravedad</th>
+                <th>Detalle</th>
+                @if (!SoloLectura) {
+                    <th></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (AtencionDiagnosticoViewModel diagnostico in Diagnosticos) {
+                <tr>
+                    <td>@diagnostico.NombreEnfermedad</td>
+                    <td><span class="badge @ClaseGravedad(diagnostico.NivelGravedad)">@TextoEnum.De(diagnostico.NivelGravedad)</span></td>
+                    <td>@diagnostico.DetalleDiagnostico</td>
+                    @if (!SoloLectura) {
+                        <td class="text-end">
+                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarDiagnostico(diagnostico)">
+                                Quitar
+                            </button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public List<AtencionDiagnosticoViewModel> Diagnosticos { get; set; } = default!;
+
+    [Parameter]
+    public List<DiagnosticoViewModel> Catalogo { get; set; } = [];
+
+    [Parameter]
+    public bool SoloLectura { get; set; }
+
+    private NivelGravedad[] Niveles { get; } = Enum.GetValues<NivelGravedad>();
+    private int IdDiagnosticoAgregar { get; set; }
+    private NivelGravedad NivelAgregar { get; set; } = NivelGravedad.LEVE;
+    private string? DetalleAgregar { get; set; }
+
+    private string ClaseGravedad(NivelGravedad nivel) {
+        return nivel switch {
+            NivelGravedad.LEVE => "text-bg-success",
+            NivelGravedad.MODERADO => "text-bg-warning",
+            NivelGravedad.GRAVE => "text-bg-danger",
+            NivelGravedad.CRITICO => "text-bg-dark",
+            _ => "text-bg-light"
+        };
+    }
+
+    private void AgregarDiagnostico() {
+        DiagnosticoViewModel? diagnostico = Catalogo.Find(d => d.Id == IdDiagnosticoAgregar);
+        if (diagnostico == null) {
+            return;
+        }
+        Diagnosticos.Add(new AtencionDiagnosticoViewModel {
+            IdDiagnostico = diagnostico.Id,
+            NombreEnfermedad = diagnostico.NombreEnfermedad,
+            NivelGravedad = NivelAgregar,
+            DetalleDiagnostico = DetalleAgregar
+        });
+        IdDiagnosticoAgregar = 0;
+        NivelAgregar = NivelGravedad.LEVE;
+        DetalleAgregar = null;
+    }
+
+    private void QuitarDiagnostico(AtencionDiagnosticoViewModel diagnostico) {
+        Diagnosticos.Remove(diagnostico);
+    }
+}

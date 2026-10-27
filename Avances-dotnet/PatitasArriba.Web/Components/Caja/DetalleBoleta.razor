@@ -1,0 +1,51 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Boleta @Boleta.SerieCorrelativo</span>
+        @if (Boleta.IsActivo) {
+            <span class="badge text-bg-success">Emitida</span>
+        } else {
+            <span class="badge text-bg-danger">Anulada</span>
+        }
+    </div>
+    <div class="card-body">
+        <ul class="list-unstyled small mb-3">
+            <li><strong>Cliente:</strong> @Boleta.NombreCliente (DNI @Boleta.DniCliente)</li>
+            <li><strong>Fecha:</strong> @Boleta.Fecha.ToString("dd/MM/yyyy HH:mm")</li>
+            <li><strong>Método de pago:</strong> @TextoEnum.De(Boleta.MetodoPago)</li>
+        </ul>
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Concepto</th>
+                    <th class="text-end">Cant.</th>
+                    <th class="text-end">P. unit.</th>
+                    <th class="text-end">Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (LineaBoletaViewModel linea in Boleta.Lineas) {
+                    <tr>
+                        <td><span class="badge text-bg-light border me-1">@linea.Tipo</span>@linea.Descripcion</td>
+                        <td class="text-end">@linea.Cantidad</td>
+                        <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
+                        <td class="text-end">@linea.SubTotal.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <TotalesBoleta TotalServicios="Boleta.TotalServicios" TotalArticulos="Boleta.TotalArticulos" Total="Boleta.Total" />
+    </div>
+    @if (ChildContent != null) {
+        <div class="card-footer d-flex gap-2">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoletaViewModel Boleta { get; set; } = default!;
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

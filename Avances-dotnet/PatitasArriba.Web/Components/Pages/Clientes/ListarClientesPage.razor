@@ -1,0 +1,86 @@
+@page "/clientes"
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Clientes</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Clientes</h3>
+    @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
+    @if (Sesion.EsAdministrador) {
+        <button tabindex="4" class="btn btn-success" @onclick="() => NuevoCliente()">
+            Nuevo cliente
+        </button>
+    }
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">DNI o nombre:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Clientes.Any()) {
+    <div class="alert alert-info">No hay clientes registrados.</div>
+}
+else {
+    <div class="row">
+        <div class="col-lg-7">
+            <QuickGrid Items="Clientes" Pagination="Paginacion" Class="table table-striped table-hover">
+                <PropertyColumn Title="DNI" Property="c => c.Dni" Sortable="true" />
+                <PropertyColumn Title="Nombre completo" Property="c => c.NombreCompleto" Sortable="true" />
+                <PropertyColumn Title="Teléfono" Property="c => c.Telefono" />
+                <TemplateColumn Title="Acciones">
+                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarCliente(context)">
+                        Ver
+                    </button>
+                    @if (Sesion.EsAdministrador) {
+                        <button class="btn btn-primary btn-sm" @onclick="() => EditarCliente(context.Id)">
+                            Editar
+                        </button>
+                        <button class="btn btn-danger btn-sm">
+                            Eliminar
+                        </button>
+                    }
+                </TemplateColumn>
+            </QuickGrid>
+            <Paginator State="Paginacion"></Paginator>
+        </div>
+        <div class="col-lg-5">
+            @if (ClienteSeleccionado == null) {
+                <div class="alert alert-info">Seleccione un cliente para ver sus datos y sus mascotas.</div>
+            } else {
+                <MascotasDelCliente Cliente="ClienteSeleccionado" Mascotas="MascotasSeleccionadas" PermitirEditar="Sesion.EsAdministrador" />
+            }
+        </div>
+    </div>
+}
+
+@code {
+    private IQueryable<ClienteViewModel> Clientes { get; set; } = Enumerable.Empty<ClienteViewModel>().AsQueryable();
+    private ClienteViewModel? ClienteSeleccionado { get; set; }
+    private List<MascotaViewModel> MascotasSeleccionadas { get; set; } = [];
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    protected override void OnInitialized() {
+        Clientes = DatosEjemplo.Clientes().AsQueryable();
+    }
+
+    // Maestro-detalle: al seleccionar un cliente se muestran sus mascotas a la derecha
+    private void SeleccionarCliente(ClienteViewModel cliente) {
+        ClienteSeleccionado = cliente;
+        MascotasSeleccionadas = DatosEjemplo.MascotasDeCliente(cliente.Id);
+    }
+
+    private void NuevoCliente() {
+        Nav.NavigateTo("/clientes/nuevo");
+    }
+
+    private void EditarCliente(int id) {
+        Nav.NavigateTo($"/clientes/editar/{id}");
+    }
+}

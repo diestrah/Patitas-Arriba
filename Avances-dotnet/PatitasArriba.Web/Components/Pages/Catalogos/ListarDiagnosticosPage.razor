@@ -1,0 +1,63 @@
+@page "/diagnosticos"
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Diagnósticos</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Catálogo de diagnósticos</h3>
+    @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
+    @if (Sesion.EsAdministrador) {
+        <button tabindex="4" class="btn btn-success" @onclick="() => NuevoDiagnostico()">
+            Nuevo diagnóstico
+        </button>
+    }
+</div>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Enfermedad:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la enfermedad..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Diagnosticos.Any()) {
+    <div class="alert alert-info">No hay diagnósticos registrados.</div>
+}
+else {
+    <QuickGrid Items="Diagnosticos" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="Enfermedad" Property="d => d.NombreEnfermedad" Sortable="true" />
+        <PropertyColumn Title="Descripción" Property="d => d.Descripcion" />
+        @if (Sesion.EsAdministrador) {
+            <TemplateColumn Title="Acciones">
+                <button class="btn btn-primary btn-sm" @onclick="() => EditarDiagnostico(context.Id)">
+                    Editar
+                </button>
+                <button class="btn btn-danger btn-sm">
+                    Eliminar
+                </button>
+            </TemplateColumn>
+        }
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<DiagnosticoViewModel> Diagnosticos { get; set; } = Enumerable.Empty<DiagnosticoViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    protected override void OnInitialized() {
+        Diagnosticos = DatosEjemplo.Diagnosticos().AsQueryable();
+    }
+
+    private void NuevoDiagnostico() {
+        Nav.NavigateTo("/diagnosticos/nuevo");
+    }
+
+    private void EditarDiagnostico(int id) {
+        Nav.NavigateTo($"/diagnosticos/editar/{id}");
+    }
+}

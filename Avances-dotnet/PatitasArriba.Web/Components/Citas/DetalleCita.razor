@@ -1,0 +1,53 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Cita N.° @Cita.Id · @Cita.NombreMascota</span>
+        <BadgeEstadoCita Estado="Cita.Estado" />
+    </div>
+    <div class="card-body">
+        <ul class="list-unstyled small mb-3">
+            <li><strong>Cliente:</strong> @Cita.NombreCliente</li>
+            <li><strong>Fecha y hora:</strong> @(Cita.FechaHora?.ToString("dd/MM/yyyy HH:mm"))</li>
+            <li>
+                <strong>Emergencia:</strong>
+                @if (Cita.EsEmergencia) {
+                    <span class="badge text-bg-danger">Sí</span>
+                } else {
+                    <span>No</span>
+                }
+            </li>
+            <li><strong>Revisada por:</strong> @(Cita.NombreAdministrador ?? "Pendiente de revisión")</li>
+        </ul>
+
+        <h6>Servicios solicitados</h6>
+        <table class="table table-sm mb-0">
+            <thead>
+                <tr>
+                    <th>Servicio</th>
+                    <th>Veterinario</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (DetalleCitaViewModel detalle in Cita.Detalles) {
+                    <tr>
+                        <td>@detalle.NombreServicio</td>
+                        <td>@detalle.NombreVeterinario</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    @if (ChildContent != null) {
+        <div class="card-footer d-flex flex-wrap gap-2">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public CitaViewModel Cita { get; set; } = default!;
+
+    // Acciones según quién ve la cita (administrador o cliente)
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

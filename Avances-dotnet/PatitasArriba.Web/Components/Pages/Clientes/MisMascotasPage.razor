@@ -1,0 +1,27 @@
+@page "/mis-mascotas"
+
+<PageTitle>Mis mascotas</PageTitle>
+
+<h3 class="mb-3">Mis mascotas</h3>
+
+@if (Mascotas.Count == 0) {
+    <div class="alert alert-info">Todavía no tiene mascotas registradas.</div>
+}
+else {
+    <div class="row g-3">
+        @foreach (MascotaViewModel mascota in Mascotas) {
+            <div class="col-md-4">
+                <TarjetaMascota Mascota="mascota" />
+            </div>
+        }
+    </div>
+}
+
+@code {
+    // Lab 9: se muestran las mascotas de un cliente de ejemplo (Ana Torres).
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Mascotas = DatosEjemplo.MascotasDeCliente(1);
+    }
+}

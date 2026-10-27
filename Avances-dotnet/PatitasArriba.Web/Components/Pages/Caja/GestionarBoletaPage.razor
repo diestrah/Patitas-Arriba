@@ -1,0 +1,165 @@
+@page "/boletas/nueva"
+@inject NavigationManager Nav;
+
+<PageTitle>Nueva boleta</PageTitle>
+
+<h3 class="mb-3">Nueva boleta</h3>
+
+<EditForm Model="ViewModel" OnValidSubmit="Emitir">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label">Cliente</label>
+            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
+                <option value="0">Seleccione el cliente</option>
+                @foreach (ClienteViewModel cliente in Clientes) {
+                    <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="() => ViewModel.IdCliente" />
+        </div>
+        <div class="col-md-3 mb-3">
+            <label class="form-label">Método de pago</label>
+            <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.MetodoPago">
+                @foreach (MetodoPago metodo in Metodos) {
+                    <option value="@metodo">@TextoEnum.De(metodo)</option>
+                }
+            </InputSelect>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <h5>Servicios realizados e insumos cobrados</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Concepto</th>
+                        <th class="text-end">Cant.</th>
+                        <th class="text-end">P. unit.</th>
+                        <th class="text-end">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (LineaBoletaViewModel linea in Pendientes) {
+                        <tr>
+                            <td><span class="badge text-bg-light border me-1">@linea.Tipo</span>@linea.Descripcion</td>
+                            <td class="text-end">@linea.Cantidad</td>
+                            <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
+                            <td class="text-end">@linea.SubTotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <h5 class="mt-4">Productos adquiridos</h5>
+            <div class="d-flex gap-2 mb-3">
+                <select class="form-select" @bind="IdArticuloAgregar">
+                    <option value="0">Seleccione un artículo</option>
+                    @foreach (ArticuloViewModel articulo in Articulos) {
+                        <option value="@articulo.Id">@articulo.Nombre (S/ @articulo.PrecioBase.ToString("N2"))</option>
+                    }
+                </select>
+                <input type="number" min="1" class="form-control w-auto" @bind="CantidadAgregar" />
+                <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarArticulo()">
+                    Agregar
+                </button>
+            </div>
+
+            @if (Vendidos.Count > 0) {
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Artículo</th>
+                            <th class="text-end">Cant.</th>
+                            <th class="text-end">P. unit.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (LineaBoletaViewModel linea in Vendidos) {
+                            <tr>
+                                <td>@linea.Descripcion</td>
+                                <td class="text-end">@linea.Cantidad</td>
+                                <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
+                                <td class="text-end">@linea.SubTotal.ToString("N2")</td>
+                                <td class="text-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarArticulo(linea)">
+                                        Quitar
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card">
+                <div class="card-header fw-bold">Total</div>
+                <div class="card-body">
+                    <TotalesBoleta TotalServicios="ViewModel.TotalServicios" TotalArticulos="ViewModel.TotalArticulos" Total="ViewModel.Total" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <button tabindex="3" type="submit" class="btn btn-primary">Generar boleta</button>
+        <a tabindex="4" class="btn btn-outline-secondary" href="boletas">Cancelar</a>
+    </div>
+</EditForm>
+
+@code {
+    private BoletaViewModel ViewModel { get; set; } = new();
+    private List<ClienteViewModel> Clientes { get; set; } = [];
+    private List<ArticuloViewModel> Articulos { get; set; } = [];
+    private MetodoPago[] Metodos { get; } = Enum.GetValues<MetodoPago>();
+
+    // Las dos listas forman las líneas de la boleta (ViewModel.Lineas)
+    private List<LineaBoletaViewModel> Pendientes { get; set; } = [];
+    private List<LineaBoletaViewModel> Vendidos { get; set; } = [];
+
+    private int IdArticuloAgregar { get; set; }
+    private int CantidadAgregar { get; set; } = 1;
+
+    protected override void OnInitialized() {
+        Clientes = DatosEjemplo.Clientes();
+        Articulos = DatosEjemplo.Articulos();
+
+        // Lab 9: se muestra como ejemplo lo pendiente de cobro de Ana Torres
+        ViewModel.IdCliente = 1;
+        Pendientes = DatosEjemplo.PendientesDeCobro();
+        ViewModel.Lineas.AddRange(Pendientes);
+    }
+
+    private void AgregarArticulo() {
+        ArticuloViewModel? articulo = Articulos.Find(a => a.Id == IdArticuloAgregar);
+        if (articulo == null || CantidadAgregar < 1) {
+            return;
+        }
+        LineaBoletaViewModel linea = new LineaBoletaViewModel {
+            Tipo = "Artículo",
+            Descripcion = articulo.Nombre,
+            Cantidad = CantidadAgregar,
+            PrecioUnitario = articulo.PrecioBase
+        };
+        Vendidos.Add(linea);
+        ViewModel.Lineas.Add(linea);
+        IdArticuloAgregar = 0;
+        CantidadAgregar = 1;
+    }
+
+    private void QuitarArticulo(LineaBoletaViewModel linea) {
+        Vendidos.Remove(linea);
+        ViewModel.Lineas.Remove(linea);
+    }
+
+    private void Emitir() {
+        Nav.NavigateTo("/boletas");
+    }
+}

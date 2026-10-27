@@ -1,0 +1,57 @@
+@page "/articulos/stock/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Actualizar stock</PageTitle>
+
+<div class="col-md-6">
+    <h3 class="mb-3">Actualizar stock</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Artículo</label>
+            <input class="form-control" value="@ViewModel.NombreArticulo" disabled />
+        </div>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Stock actual</label>
+                <input class="form-control" value="@ViewModel.StockActual" disabled />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Nuevo stock</label>
+                <InputNumber tabindex="1" class="form-control" @bind-Value="ViewModel.NuevoStock" />
+                <ValidationMessage For="() => ViewModel.NuevoStock" />
+            </div>
+        </div>
+
+        <button tabindex="2" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="3" class="btn btn-outline-secondary" href="articulos">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private ActualizarStockViewModel ViewModel { get; set; } = new();
+
+    protected override void OnParametersSet() {
+        ArticuloViewModel? articulo = DatosEjemplo.Articulos().FirstOrDefault(a => a.Id == Id);
+        if (articulo == null) {
+            Nav.NavigateTo("/articulos");
+            return;
+        }
+        ViewModel = new ActualizarStockViewModel {
+            IdArticulo = articulo.Id,
+            NombreArticulo = articulo.Nombre,
+            StockActual = articulo.StockActual,
+            NuevoStock = articulo.StockActual
+        };
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/articulos");
+    }
+}

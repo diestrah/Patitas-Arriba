@@ -1,0 +1,76 @@
+@page "/horarios/nuevo"
+@page "/horarios/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Horarios de atención</PageTitle>
+
+<div class="col-md-8">
+    <h3 class="mb-3">@(Id == null ? "Nuevo horario" : "Editar horario")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Día</label>
+                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.DiaSemana">
+                    @foreach (DiaSemana dia in Dias) {
+                        <option value="@dia">@TextoEnum.De(dia)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Hora de inicio</label>
+                <InputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Hora de fin</label>
+                <InputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
+            </div>
+        </div>
+
+        <h5 class="mt-2">Personal asignado al turno</h5>
+        <div class="row mb-3">
+            @foreach (OpcionSeleccion persona in ViewModel.Personal) {
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="@($"personal-{persona.Id}")" @bind-Value="persona.Seleccionado" />
+                        <label class="form-check-label" for="@($"personal-{persona.Id}")">
+                            @persona.Texto <span class="text-muted small">(@persona.Detalle)</span>
+                        </label>
+                    </div>
+                </div>
+            }
+        </div>
+
+
+        <button tabindex="5" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="6" class="btn btn-outline-secondary" href="horarios">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private HorarioViewModel ViewModel { get; set; } = new();
+    private DiaSemana[] Dias { get; } = Enum.GetValues<DiaSemana>();
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new HorarioViewModel { Personal = DatosEjemplo.OpcionesPersonal() };
+            return;
+        }
+        HorarioViewModel? horario = DatosEjemplo.Horarios().FirstOrDefault(h => h.Id == Id);
+        if (horario == null) {
+            Nav.NavigateTo("/horarios");
+            return;
+        }
+        ViewModel = horario;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/horarios");
+    }
+}

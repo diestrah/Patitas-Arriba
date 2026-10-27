@@ -1,0 +1,96 @@
+@page "/reportes/historial-clinico"
+@page "/reportes/historial-clinico/{IdMascota:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Historial clínico</PageTitle>
+
+<h3 class="mb-3">Reporte de historial clínico</h3>
+
+<div class="d-flex align-items-center gap-2 mb-4 no-print">
+    <label class="text-nowrap">Mascota:</label>
+    <select tabindex="1" class="form-select w-auto" @bind="IdMascotaSeleccionada">
+        <option value="0">Seleccione una mascota</option>
+        @foreach (MascotaViewModel mascota in Mascotas) {
+            <option value="@mascota.Id">@mascota.Nombre (@mascota.NombreDueno)</option>
+        }
+    </select>
+    <button tabindex="2" class="btn btn-primary" @onclick="() => Generar()">Generar</button>
+    <button tabindex="3" class="btn btn-success" disabled="@(Mascota == null)">Exportar PDF</button>
+</div>
+
+@if (Mascota == null) {
+    <div class="alert alert-info">Seleccione una mascota y presione "Generar" para ver su historial clínico.</div>
+}
+else {
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <TarjetaMascota Mascota="Mascota" MostrarDueno="true" />
+        </div>
+        <div class="col-lg-8">
+            <h5 class="mb-3">Atenciones (@Historial.Count)</h5>
+
+            @if (Historial.Count == 0) {
+                <div class="alert alert-info">La mascota todavía no tiene atenciones registradas.</div>
+            }
+
+            @foreach (AtencionViewModel atencion in Historial) {
+                RecetaViewModel? receta = DatosEjemplo.RecetaDeAtencion(atencion.Id);
+                <div class="card mb-3">
+                    <div class="card-header d-flex justify-content-between">
+                        <span class="fw-bold">@(atencion.FechaHora?.ToString("dd/MM/yyyy HH:mm")) · @atencion.NombreServicio</span>
+                        <span class="text-muted small">@atencion.NombreVeterinario</span>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrWhiteSpace(atencion.MotivoConsulta)) {
+                            <p class="mb-1"><strong>Motivo:</strong> @atencion.MotivoConsulta</p>
+                        }
+                        <p><strong>Observaciones:</strong> @atencion.Observaciones</p>
+
+                        <h6>Diagnósticos</h6>
+                        <TablaDiagnosticos Diagnosticos="atencion.Diagnosticos" SoloLectura="true" />
+
+                        <h6>Insumos utilizados</h6>
+                        <TablaInsumos Insumos="atencion.Insumos" SoloLectura="true" />
+
+                        @if (receta != null) {
+                            <h6>Receta N.° @receta.Id.ToString("D6")</h6>
+                            <DetalleReceta Receta="receta" />
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int? IdMascota { get; set; }
+
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private int IdMascotaSeleccionada { get; set; }
+    private MascotaViewModel? Mascota { get; set; }
+    private List<AtencionViewModel> Historial { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Mascotas = DatosEjemplo.Mascotas();
+    }
+
+    protected override void OnParametersSet() {
+        if (IdMascota == null) {
+            Mascota = null;
+            Historial = [];
+            return;
+        }
+        IdMascotaSeleccionada = IdMascota.Value;
+        Mascota = Mascotas.FirstOrDefault(m => m.Id == IdMascota);
+        Historial = DatosEjemplo.HistorialDeMascota(IdMascota.Value);
+    }
+
+    // Navega a la URL del historial de la mascota elegida
+    private void Generar() {
+        if (IdMascotaSeleccionada > 0) {
+            Nav.NavigateTo($"/reportes/historial-clinico/{IdMascotaSeleccionada}");
+        }
+    }
+}

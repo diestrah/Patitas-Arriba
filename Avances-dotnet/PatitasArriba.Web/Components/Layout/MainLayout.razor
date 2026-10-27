@@ -1,0 +1,53 @@
+@inherits LayoutComponentBase
+@inject SesionDemo Sesion;
+@inject NavigationManager Nav;
+
+<nav class="navbar navbar-expand navbar-dark bg-primary px-3">
+    <a class="navbar-brand" href="">Patitas Arriba</a>
+
+    @* El menú muestra solo las opciones del rol que inició sesión (ver Seguridad/Permisos.cs) *@
+    <ul class="navbar-nav me-auto">
+        @foreach (KeyValuePair<string, List<OpcionMenu>> grupo in Permisos.MenuDelRol(Sesion.Rol)) {
+            <li class="nav-item dropdown">
+                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">@grupo.Key</button>
+                <ul class="dropdown-menu">
+                    @foreach (OpcionMenu opcion in grupo.Value) {
+                        <li><NavLink class="dropdown-item" href="@opcion.Href">@opcion.Texto</NavLink></li>
+                    }
+                </ul>
+            </li>
+        }
+    </ul>
+
+    <ul class="navbar-nav">
+        @if (Sesion.Rol != null) {
+            <li class="nav-item dropdown">
+                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    @Sesion.NombreUsuario (@TextoEnum.De(Sesion.Rol.Value))
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">Cerrar sesión</button></li>
+                </ul>
+            </li>
+        } else {
+            <li class="nav-item"><NavLink class="nav-link" href="login">Iniciar sesión</NavLink></li>
+        }
+    </ul>
+</nav>
+
+<main class="container mt-4 mb-5">
+    @Body
+</main>
+
+<div id="blazor-error-ui" data-nosnippet>
+    Ocurrió un error inesperado.
+    <a href="." class="reload">Recargar</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code {
+    private void CerrarSesion() {
+        Sesion.CerrarSesion();
+        Nav.NavigateTo("/login");
+    }
+}

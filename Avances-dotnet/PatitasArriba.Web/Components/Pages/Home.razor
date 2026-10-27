@@ -1,0 +1,13 @@
+@page "/"
+@inject SesionDemo Sesion;
+
+<PageTitle>Inicio</PageTitle>
+
+@if (Sesion.Rol != null) {
+    <h3 class="mb-1">Bienvenido, @Sesion.NombreUsuario</h3>
+    <p class="text-muted">Ingresó como @TextoEnum.De(Sesion.Rol.Value). Use el menú superior para ir a sus opciones.</p>
+} else {
+    <h3 class="mb-1">Bienvenido a Patitas Arriba</h3>
+    <p class="text-muted mb-4">Sistema de gestión de la clínica y estética veterinaria Patas Arriba.</p>
+    <a class="btn btn-primary" href="login">Iniciar sesión</a>
+}

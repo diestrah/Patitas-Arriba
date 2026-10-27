@@ -1,0 +1,99 @@
+@page "/citas/nueva"
+@page "/citas/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Gestión de citas</PageTitle>
+
+<div class="col-lg-9">
+    <h3 class="mb-3">@(Id == null ? "Registrar cita" : $"Editar cita N.° {Id}")</h3>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Cliente</label>
+                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
+                    <option value="0">Seleccione el cliente</option>
+                    @foreach (ClienteViewModel cliente in Clientes) {
+                        <option value="@cliente.Id">@cliente.NombreCompleto</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => ViewModel.IdCliente" />
+            </div>
+            <div class="col-md-6 mb-3">
+                <label class="form-label">Mascota</label>
+                <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.IdMascota">
+                    <option value="0">Seleccione la mascota</option>
+                    @foreach (MascotaViewModel mascota in Mascotas) {
+                        <option value="@mascota.Id">@mascota.Nombre (@mascota.NombreDueno)</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="() => ViewModel.IdMascota" />
+            </div>
+        </div>
+        <div class="row align-items-end">
+            <div class="col-md-5 mb-3">
+                <label class="form-label">Fecha y hora</label>
+                <InputDate tabindex="3" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+                <ValidationMessage For="() => ViewModel.FechaHora" />
+            </div>
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Estado</label>
+                <InputSelect tabindex="4" class="form-select" @bind-Value="ViewModel.Estado" disabled="@(Id == null)">
+                    @foreach (EstadoCita estado in Estados) {
+                        <option value="@estado">@TextoEnum.De(estado)</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="form-check">
+                    <InputCheckbox tabindex="5" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" />
+                    <label class="form-check-label" for="es-emergencia">Es emergencia</label>
+                </div>
+            </div>
+        </div>
+
+        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" />
+
+        <button tabindex="6" type="submit" class="btn btn-primary">Guardar</button>
+        <a tabindex="7" class="btn btn-outline-secondary" href="citas">Cancelar</a>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private CitaViewModel ViewModel { get; set; } = new();
+    private List<ClienteViewModel> Clientes { get; set; } = [];
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
+    private EstadoCita[] Estados { get; } = Enum.GetValues<EstadoCita>();
+
+    protected override void OnInitialized() {
+        Clientes = DatosEjemplo.Clientes();
+        Mascotas = DatosEjemplo.Mascotas();
+        Servicios = DatosEjemplo.Servicios();
+        Veterinarios = DatosEjemplo.Veterinarios();
+    }
+
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            ViewModel = new CitaViewModel();
+            return;
+        }
+        CitaViewModel? cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Id == Id);
+        if (cita == null) {
+            Nav.NavigateTo("/citas");
+            return;
+        }
+        ViewModel = cita;
+    }
+
+    private void Guardar() {
+        Nav.NavigateTo("/citas");
+    }
+}

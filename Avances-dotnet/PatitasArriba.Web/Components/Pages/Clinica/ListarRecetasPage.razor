@@ -1,0 +1,59 @@
+@page "/recetas"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Recetas médicas</PageTitle>
+
+<h3 class="mb-3">Recetas médicas</h3>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Mascota o dueño:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+</div>
+
+@if (!Recetas.Any()) {
+    <div class="alert alert-info">No hay recetas registradas.</div>
+}
+else {
+    <QuickGrid Items="Recetas" Pagination="Paginacion" Class="table table-striped table-hover">
+        <PropertyColumn Title="N.°" Property="r => r.Id" Sortable="true" />
+        <PropertyColumn Title="Emisión" Property="r => r.FechaEmision" Format="dd/MM/yyyy" Sortable="true" />
+        <PropertyColumn Title="Mascota" Property="r => r.NombreMascota" />
+        <PropertyColumn Title="Dueño" Property="r => r.NombreCliente" />
+        <PropertyColumn Title="Diagnóstico" Property="r => r.Diagnostico" />
+        <PropertyColumn Title="Veterinario" Property="r => r.NombreVeterinario" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-outline-primary btn-sm" @onclick="() => VerReceta(context.Id)">
+                Ver / imprimir
+            </button>
+            <button class="btn btn-primary btn-sm" @onclick="() => EditarReceta(context.Id)">
+                Editar
+            </button>
+            <button class="btn btn-danger btn-sm">
+                Eliminar
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@code {
+    private IQueryable<RecetaViewModel> Recetas { get; set; } = Enumerable.Empty<RecetaViewModel>().AsQueryable();
+    private string Filtro { get; set; } = string.Empty;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    protected override void OnInitialized() {
+        Recetas = DatosEjemplo.Recetas().AsQueryable();
+    }
+
+    private void VerReceta(int id) {
+        Nav.NavigateTo($"/recetas/{id}");
+    }
+
+    private void EditarReceta(int id) {
+        Nav.NavigateTo($"/recetas/editar/{id}");
+    }
+}

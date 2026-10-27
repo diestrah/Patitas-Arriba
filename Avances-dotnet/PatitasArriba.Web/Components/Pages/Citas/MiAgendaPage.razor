@@ -1,0 +1,57 @@
+@page "/mi-agenda"
+@inject NavigationManager Nav;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Mi agenda</PageTitle>
+
+<h3 class="mb-3">Mi agenda</h3>
+
+<div class="d-flex align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Fecha:</label>
+    <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
+    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+</div>
+
+@if (!Agenda.Any()) {
+    <div class="alert alert-info">No tiene servicios programados para la fecha seleccionada.</div>
+}
+else {
+    <QuickGrid Items="Agenda" Class="table table-striped table-hover">
+        <PropertyColumn Title="Hora" Property="i => i.FechaHora" Format="HH:mm" Sortable="true" />
+        <TemplateColumn Title="Mascota">
+            @context.NombreMascota
+            @if (context.EsEmergencia) {
+                <span class="badge text-bg-danger ms-1">Emergencia</span>
+            }
+        </TemplateColumn>
+        <PropertyColumn Title="Dueño" Property="i => i.NombreCliente" />
+        <PropertyColumn Title="Servicio" Property="i => i.NombreServicio" />
+        <TemplateColumn Title="Acciones">
+            <button class="btn btn-success btn-sm" @onclick="() => Atender(context.IdDetalleCita)">
+                Atender
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="() => VerHistorial(context.IdMascota)">
+                Historial clínico
+            </button>
+        </TemplateColumn>
+    </QuickGrid>
+}
+
+@code {
+    // Lab 9: se muestra la agenda de una veterinaria de ejemplo (Carla Vega).
+    private IQueryable<ItemAgendaViewModel> Agenda { get; set; } = Enumerable.Empty<ItemAgendaViewModel>().AsQueryable();
+    private DateTime FechaFiltro { get; set; } = DateTime.Today;
+
+    protected override void OnInitialized() {
+        Agenda = DatosEjemplo.AgendaDeVeterinario("Carla Vega Soto").AsQueryable();
+    }
+
+    private void Atender(int idDetalleCita) {
+        Nav.NavigateTo($"/atenciones/registrar/{idDetalleCita}");
+    }
+
+    private void VerHistorial(int idMascota) {
+        Nav.NavigateTo($"/reportes/historial-clinico/{idMascota}");
+    }
+}
