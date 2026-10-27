@@ -92,7 +92,7 @@ public class Principal {
         int stockAmoxicilinaAntes = amoxicilina.getStockActual();
         int stockAlgodonAntes = algodon.getStockActual();
         for (InsumoUtilizado insumo : atencionConsulta.getInsumosUtilizados()) {
-            Articulo articuloCatalogo = buscarArticulo(insumo.getArticulo().getIdProducto(), amoxicilina, algodon, shampoo);
+            Articulo articuloCatalogo = buscarArticulo(insumo.getArticulo().getId(), amoxicilina, algodon, shampoo);
             articuloCatalogo.setStockActual(articuloCatalogo.getStockActual() - insumo.getCantidadUtilizada());
         }
 
@@ -141,7 +141,7 @@ public class Principal {
 
         // ===================== IMPRESION =====================
         System.out.println("============== CITA ==============");
-        System.out.println("idCita: " + cita1.getIdCita() + " | fecha: " + cita1.getFechaHora()
+        System.out.println("idCita: " + cita1.getId() + " | fecha: " + cita1.getFechaHora()
                 + " | estado: " + cita1.getEstado() + " | emergencia: " + cita1.isEsEmergencia());
         System.out.println("mascota: " + cita1.getMascota().getNombre()
                 + " | duenio: " + cita1.getMascota().getCliente().getNombres());
@@ -149,7 +149,7 @@ public class Principal {
         for (DetalleCita detalle : cita1.getDetalles()) {
             System.out.println("  - " + detalle.getServicio().getNombre() + " (" + detalle.getServicio().getTipo() + ")"
                     + " | veterinario: " + detalle.getVeterinario().getNombres()
-                    + " | atencion: " + detalle.getAtencion().getIdAtencion());
+                    + " | atencion: " + detalle.getAtencion().getId());
         }
 
         System.out.println("\n============== ATENCION MEDICA ==============");
@@ -176,7 +176,7 @@ public class Principal {
                 if (lineaArticulo.getInsumoUtilizado() == null) {
                     origen = "venta directa";
                 } else {
-                    origen = "insumo de atencion " + lineaArticulo.getInsumoUtilizado().getAtencion().getIdAtencion();
+                    origen = "insumo de atencion " + lineaArticulo.getInsumoUtilizado().getAtencion().getId();
                 }
                 System.out.println("  - Articulo: " + lineaArticulo.getArticulo().getNombre() + " (" + origen + ")"
                         + " | Cantidad: " + detalle.getCantidad() + " | Subtotal: " + detalle.getSubtotal());
@@ -203,7 +203,7 @@ public class Principal {
 
         // Constructor de copia
         Cita copiaCita = new Cita(cita1);
-        System.out.println("Copia de cita: idCita=" + copiaCita.getIdCita() + ", detalles=" + copiaCita.getDetalles().size());
+        System.out.println("Copia de cita: idCita=" + copiaCita.getId() + ", detalles=" + copiaCita.getDetalles().size());
 
         // Las listas que se devuelven no se pueden modificar desde fuera
         try {
@@ -227,12 +227,12 @@ public class Principal {
         probar("Servicio con duracion 0", () -> banio.setDuracionEstimada(0));
         probar("Boleta sin serie", () -> boleta1.setSerieCorrelativo(""));
         probar("Receta sin atencion", () -> receta1.setAtencion(null));
-        probar("Id negativo", () -> cita1.setIdCita(-5));
+        probar("Id negativo", () -> cita1.setId(-5));
     }
 
     private static Articulo buscarArticulo(int idProducto, Articulo... articulos) {
         for (Articulo articulo : articulos) {
-            if (articulo.getIdProducto() == idProducto) {
+            if (articulo.getId() == idProducto) {
                 return articulo;
             }
         }
