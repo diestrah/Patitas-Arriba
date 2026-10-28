@@ -1,0 +1,101 @@
+@* Portada para quien todavía no inicia sesión *@
+
+<section class="portada">
+    <div class="row align-items-center g-4">
+        <div class="col-lg-6">
+            <span class="etiqueta-portada"><Huella Tamano="16" Color="var(--pa-coral)" /> Clínica y estética veterinaria</span>
+            <h1 class="titulo-portada">Cuidamos a quienes te <span class="resaltado">mueven la cola</span></h1>
+            <p class="texto-portada">
+                Patitas Arriba reúne citas, historias clínicas, recetas y caja de la clínica Patas Arriba en un solo lugar,
+                para que perros y gatos reciban la atención que merecen.
+            </p>
+            <div class="d-flex flex-wrap gap-2">
+                <a class="btn btn-primary btn-lg" href="login">Iniciar sesión</a>
+                <a class="btn btn-outline-primary btn-lg" href="#servicios">Ver servicios</a>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="escena-mascotas">
+                <div class="sol-fondo"></div>
+                <Perro Pelaje="Pelaje.Dorado" Tamano="170" MoverCola="true" Clase="mascota-escena m1" />
+                <Gato Pelaje="Pelaje.Naranja" Tamano="130" MoverCola="true" Clase="mascota-escena m2" />
+                <Perro Pelaje="Pelaje.Dalmata" Tamano="120" Clase="mascota-escena m3" />
+                <Gato Pelaje="Pelaje.Azabache" Tamano="110" Clase="mascota-escena m4" />
+                <Perro Pelaje="Pelaje.Chocolate" Tamano="105" Clase="mascota-escena m5" />
+                <Gato Pelaje="Pelaje.Siames" Tamano="95" Clase="mascota-escena m6" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="row g-3 my-4">
+    <div class="col-6 col-md-3"><TarjetaIndicador Titulo="Familias registradas" Valor="@Clientes.ToString()" Color="@Paleta.Turquesa" /></div>
+    <div class="col-6 col-md-3"><TarjetaIndicador Titulo="Perros" Valor="@Perros.ToString()" Color="@Paleta.Coral" /></div>
+    <div class="col-6 col-md-3"><TarjetaIndicador Titulo="Gatos" Valor="@Gatos.ToString()" Color="@Paleta.Uva" /></div>
+    <div class="col-6 col-md-3"><TarjetaIndicador Titulo="Veterinarios colegiados" Valor="@Veterinarios.ToString()" Color="@Paleta.Cielo" /></div>
+</section>
+
+<section id="servicios" class="my-5">
+    <h2 class="titulo-seccion">Nuestros servicios</h2>
+    <div class="row g-3">
+        @foreach (ServicioViewModel servicio in Servicios) {
+            <div class="col-sm-6 col-lg-3">
+                <div class="tarjeta-servicio" style="--acento:@Estadisticas.ColorDe(servicio.TipoServicio)">
+                    <span class="tipo-servicio">@TextoEnum.De(servicio.TipoServicio)</span>
+                    <h3>@servicio.Nombre</h3>
+                    <p>@servicio.Descripcion</p>
+                    <div class="d-flex justify-content-between align-items-end mt-auto">
+                        <strong class="precio">@Paleta.Soles(servicio.PrecioBase)</strong>
+                        @if (servicio.DuracionEstimada != null) {
+                            <span class="text-muted small">~@servicio.DuracionEstimada min</span>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
+
+<section class="my-5">
+    <div class="row g-4 align-items-center">
+        <div class="col-md-7">
+            <TarjetaPanel Titulo="Horarios de atención" Subtitulo="Turnos con veterinario y administrador asignados">
+                <ul class="lista-horarios">
+                    @foreach (HorarioViewModel horario in Horarios) {
+                        <li>
+                            <span class="dia">@TextoEnum.De(horario.DiaSemana)</span>
+                            <span class="rango">@horario.Rango</span>
+                        </li>
+                    }
+                </ul>
+            </TarjetaPanel>
+        </div>
+        <div class="col-md-5 text-center">
+            <div class="d-inline-flex align-items-end gap-1">
+                <Gato Pelaje="Pelaje.Ceniza" Tamano="120" />
+                <Perro Pelaje="Pelaje.GrisPlata" Tamano="140" />
+                <Gato Pelaje="Pelaje.Nieve" Tamano="110" />
+            </div>
+            <p class="text-muted mt-2">¿Ya eres cliente? Inicia sesión para reservar la próxima cita de tu mascota.</p>
+        </div>
+    </div>
+</section>
+
+@code {
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private List<HorarioViewModel> Horarios { get; set; } = [];
+    private int Clientes { get; set; }
+    private int Perros { get; set; }
+    private int Gatos { get; set; }
+    private int Veterinarios { get; set; }
+
+    protected override void OnInitialized() {
+        Servicios = DatosEjemplo.Servicios().OrderBy(s => s.TipoServicio).ToList();
+        Horarios = DatosEjemplo.Horarios().OrderBy(h => h.DiaSemana).ThenBy(h => h.HoraInicio).ToList();
+        List<MascotaViewModel> mascotas = DatosEjemplo.Mascotas();
+        Clientes = DatosEjemplo.Clientes().Count;
+        Perros = mascotas.Count(m => m.TipoMascota == TipoMascota.PERRO);
+        Gatos = mascotas.Count(m => m.TipoMascota == TipoMascota.GATO);
+        Veterinarios = DatosEjemplo.Veterinarios().Count;
+    }
+}

@@ -1,0 +1,135 @@
+@* Panel de inicio del veterinario: su agenda del día, sus pacientes y lo que más se ve en consulta *@
+@inject NavigationManager Nav;
+
+<div class="banner-bienvenida banner-veterinario">
+    <div>
+        <h1>¡Buen día, Dr(a). @Nombre!</h1>
+        <p>
+            Tiene @Resumen.ServiciosHoy @(Resumen.ServiciosHoy == 1 ? "servicio programado" : "servicios programados") para hoy
+            @if (Resumen.EmergenciasHoy > 0) {
+                <span class="badge text-bg-danger ms-1">@Resumen.EmergenciasHoy emergencia(s)</span>
+            }
+        </p>
+    </div>
+    <div class="mascotas-banner">
+        <Perro Pelaje="Pelaje.Dalmata" Tamano="96" />
+        <Gato Pelaje="Pelaje.Siames" Tamano="96" MoverCola="true" />
+        <Perro Pelaje="Pelaje.Canela" Tamano="84" />
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Servicios hoy" Valor="@Resumen.ServiciosHoy.ToString()" Color="@Paleta.Turquesa" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Pacientes atendidos" Valor="@Resumen.PacientesAtendidos.ToString()" Color="@Paleta.Coral" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Atenciones registradas" Valor="@Resumen.AtencionesRegistradas.ToString()" Color="@Paleta.Uva" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Recetas emitidas" Valor="@Resumen.RecetasEmitidas.ToString()" Color="@Paleta.Cielo" /></div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Agenda de hoy" Subtitulo="@DateTime.Today.ToString("dddd d 'de' MMMM", Cultura)" Enlace="mi-agenda" TextoEnlace="Mi agenda">
+            @if (Agenda.Count == 0) {
+                <p class="text-muted mb-0">No tiene servicios programados hoy.</p>
+            } else {
+                <ol class="linea-tiempo">
+                    @foreach (ItemAgendaViewModel item in Agenda) {
+                        MascotaViewModel? mascota = Mascotas.FirstOrDefault(m => m.Id == item.IdMascota);
+                        bool pasada = item.FechaHora < DateTime.Now;
+                        <li class="@(item.EsEmergencia ? "emergencia" : "") @(pasada ? "pasada" : "")">
+                            <span class="hora">@item.FechaHora.ToString("HH:mm")</span>
+                            @if (mascota != null) {
+                                <IlustracionMascota Mascota="mascota" Tamano="52" />
+                            }
+                            <div class="flex-grow-1">
+                                <strong>@item.NombreMascota</strong>
+                                @if (item.EsEmergencia) {
+                                    <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                }
+                                <div class="small text-muted">@item.NombreServicio · @item.NombreCliente</div>
+                            </div>
+                            <button class="btn btn-sm btn-primary" @onclick="() => Atender(item.IdDetalleCita)">Atender</button>
+                        </li>
+                    }
+                </ol>
+            }
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Mis servicios por tipo" Subtitulo="Servicios asignados en citas vigentes">
+            <GraficoDona Datos="ServiciosPorTipo" Subtitulo="servicios" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Mis pacientes" Subtitulo="Mascotas de las citas en las que participa" Enlace="mascotas">
+            <div class="galeria-pacientes">
+                @foreach (MascotaViewModel paciente in Pacientes) {
+                    <a class="paciente" href="@($"reportes/historial-clinico/{paciente.Id}")" title="Ver historial clínico">
+                        <IlustracionMascota Mascota="paciente" Tamano="78" />
+                        <strong>@paciente.Nombre</strong>
+                        <span class="small text-muted">@(paciente.Raza ?? TextoEnum.De(paciente.TipoMascota)) · @Estadisticas.Edad(paciente.FechaNacimiento)</span>
+                    </a>
+                }
+            </div>
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Pacientes por especie">
+            <GraficoDona Datos="PacientesPorTipo" Subtitulo="pacientes" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="Diagnósticos frecuentes" Subtitulo="En toda la clínica" Enlace="diagnosticos">
+            <GraficoBarras Datos="DiagnosticosFrecuentes" Apilado="true" TextoVacio="Aún no hay diagnósticos registrados." />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="Nivel de gravedad" Subtitulo="Diagnósticos registrados">
+            <GraficoDona Datos="DiagnosticosPorGravedad" Subtitulo="diagnósticos" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="Insumos más usados" Subtitulo="Unidades usadas en atenciones" Enlace="articulos">
+            <GraficoBarras Datos="InsumosMasUtilizados" Apilado="true" TextoVacio="Aún no se registran insumos." />
+        </TarjetaPanel>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Nombre { get; set; } = "";
+
+    private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("es-PE");
+
+    private Estadisticas.ResumenVeterinario Resumen { get; set; } = default!;
+    private List<ItemAgendaViewModel> Agenda { get; set; } = [];
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private List<MascotaViewModel> Pacientes { get; set; } = [];
+    private List<PuntoGrafico> ServiciosPorTipo { get; set; } = [];
+    private List<PuntoGrafico> PacientesPorTipo { get; set; } = [];
+    private List<PuntoGrafico> DiagnosticosFrecuentes { get; set; } = [];
+    private List<PuntoGrafico> DiagnosticosPorGravedad { get; set; } = [];
+    private List<PuntoGrafico> InsumosMasUtilizados { get; set; } = [];
+
+    protected override void OnInitialized() {
+        // Lab 9: la sesión simulada del veterinario corresponde a Carla Vega en los datos de ejemplo
+        Resumen = Estadisticas.Veterinario(Nombre);
+        Agenda = DatosEjemplo.AgendaDeVeterinario(Nombre).OrderBy(i => i.FechaHora).ToList();
+        Mascotas = DatosEjemplo.Mascotas();
+        Pacientes = Estadisticas.PacientesDeVeterinario(Nombre);
+        ServiciosPorTipo = Estadisticas.ServiciosPorTipo(Estadisticas.DetallesDeVeterinario(Nombre));
+        PacientesPorTipo = Estadisticas.MascotasPorTipo(Pacientes);
+        DiagnosticosFrecuentes = Estadisticas.DiagnosticosFrecuentes();
+        DiagnosticosPorGravedad = Estadisticas.DiagnosticosPorGravedad();
+        InsumosMasUtilizados = Estadisticas.InsumosMasUtilizados();
+    }
+
+    private void Atender(int idDetalleCita) {
+        Nav.NavigateTo($"/atenciones/registrar/{idDetalleCita}");
+    }
+}

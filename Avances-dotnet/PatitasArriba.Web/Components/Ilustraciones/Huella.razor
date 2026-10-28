@@ -1,0 +1,19 @@
+@* Huella de patita, usada como logo e ícono *@
+<svg class="@Clase" viewBox="0 0 64 64" width="@Tamano" height="@Tamano" aria-hidden="true">
+    <ellipse cx="32" cy="42" rx="14" ry="12" fill="@Color" />
+    <ellipse cx="15" cy="27" rx="6" ry="7.5" fill="@Color" transform="rotate(-20 15 27)" />
+    <ellipse cx="26" cy="16" rx="6" ry="8" fill="@Color" transform="rotate(-6 26 16)" />
+    <ellipse cx="38" cy="16" rx="6" ry="8" fill="@Color" transform="rotate(6 38 16)" />
+    <ellipse cx="49" cy="27" rx="6" ry="7.5" fill="@Color" transform="rotate(20 49 27)" />
+</svg>
+
+@code {
+    [Parameter]
+    public string Color { get; set; } = "currentColor";
+
+    [Parameter]
+    public int Tamano { get; set; } = 24;
+
+    [Parameter]
+    public string? Clase { get; set; }
+}

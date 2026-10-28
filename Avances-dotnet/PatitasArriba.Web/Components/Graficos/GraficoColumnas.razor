@@ -1,0 +1,29 @@
+@* Columnas verticales, pensado para series en el tiempo (semanas, días) *@
+<div class="grafico-columnas" style="--alto:@(Alto)px">
+    @foreach (PuntoGrafico punto in Datos) {
+        <div class="columna" title="@punto.Etiqueta: @Formatear(punto.Valor)">
+            <span class="valor-columna">@(punto.Valor > 0 ? Formatear(punto.Valor) : "")</span>
+            <div class="pista-columna">
+                <div class="barra-columna" style="height:@Paleta.Svg(Porcentaje(punto.Valor))%; background:@punto.Color"></div>
+            </div>
+            <span class="etiqueta-columna">@punto.Etiqueta</span>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<PuntoGrafico> Datos { get; set; } = [];
+
+    [Parameter]
+    public Func<double, string>? Formato { get; set; }
+
+    [Parameter]
+    public int Alto { get; set; } = 170;
+
+    private double Maximo => Datos.Count == 0 ? 0 : Datos.Max(d => d.Valor);
+
+    private double Porcentaje(double valor) => Maximo <= 0 || valor <= 0 ? 0 : Math.Max(3, valor / Maximo * 100);
+
+    private string Formatear(double valor) => Formato != null ? Formato(valor) : valor.ToString("0.##");
+}

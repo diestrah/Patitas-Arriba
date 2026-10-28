@@ -1,0 +1,130 @@
+@* Panel de inicio del cliente: sus mascotas, su próxima cita y lo que ha pagado *@
+
+<div class="banner-bienvenida banner-cliente">
+    <div>
+        <h1>¡Hola, @Nombre!</h1>
+        <p>@(Mascotas.Count == 0 ? "Registra a tu primera mascota en la clínica." : $"{string.Join(" y ", Mascotas.Select(m => m.Nombre))} te esperan con la colita moviéndose.")</p>
+        <a class="btn btn-light mt-2" href="mis-citas/nueva">Reservar una cita</a>
+    </div>
+    <div class="mascotas-banner">
+        @foreach (MascotaViewModel mascota in Mascotas.Take(3)) {
+            <IlustracionMascota Mascota="mascota" Tamano="108" MoverCola="true" />
+        }
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Mis mascotas" Valor="@Resumen.Mascotas.ToString()" Color="@Paleta.Coral" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Citas próximas" Valor="@Resumen.CitasProximas.ToString()" Color="@Paleta.Turquesa" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Atenciones recibidas" Valor="@Resumen.Atenciones.ToString()" Color="@Paleta.Uva" /></div>
+    <div class="col-6 col-lg-3"><TarjetaIndicador Titulo="Total pagado" Valor="@Paleta.Soles(Resumen.TotalPagado)" Color="@Paleta.Sol" /></div>
+</div>
+
+<div class="row g-3 mb-3">
+    @foreach (MascotaViewModel mascota in Mascotas) {
+        Pelaje pelaje = Pelaje.De(mascota);
+        <div class="col-md-6 col-lg-4">
+            <div class="tarjeta-mi-mascota" style="--acento:@pelaje.Base; --acento-claro:@pelaje.Claro">
+                <div class="fondo-mascota">
+                    <IlustracionMascota Mascota="mascota" Tamano="130" />
+                </div>
+                <div class="p-3">
+                    <h3 class="mb-0">@mascota.Nombre</h3>
+                    <p class="text-muted small mb-2">@TextoEnum.De(mascota.TipoMascota) · @(mascota.Raza ?? "Sin raza") · @TextoEnum.De(mascota.Sexo)</p>
+                    <div class="datos-mascota">
+                        <div><span>Edad</span><strong>@Estadisticas.Edad(mascota.FechaNacimiento)</strong></div>
+                        <div><span>Peso</span><strong>@(mascota.Peso == null ? "—" : $"{mascota.Peso:N1} kg")</strong></div>
+                        <div><span>Atenciones</span><strong>@Estadisticas.AtencionesDeMascota(mascota.Id)</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Próximas citas" Enlace="mis-citas" TextoEnlace="Mis citas">
+            @if (ProximasCitas.Count == 0) {
+                <p class="text-muted">No tiene citas próximas.</p>
+                <a class="btn btn-primary btn-sm" href="mis-citas/nueva">Reservar cita</a>
+            } else {
+                <ul class="lista-citas">
+                    @foreach (CitaViewModel cita in ProximasCitas) {
+                        MascotaViewModel? mascota = Mascotas.FirstOrDefault(m => m.Id == cita.IdMascota);
+                        <li>
+                            <div class="fecha-cita">
+                                <span class="dia">@cita.FechaHora?.ToString("dd")</span>
+                                <span class="mes">@cita.FechaHora?.ToString("MMM", Cultura)</span>
+                            </div>
+                            @if (mascota != null) {
+                                <IlustracionMascota Mascota="mascota" Tamano="44" />
+                            }
+                            <div class="flex-grow-1">
+                                <strong>@cita.NombreMascota</strong> · @cita.FechaHora?.ToString("HH:mm")
+                                <div class="small text-muted">@cita.TextoServicios</div>
+                            </div>
+                            <BadgeEstadoCita Estado="cita.Estado" />
+                        </li>
+                    }
+                </ul>
+            }
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Mis pagos" Subtitulo="Total de cada boleta emitida">
+            @if (Pagos.Count == 0) {
+                <p class="text-muted mb-0">Aún no tiene boletas.</p>
+            } else {
+                <GraficoColumnas Datos="Pagos" Formato="Paleta.Soles" />
+            }
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="¿En qué se fue?" Subtitulo="Gasto por concepto">
+            <GraficoDona Datos="GastoPorConcepto" Formato="Paleta.Soles" Centro="@Paleta.Soles(Resumen.TotalPagado)" Subtitulo="pagado" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="Mis citas" Subtitulo="Por estado">
+            <GraficoDona Datos="CitasPorEstado" Subtitulo="citas" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-4">
+        <TarjetaPanel Titulo="Peso de mis mascotas" Subtitulo="Último peso registrado">
+            <GraficoBarras Datos="PesoDeMascotas" Apilado="true" Formato="@(p => $"{p:N1} kg")" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Nombre { get; set; } = "";
+
+    // Lab 9: la sesión simulada del cliente corresponde a Ana Torres (id 1) en los datos de ejemplo
+    [Parameter]
+    public int IdCliente { get; set; } = 1;
+
+    private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("es-PE");
+
+    private Estadisticas.ResumenCliente Resumen { get; set; } = default!;
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private List<CitaViewModel> ProximasCitas { get; set; } = [];
+    private List<PuntoGrafico> Pagos { get; set; } = [];
+    private List<PuntoGrafico> GastoPorConcepto { get; set; } = [];
+    private List<PuntoGrafico> CitasPorEstado { get; set; } = [];
+    private List<PuntoGrafico> PesoDeMascotas { get; set; } = [];
+
+    protected override void OnInitialized() {
+        Resumen = Estadisticas.Cliente(IdCliente);
+        Mascotas = DatosEjemplo.MascotasDeCliente(IdCliente);
+        ProximasCitas = Estadisticas.ProximasCitas(IdCliente);
+        Pagos = Estadisticas.PagosDeCliente(IdCliente);
+        GastoPorConcepto = Estadisticas.GastoPorConcepto(IdCliente);
+        CitasPorEstado = Estadisticas.CitasPorEstado(DatosEjemplo.CitasDeCliente(IdCliente));
+        PesoDeMascotas = Estadisticas.PesoDeMascotas(IdCliente);
+    }
+}

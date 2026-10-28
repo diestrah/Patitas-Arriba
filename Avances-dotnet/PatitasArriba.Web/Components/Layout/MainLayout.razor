@@ -2,42 +2,67 @@
 @inject SesionDemo Sesion;
 @inject NavigationManager Nav;
 
-<nav class="navbar navbar-expand navbar-dark bg-primary px-3">
-    <a class="navbar-brand" href="">Patitas Arriba</a>
+<nav class="navbar navbar-expand-lg barra-patitas px-3">
+    <a class="navbar-brand marca" href="">
+        <span class="logo"><Huella Tamano="22" Color="#FFFFFF" /></span>
+        Patitas <span>Arriba</span>
+    </a>
 
-    @* El menú muestra solo las opciones del rol que inició sesión (ver Seguridad/Permisos.cs) *@
-    <ul class="navbar-nav me-auto">
-        @foreach (KeyValuePair<string, List<OpcionMenu>> grupo in Permisos.MenuDelRol(Sesion.Rol)) {
-            <li class="nav-item dropdown">
-                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">@grupo.Key</button>
-                <ul class="dropdown-menu">
-                    @foreach (OpcionMenu opcion in grupo.Value) {
-                        <li><NavLink class="dropdown-item" href="@opcion.Href">@opcion.Texto</NavLink></li>
-                    }
-                </ul>
-            </li>
-        }
-    </ul>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuPrincipal" aria-label="Abrir menú">
+        <span class="navbar-toggler-icon"></span>
+    </button>
 
-    <ul class="navbar-nav">
-        @if (Sesion.Rol != null) {
-            <li class="nav-item dropdown">
-                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    @Sesion.NombreUsuario (@TextoEnum.De(Sesion.Rol.Value))
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">Cerrar sesión</button></li>
-                </ul>
-            </li>
-        } else {
-            <li class="nav-item"><NavLink class="nav-link" href="login">Iniciar sesión</NavLink></li>
-        }
-    </ul>
+    <div class="collapse navbar-collapse" id="menuPrincipal">
+        @* El menú muestra solo las opciones del rol que inició sesión (ver Seguridad/Permisos.cs) *@
+        <ul class="navbar-nav me-auto">
+            @foreach (KeyValuePair<string, List<OpcionMenu>> grupo in Permisos.MenuDelRol(Sesion.Rol)) {
+                <li class="nav-item dropdown">
+                    <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">@grupo.Key</button>
+                    <ul class="dropdown-menu">
+                        @foreach (OpcionMenu opcion in grupo.Value) {
+                            <li><NavLink class="dropdown-item" href="@opcion.Href">@opcion.Texto</NavLink></li>
+                        }
+                    </ul>
+                </li>
+            }
+        </ul>
+
+        <ul class="navbar-nav">
+            @if (Sesion.Rol != null) {
+                <li class="nav-item dropdown">
+                    <button class="nav-link dropdown-toggle usuario" type="button" data-bs-toggle="dropdown">
+                        <span class="avatar">@Iniciales</span>
+                        <span class="d-flex flex-column text-start lh-sm">
+                            <span>@Sesion.NombreUsuario</span>
+                            <small>@TextoEnum.De(Sesion.Rol.Value)</small>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">Cerrar sesión</button></li>
+                    </ul>
+                </li>
+            } else {
+                <li class="nav-item"><NavLink class="btn btn-light btn-sm px-3" href="login">Iniciar sesión</NavLink></li>
+            }
+        </ul>
+    </div>
 </nav>
 
 <main class="container mt-4 mb-5">
     @Body
 </main>
+
+<footer class="pie-patitas no-print">
+    <div class="mascotas-pie" aria-hidden="true">
+        <Gato Pelaje="Pelaje.Azabache" Tamano="56" />
+        <Perro Pelaje="Pelaje.Dorado" Tamano="64" />
+        <Gato Pelaje="Pelaje.Naranja" Tamano="52" />
+        <Perro Pelaje="Pelaje.Dalmata" Tamano="58" />
+        <Gato Pelaje="Pelaje.Nieve" Tamano="50" />
+        <Perro Pelaje="Pelaje.Chocolate" Tamano="60" />
+    </div>
+    <div class="texto-pie">Clínica y estética veterinaria Patas Arriba · Hecho con cariño para perros y gatos</div>
+</footer>
 
 <div id="blazor-error-ui" data-nosnippet>
     Ocurrió un error inesperado.
@@ -46,6 +71,8 @@
 </div>
 
 @code {
+    private string Iniciales => string.Concat(Sesion.NombreUsuario.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => p[0]));
+
     private void CerrarSesion() {
         Sesion.CerrarSesion();
         Nav.NavigateTo("/login");

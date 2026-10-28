@@ -1,0 +1,32 @@
+@* Contenedor de cada gráfico o lista de los paneles de inicio *@
+<section class="tarjeta-panel h-100">
+    <header class="d-flex align-items-start justify-content-between gap-2 mb-3">
+        <div>
+            <h2 class="titulo-panel">@Titulo</h2>
+            @if (Subtitulo != null) {
+                <p class="subtitulo-panel">@Subtitulo</p>
+            }
+        </div>
+        @if (Enlace != null) {
+            <a class="enlace-panel" href="@Enlace">@TextoEnlace →</a>
+        }
+    </header>
+    @ChildContent
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Titulo { get; set; } = "";
+
+    [Parameter]
+    public string? Subtitulo { get; set; }
+
+    [Parameter]
+    public string? Enlace { get; set; }
+
+    [Parameter]
+    public string TextoEnlace { get; set; } = "Ver todo";
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+}

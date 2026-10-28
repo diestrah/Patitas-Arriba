@@ -1,0 +1,27 @@
+@* Indicador grande con su ícono de huella, para la fila de KPIs de los paneles *@
+<div class="tarjeta-indicador" style="--acento:@Color">
+    <div class="icono-indicador">
+        <Huella Color="@Color" Tamano="26" />
+    </div>
+    <div>
+        <div class="valor-indicador">@Valor</div>
+        <div class="titulo-indicador">@Titulo</div>
+        @if (Detalle != null) {
+            <div class="detalle-indicador">@Detalle</div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Titulo { get; set; } = "";
+
+    [Parameter, EditorRequired]
+    public string Valor { get; set; } = "";
+
+    [Parameter]
+    public string? Detalle { get; set; }
+
+    [Parameter]
+    public string Color { get; set; } = Paleta.Turquesa;
+}

@@ -1,0 +1,72 @@
+@* Gráfico de dona: cada segmento es un círculo con stroke-dasharray *@
+<div class="grafico-dona">
+    <svg viewBox="0 0 120 120" role="img" aria-label="@TextoCentro">
+        <circle cx="60" cy="60" r="@Paleta.Svg(Radio)" fill="none" stroke="var(--pa-pista)" stroke-width="16" />
+        @foreach (Segmento segmento in Segmentos) {
+            <circle class="segmento" cx="60" cy="60" r="@Paleta.Svg(Radio)" fill="none" stroke="@segmento.Punto.Color" stroke-width="16"
+                    stroke-dasharray="@($"{Paleta.Svg(segmento.Largo)} {Paleta.Svg(Circunferencia - segmento.Largo)}")"
+                    stroke-dashoffset="@Paleta.Svg(-segmento.Inicio)" transform="rotate(-90 60 60)">
+                <title>@segmento.Punto.Etiqueta: @Formatear(segmento.Punto.Valor)</title>
+            </circle>
+        }
+        <text x="60" y="58" text-anchor="middle" class="dona-total" style="font-size:@(TamanoTextoCentro)px">@TextoCentro</text>
+        <text x="60" y="74" text-anchor="middle" class="dona-subtitulo">@Subtitulo</text>
+    </svg>
+    <ul class="leyenda">
+        @foreach (PuntoGrafico punto in Datos) {
+            <li>
+                <span class="punto" style="background:@punto.Color"></span>
+                <span class="flex-grow-1">@punto.Etiqueta</span>
+                <strong>@Formatear(punto.Valor)</strong>
+                @if (Total > 0) {
+                    <span class="text-muted small ms-1">@((punto.Valor / Total).ToString("P0"))</span>
+                }
+            </li>
+        }
+    </ul>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public List<PuntoGrafico> Datos { get; set; } = [];
+
+    // Texto chico debajo del total, por ejemplo "citas"
+    [Parameter]
+    public string Subtitulo { get; set; } = "";
+
+    // Texto grande del centro; si no se indica, se muestra el total
+    [Parameter]
+    public string? Centro { get; set; }
+
+    [Parameter]
+    public Func<double, string>? Formato { get; set; }
+
+    private const double Radio = 44;
+    private static readonly double Circunferencia = 2 * Math.PI * Radio;
+
+    private double Total => Datos.Sum(d => d.Valor);
+    private string TextoCentro => Centro ?? Formatear(Total);
+
+    // Los montos largos (S/ 1,234.50) se achican para que entren dentro del anillo
+    private int TamanoTextoCentro => TextoCentro.Length switch { <= 4 => 22, <= 7 => 16, <= 9 => 13, _ => 11 };
+
+    private record Segmento(PuntoGrafico Punto, double Inicio, double Largo);
+
+    private List<Segmento> Segmentos {
+        get {
+            List<Segmento> segmentos = [];
+            if (Total <= 0) {
+                return segmentos;
+            }
+            double acumulado = 0;
+            foreach (PuntoGrafico punto in Datos.Where(d => d.Valor > 0)) {
+                double largo = punto.Valor / Total * Circunferencia;
+                segmentos.Add(new Segmento(punto, acumulado, largo));
+                acumulado += largo;
+            }
+            return segmentos;
+        }
+    }
+
+    private string Formatear(double valor) => Formato != null ? Formato(valor) : valor.ToString("0.##");
+}

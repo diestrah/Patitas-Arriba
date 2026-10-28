@@ -1,0 +1,42 @@
+@* Barras horizontales: una fila por etiqueta, el largo es proporcional al mayor valor *@
+@if (Datos.Count == 0) {
+    <p class="text-muted small mb-0">@TextoVacio</p>
+} else {
+    <div class="grafico-barras @(Apilado ? "apilado" : "")">
+        @foreach (PuntoGrafico punto in Datos) {
+            <div class="fila-barra" title="@punto.Etiqueta: @Formatear(punto.Valor)">
+                <div class="etiqueta-barra">
+                    <span>@punto.Etiqueta</span>
+                    @if (punto.Detalle != null) {
+                        <span class="text-muted small ms-1">@punto.Detalle</span>
+                    }
+                </div>
+                <div class="pista-barra">
+                    <div class="barra" style="width:@Paleta.Svg(Porcentaje(punto.Valor))%; background:@punto.Color"></div>
+                </div>
+                <strong class="valor-barra">@Formatear(punto.Valor)</strong>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public List<PuntoGrafico> Datos { get; set; } = [];
+
+    [Parameter]
+    public Func<double, string>? Formato { get; set; }
+
+    // Etiqueta arriba y barra debajo, para tarjetas angostas
+    [Parameter]
+    public bool Apilado { get; set; }
+
+    [Parameter]
+    public string TextoVacio { get; set; } = "Sin datos para mostrar.";
+
+    private double Maximo => Datos.Count == 0 ? 0 : Datos.Max(d => d.Valor);
+
+    private double Porcentaje(double valor) => Maximo <= 0 ? 0 : Math.Max(2, valor / Maximo * 100);
+
+    private string Formatear(double valor) => Formato != null ? Formato(valor) : valor.ToString("0.##");
+}

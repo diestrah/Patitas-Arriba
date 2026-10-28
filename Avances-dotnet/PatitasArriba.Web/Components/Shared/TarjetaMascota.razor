@@ -1,4 +1,7 @@
-<div class="card h-100">
+<div class="card h-100 tarjeta-mascota" style="--acento-claro:@Pelaje.De(Mascota).Claro">
+    <div class="fondo-mascota">
+        <IlustracionMascota Mascota="Mascota" Tamano="104" />
+    </div>
     <div class="card-body">
         <h5 class="card-title mb-1">
             @Mascota.Nombre
@@ -6,7 +9,7 @@
         <p class="text-muted small mb-2">@TextoEnum.De(Mascota.TipoMascota) · @(Mascota.Raza ?? "Sin raza") · @TextoEnum.De(Mascota.Sexo)</p>
         <ul class="list-unstyled small mb-0">
             <li><strong>Peso:</strong> @(Mascota.Peso == null ? "—" : $"{Mascota.Peso:N1} kg")</li>
-            <li><strong>Nacimiento:</strong> @(Mascota.FechaNacimiento?.ToString("dd/MM/yyyy"))</li>
+            <li><strong>Nacimiento:</strong> @(Mascota.FechaNacimiento?.ToString("dd/MM/yyyy")) (@Estadisticas.Edad(Mascota.FechaNacimiento))</li>
             @if (MostrarDueno) {
                 <li><strong>Dueño:</strong> @Mascota.NombreDueno</li>
             }

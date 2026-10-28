@@ -1,0 +1,20 @@
+@* Dibuja la mascota según su tipo (perro o gato) con el pelaje que le corresponde *@
+@if (Mascota.TipoMascota == TipoMascota.GATO) {
+    <Gato Pelaje="Pelaje.De(Mascota)" Tamano="Tamano" MoverCola="MoverCola" Clase="@Clase" />
+} else {
+    <Perro Pelaje="Pelaje.De(Mascota)" Tamano="Tamano" MoverCola="MoverCola" Clase="@Clase" />
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public MascotaViewModel Mascota { get; set; } = default!;
+
+    [Parameter]
+    public int Tamano { get; set; } = 96;
+
+    [Parameter]
+    public bool MoverCola { get; set; }
+
+    [Parameter]
+    public string? Clase { get; set; }
+}

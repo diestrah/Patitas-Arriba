@@ -1,0 +1,150 @@
+@* Panel de inicio del administrador: estado de citas, caja, inventario y personal *@
+
+<div class="banner-bienvenida">
+    <div>
+        <h1>¡Hola, @Nombre!</h1>
+        <p>Así va la clínica hoy, @DateTime.Today.ToString("dddd d 'de' MMMM", Cultura).</p>
+    </div>
+    <div class="mascotas-banner">
+        <Gato Pelaje="Pelaje.Naranja" Tamano="92" />
+        <Perro Pelaje="Pelaje.Dorado" Tamano="110" MoverCola="true" />
+        <Perro Pelaje="Pelaje.Negro" Tamano="86" />
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <TarjetaIndicador Titulo="Citas de hoy" Valor="@Resumen.CitasHoy.ToString()" Color="@Paleta.Turquesa" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <TarjetaIndicador Titulo="Por aprobar" Valor="@Resumen.CitasPendientes.ToString()" Color="@Paleta.Sol"
+                          Detalle="@(Resumen.EmergenciasPendientes > 0 ? $"{Resumen.EmergenciasPendientes} de emergencia" : null)" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <TarjetaIndicador Titulo="Ingresos del mes" Valor="@Paleta.Soles(Resumen.IngresosMes)" Color="@Paleta.Coral"
+                          Detalle="@($"{Resumen.BoletasMes} boletas emitidas")" />
+    </div>
+    <div class="col-6 col-lg-3">
+        <TarjetaIndicador Titulo="Artículos con stock bajo" Valor="@Resumen.ArticulosStockBajo.ToString()" Color="@Paleta.Rosa" />
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Citas por estado" Subtitulo="Todas las citas registradas" Enlace="citas">
+            <GraficoDona Datos="CitasPorEstado" Subtitulo="citas" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Ingresos por semana" Subtitulo="Total de boletas activas de las últimas 6 semanas" Enlace="boletas">
+            <GraficoColumnas Datos="IngresosPorSemana" Formato="Paleta.Soles" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Servicios más solicitados" Subtitulo="Servicios pedidos en citas vigentes" Enlace="servicios">
+            <GraficoBarras Datos="ServiciosMasSolicitados" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Ingresos por método de pago">
+            <GraficoDona Datos="IngresosPorMetodoPago" Formato="Paleta.Soles" Centro="@Paleta.Soles(IngresosPorMetodoPago.Sum(p => p.Valor))" Subtitulo="recaudado" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-lg-6">
+        <TarjetaPanel Titulo="Inventario por reponer" Subtitulo="Stock actual frente al stock mínimo" Enlace="articulos">
+            <div class="lista-stock">
+                @foreach (ArticuloViewModel articulo in ArticulosPorReponer) {
+                    bool bajo = articulo.StockActual <= articulo.StockMinimo;
+                    int maximo = Math.Max(articulo.StockActual, articulo.StockMinimo * 2);
+                    <div class="fila-stock">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span>@articulo.Nombre</span>
+                            <span class="@(bajo ? "text-danger fw-bold" : "text-muted")">@articulo.StockActual / mín. @articulo.StockMinimo</span>
+                        </div>
+                        <div class="pista-barra position-relative">
+                            <div class="barra" style="width:@Paleta.Svg(Math.Max(2, 100.0 * articulo.StockActual / maximo))%; background:@(bajo ? Paleta.Rosa : Paleta.Oliva)"></div>
+                            <span class="marca-minimo" style="left:@Paleta.Svg(100.0 * articulo.StockMinimo / maximo)%" title="Stock mínimo"></span>
+                        </div>
+                    </div>
+                }
+            </div>
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-6">
+        <TarjetaPanel Titulo="Citas por aprobar" Subtitulo="Primero las emergencias" Enlace="citas">
+            @if (CitasPorAprobar.Count == 0) {
+                <p class="text-muted mb-0">No hay citas pendientes. ¡Todo al día!</p>
+            } else {
+                <ul class="lista-citas">
+                    @foreach (CitaViewModel cita in CitasPorAprobar) {
+                        MascotaViewModel? mascota = Mascotas.FirstOrDefault(m => m.Id == cita.IdMascota);
+                        <li>
+                            @if (mascota != null) {
+                                <IlustracionMascota Mascota="mascota" Tamano="48" />
+                            }
+                            <div class="flex-grow-1">
+                                <strong>@cita.NombreMascota</strong>
+                                @if (cita.EsEmergencia) {
+                                    <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                }
+                                <div class="small text-muted">@cita.NombreCliente · @cita.TextoServicios</div>
+                            </div>
+                            <span class="small text-nowrap">@cita.FechaHora?.ToString("dd/MM HH:mm")</span>
+                        </li>
+                    }
+                </ul>
+            }
+        </TarjetaPanel>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <TarjetaPanel Titulo="Carga por veterinario" Subtitulo="Servicios asignados en citas vigentes" Enlace="veterinarios">
+            <GraficoBarras Datos="ServiciosPorVeterinario" />
+        </TarjetaPanel>
+    </div>
+    <div class="col-lg-5">
+        <TarjetaPanel Titulo="Pacientes registrados" Subtitulo="@($"{Resumen.Mascotas} mascotas de {Resumen.Clientes} clientes")" Enlace="mascotas">
+            <GraficoDona Datos="MascotasPorTipo" Subtitulo="mascotas" />
+        </TarjetaPanel>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public string Nombre { get; set; } = "";
+
+    private static readonly System.Globalization.CultureInfo Cultura = System.Globalization.CultureInfo.GetCultureInfo("es-PE");
+
+    private Estadisticas.ResumenAdministrador Resumen { get; set; } = default!;
+    private List<PuntoGrafico> CitasPorEstado { get; set; } = [];
+    private List<PuntoGrafico> IngresosPorSemana { get; set; } = [];
+    private List<PuntoGrafico> ServiciosMasSolicitados { get; set; } = [];
+    private List<PuntoGrafico> IngresosPorMetodoPago { get; set; } = [];
+    private List<PuntoGrafico> ServiciosPorVeterinario { get; set; } = [];
+    private List<PuntoGrafico> MascotasPorTipo { get; set; } = [];
+    private List<ArticuloViewModel> ArticulosPorReponer { get; set; } = [];
+    private List<CitaViewModel> CitasPorAprobar { get; set; } = [];
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+
+    protected override void OnInitialized() {
+        List<CitaViewModel> citas = DatosEjemplo.Citas();
+        Mascotas = DatosEjemplo.Mascotas();
+        Resumen = Estadisticas.Administrador();
+        CitasPorEstado = Estadisticas.CitasPorEstado(citas);
+        IngresosPorSemana = Estadisticas.IngresosPorSemana();
+        ServiciosMasSolicitados = Estadisticas.ServiciosMasSolicitados(citas);
+        IngresosPorMetodoPago = Estadisticas.IngresosPorMetodoPago();
+        ServiciosPorVeterinario = Estadisticas.ServiciosPorVeterinario();
+        MascotasPorTipo = Estadisticas.MascotasPorTipo(Mascotas);
+        ArticulosPorReponer = Estadisticas.ArticulosPorReponer();
+        CitasPorAprobar = Estadisticas.CitasPorAprobar();
+    }
+}

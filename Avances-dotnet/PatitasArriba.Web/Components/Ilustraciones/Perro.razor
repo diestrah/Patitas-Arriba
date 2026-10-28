@@ -1,0 +1,54 @@
+@* Perro sentado en estilo vectorial plano. El color sale de Pelaje *@
+<svg class="ilustracion @Clase" viewBox="0 0 120 120" width="@Tamano" height="@Tamano" role="img" aria-label="Perro">
+    <path d="M86 96 Q110 90 104 62" fill="none" stroke="@Pelaje.Base" stroke-width="9" stroke-linecap="round">
+        @if (MoverCola) {
+            <animateTransform attributeName="transform" type="rotate" values="0 86 96;-12 86 96;0 86 96" dur="0.9s" repeatCount="indefinite" />
+        }
+    </path>
+    <ellipse cx="60" cy="88" rx="28" ry="24" fill="@Pelaje.Base" />
+    <ellipse cx="60" cy="95" rx="16" ry="15" fill="@Pelaje.Claro" />
+    @if (Pelaje.Manchas) {
+        <ellipse cx="42" cy="84" rx="6" ry="5" fill="@Pelaje.Oscuro" />
+        <ellipse cx="80" cy="96" rx="5" ry="4" fill="@Pelaje.Oscuro" />
+    }
+    <rect x="45" y="96" width="11" height="18" rx="5.5" fill="@Pelaje.Base" />
+    <rect x="64" y="96" width="11" height="18" rx="5.5" fill="@Pelaje.Base" />
+    <ellipse cx="50.5" cy="113" rx="7.5" ry="4" fill="@Pelaje.Claro" />
+    <ellipse cx="69.5" cy="113" rx="7.5" ry="4" fill="@Pelaje.Claro" />
+
+    <circle cx="60" cy="47" r="26" fill="@Pelaje.Base" />
+    @if (Pelaje.Manchas) {
+        <ellipse cx="71" cy="38" rx="8" ry="7" fill="@Pelaje.Oscuro" />
+    }
+    <path d="M37 32 Q24 40 29 65 Q39 63 43 45 Z" fill="@Pelaje.Oscuro" />
+    <path d="M83 32 Q96 40 91 65 Q81 63 77 45 Z" fill="@Pelaje.Oscuro" />
+    <ellipse cx="60" cy="59" rx="14" ry="10.5" fill="@Pelaje.Claro" />
+    <circle cx="50" cy="43" r="3.4" fill="#2B2B3A" />
+    <circle cx="70" cy="43" r="3.4" fill="#2B2B3A" />
+    <circle cx="51.2" cy="41.8" r="1.1" fill="#FFF" />
+    <circle cx="71.2" cy="41.8" r="1.1" fill="#FFF" />
+    <ellipse cx="60" cy="54" rx="5.2" ry="3.6" fill="#2B2B3A" />
+    <path d="M60 57.5 V61 M60 61 Q56 65 52 62 M60 61 Q64 65 68 62" fill="none" stroke="#2B2B3A" stroke-width="1.6" stroke-linecap="round" />
+    @if (Lengua) {
+        <path d="M57 63 Q60 70 63 63 Z" fill="#FF8FA3" />
+    }
+    <rect x="43" y="69" width="34" height="6" rx="3" fill="@Pelaje.Collar" />
+    <circle cx="60" cy="78.5" r="3.6" fill="#FFD166" stroke="#E0A800" stroke-width="0.8" />
+</svg>
+
+@code {
+    [Parameter]
+    public Pelaje Pelaje { get; set; } = Pelaje.Dorado;
+
+    [Parameter]
+    public int Tamano { get; set; } = 120;
+
+    [Parameter]
+    public bool Lengua { get; set; } = true;
+
+    [Parameter]
+    public bool MoverCola { get; set; }
+
+    [Parameter]
+    public string? Clase { get; set; }
+}

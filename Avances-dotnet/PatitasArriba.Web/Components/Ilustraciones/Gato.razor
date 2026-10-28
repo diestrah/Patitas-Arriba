@@ -1,0 +1,55 @@
+@* Gato sentado en estilo vectorial plano. El color sale de Pelaje *@
+<svg class="ilustracion @Clase" viewBox="0 0 120 120" width="@Tamano" height="@Tamano" role="img" aria-label="Gato">
+    <path d="M82 104 Q114 100 104 68 Q101 60 96 62" fill="none" stroke="@Pelaje.Base" stroke-width="8" stroke-linecap="round">
+        @if (MoverCola) {
+            <animateTransform attributeName="transform" type="rotate" values="0 82 104;8 82 104;0 82 104" dur="1.6s" repeatCount="indefinite" />
+        }
+    </path>
+    <ellipse cx="60" cy="90" rx="24" ry="23" fill="@Pelaje.Base" />
+    <ellipse cx="60" cy="97" rx="13" ry="14" fill="@Pelaje.Claro" />
+    @if (Pelaje.Rayas) {
+        <path d="M38 84 h8 M37 92 h8 M82 84 h-8 M83 92 h-8" stroke="@Pelaje.Oscuro" stroke-width="2.6" stroke-linecap="round" />
+    }
+    <rect x="47" y="99" width="10" height="15" rx="5" fill="@Pelaje.Base" />
+    <rect x="63" y="99" width="10" height="15" rx="5" fill="@Pelaje.Base" />
+    <ellipse cx="52" cy="113" rx="6.5" ry="3.6" fill="@Pelaje.Claro" />
+    <ellipse cx="68" cy="113" rx="6.5" ry="3.6" fill="@Pelaje.Claro" />
+
+    <path d="M37 42 L39 13 L58 31 Z" fill="@Pelaje.Base" />
+    <path d="M83 42 L81 13 L62 31 Z" fill="@Pelaje.Base" />
+    <path d="M41 37 L42 21 L53 31 Z" fill="#FFB4C2" />
+    <path d="M79 37 L78 21 L67 31 Z" fill="#FFB4C2" />
+    <ellipse cx="60" cy="50" rx="26" ry="23" fill="@Pelaje.Base" />
+    @if (Pelaje == Pelaje.Siames) {
+        <ellipse cx="60" cy="57" rx="15" ry="12" fill="@Pelaje.Oscuro" opacity="0.85" />
+    }
+    @if (Pelaje.Rayas) {
+        <path d="M60 28 v9 M53 30 l2 7 M67 30 l-2 7" stroke="@Pelaje.Oscuro" stroke-width="2.6" stroke-linecap="round" />
+    }
+    <circle cx="54.5" cy="59" r="6" fill="@Pelaje.Claro" />
+    <circle cx="65.5" cy="59" r="6" fill="@Pelaje.Claro" />
+    <ellipse cx="49" cy="47" rx="4" ry="4.8" fill="@ColorOjos" />
+    <ellipse cx="71" cy="47" rx="4" ry="4.8" fill="@ColorOjos" />
+    <ellipse cx="49" cy="47" rx="1.3" ry="3.8" fill="#1E1D2C" />
+    <ellipse cx="71" cy="47" rx="1.3" ry="3.8" fill="#1E1D2C" />
+    <path d="M57 54.5 H63 L60 58 Z" fill="#FF8FA3" />
+    <path d="M44 58 L30 55 M44 61 L30 62 M76 58 L90 55 M76 61 L90 62" stroke="@Pelaje.Oscuro" stroke-width="1.2" stroke-linecap="round" opacity="0.7" />
+    <rect x="44" y="70" width="32" height="5.5" rx="2.75" fill="@Pelaje.Collar" />
+    <circle cx="60" cy="78" r="3.3" fill="#FFD166" stroke="#E0A800" stroke-width="0.8" />
+</svg>
+
+@code {
+    [Parameter]
+    public Pelaje Pelaje { get; set; } = Pelaje.Naranja;
+
+    [Parameter]
+    public int Tamano { get; set; } = 120;
+
+    [Parameter]
+    public bool MoverCola { get; set; }
+
+    [Parameter]
+    public string? Clase { get; set; }
+
+    private string ColorOjos => Pelaje == Pelaje.Siames ? "#4EA8DE" : "#7CB518";
+}
