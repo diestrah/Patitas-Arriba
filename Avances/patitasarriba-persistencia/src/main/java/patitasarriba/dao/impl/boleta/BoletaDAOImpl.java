@@ -199,4 +199,33 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
 
         return boleta;
     }
+
+    @Override
+    public int boletaConServicio(int idDetalleCita) throws SQLException {
+        return buscarIdBoleta("{call buscar_detalle_boleta_serv_por_detalle_cita(?)}", "p_id_detalle_cita", idDetalleCita);
+    }
+
+    @Override
+    public int boletaConInsumo(int idInsumoUtilizado) throws SQLException {
+        return buscarIdBoleta("{call buscar_detalle_boleta_art_por_insumo(?)}", "p_id_insumo_utilizado", idInsumoUtilizado);
+    }
+
+    @Override
+    public int boletaConSerie(String serieCorrelativo) throws SQLException {
+        return buscarIdBoleta("{call buscar_boleta_por_serie_correlativo(?)}", "p_serie_correlativo", serieCorrelativo);
+    }
+
+    private int buscarIdBoleta(String sql, String parametro, Object valor) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try (CallableStatement cmd = conn.prepareCall(sql)) {
+            cmd.setObject(parametro, valor);
+            try (ResultSet rs = cmd.executeQuery()) {
+                return rs.next() ? rs.getInt("id_boleta") : 0;
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
 }

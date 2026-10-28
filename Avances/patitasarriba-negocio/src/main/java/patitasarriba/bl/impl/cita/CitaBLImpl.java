@@ -2,13 +2,16 @@ package patitasarriba.bl.impl.cita;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CitaBL;
+import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.MascotaDAO;
 import patitasarriba.dao.VeterinarioDAO;
+import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
 import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
 import patitasarriba.dao.impl.usuario.VeterinarioDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.cita.EstadoCita;
@@ -24,6 +27,7 @@ public class CitaBLImpl implements CitaBL {
     private final CitaDAO citaDAO = new CitaDAOImpl();
     private final MascotaDAO mascotaDAO = new MascotaDAOImpl();
     private final VeterinarioDAO veterinarioDAO = new VeterinarioDAOImpl();
+    private final AtencionDAO atencionDAO = new AtencionDAOImpl();
 
     @Override
     public List<Cita> findAll() throws BLException {
@@ -55,7 +59,7 @@ public class CitaBLImpl implements CitaBL {
         try {
             citaDAO.insert(cita);
             TransactionsManager.commit();
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e)  {
             TransactionsManager.rollback();
             throw new BLException("No se pudo registrar la cita", e);
         }
@@ -76,7 +80,7 @@ public class CitaBLImpl implements CitaBL {
         try {
             citaDAO.update(cita);
             TransactionsManager.commit();
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e)  {
             TransactionsManager.rollback();
             throw new BLException("No se pudo actualizar la cita", e);
         }
@@ -85,11 +89,12 @@ public class CitaBLImpl implements CitaBL {
     @Override
     public void delete(Integer id) throws BLException {
         validarExiste(id);
+        validarSinAtenciones(obtenerExistente(id));
         TransactionsManager.iniciar();
         try {
             citaDAO.delete(id);
             TransactionsManager.commit();
-        } catch (SQLException e) {
+        } catch (SQLException | RuntimeException e) {
             TransactionsManager.rollback();
             throw new BLException("No se pudo eliminar la cita", e);
         }
@@ -164,21 +169,6 @@ public class CitaBLImpl implements CitaBL {
         }
     }
 
-    // Reglas del ciclo de vida: una cita cerrada no se modifica y aprobar/rechazar deja registrado al administrador
-    private void validarCambioDeEstado(Cita actual, Cita nueva) throws BLException {
-        EstadoCita estadoActual = actual.getEstado();
-        if (nueva.getEstado() == EstadoCita.CANCELADO && estadoActual == EstadoCita.COMPLETADO) {
-            throw new BLException("No se puede cancelar una cita ya completada");
-        }
-        if (estadoActual == EstadoCita.CANCELADO || estadoActual == EstadoCita.COMPLETADO
-                || estadoActual == EstadoCita.RECHAZADO) {
-            throw new BLException("No se puede modificar una cita en estado " + estadoActual);
-        }
-        if ((nueva.getEstado() == EstadoCita.APROBADO || nueva.getEstado() == EstadoCita.RECHAZADO)
-                && nueva.getAdministrador() == null) {
-            throw new BLException("Debe indicarse el administrador que aprueba o rechaza la cita");
-        }
-    }
 
     private Cita obtenerExistente(int id) throws BLException {
         try {
@@ -194,5 +184,42 @@ public class CitaBLImpl implements CitaBL {
 
     private void validarExiste(int id) throws BLException {
         obtenerExistente(id);
+    }
+
+    private void validarSinAtenciones(Cita cita) throws BLException {
+        try {
+            for (Atencion atencion : atencionDAO.findAll()) {
+                for (DetalleCita detalle : cita.getDetalles()) {
+                    if (atencion.getDetalleCita().getId() == detalle.getId()) {
+                        throw new BLException("La cita tiene el servicio " + detalle.getServicio().getNombre()
+                                + " ya atendido: no se puede eliminar ni cancelar");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar las atenciones de la cita", e);
+        }
+    }
+
+    private void validarCambioDeEstado(Cita actual, Cita nueva) throws BLException {
+        EstadoCita de = actual.getEstado();
+        EstadoCita a = nueva.getEstado();
+        if (de == EstadoCita.CANCELADO || de == EstadoCita.RECHAZADO || de == EstadoCita.COMPLETADO) {
+            throw new BLException("No se puede modificar una cita en estado " + de);
+        }
+        if (a != de) {
+            boolean valido = (de == EstadoCita.PENDIENTE
+                    && (a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO || a == EstadoCita.CANCELADO))
+                    || (de == EstadoCita.APROBADO && a == EstadoCita.CANCELADO);
+            if (!valido) {
+                throw new BLException("No se puede pasar una cita de " + de + " a " + a);
+            }
+        }
+        if ((a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO) && nueva.getAdministrador() == null) {
+            throw new BLException("Debe indicarse el administrador que aprueba o rechaza la cita");
+        }
+        if (a == EstadoCita.CANCELADO) {
+            validarSinAtenciones(actual);
+        }
     }
 }

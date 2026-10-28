@@ -75,6 +75,7 @@ public class CuentaBLImpl implements CuentaBL {
     @Override
     public void insert(Cuenta cuenta) throws BLException {
         validar(cuenta);
+        validarUnicos(cuenta);
 
         cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
 
@@ -84,7 +85,7 @@ public class CuentaBLImpl implements CuentaBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la cuenta", e);
+            throw new BLException("No se pudo insertar la cuenta", e);
         }
     }
 
@@ -92,6 +93,7 @@ public class CuentaBLImpl implements CuentaBL {
     @Override
     public void update(Cuenta cuenta) throws BLException {
         validar(cuenta);
+        validarUnicos(cuenta);
         try {
             Cuenta actual = cuentaDAO.findById(cuenta.getId());
             if (actual == null) throw new BLException("No existe una cuenta activa con id " + cuenta.getId());
@@ -122,7 +124,7 @@ public class CuentaBLImpl implements CuentaBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la cuenta", e);
+            throw new BLException("No se pudo eliminar la cuenta", e);
         }
     }
 
@@ -155,6 +157,24 @@ public class CuentaBLImpl implements CuentaBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar quién usa la cuenta", e);
+        }
+    }
+
+    // nombre_usuario y correo son UNIQUE en la base
+    private void validarUnicos(Cuenta cuenta) throws BLException {
+        try {
+            // buscar_cuenta_por_nombre_usuario no filtra activo: detecta tambien cuentas dadas de baja
+            Cuenta porUsuario = cuentaDAO.findByNombreUsuario(cuenta.getNombreUsuario());
+            if (porUsuario != null && porUsuario.getId() != cuenta.getId()) {
+                throw new BLException("El nombre de usuario '" + cuenta.getNombreUsuario() + "' ya está en uso");
+            }
+            for (Cuenta otra : cuentaDAO.findAll()) {
+                if (otra.getId() != cuenta.getId() && otra.getCorreo().equalsIgnoreCase(cuenta.getCorreo())) {
+                    throw new BLException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el usuario o el correo", e);
         }
     }
 }

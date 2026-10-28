@@ -5,13 +5,16 @@ import patitasarriba.bl.BLException;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
+import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
+import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.producto.Articulo;
+import patitasarriba.modelo.producto.TipoServicio;
 import patitasarriba.modelo.receta.Receta;
 
 import java.sql.SQLException;
@@ -22,6 +25,7 @@ public class AtencionBLImpl implements AtencionBL {
 
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
+    private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
 
     @Override
     public List<Atencion> findAll() throws BLException {
@@ -45,6 +49,7 @@ public class AtencionBLImpl implements AtencionBL {
     public void insert(Atencion atencion) throws BLException {
         validar(atencion);
         validarDetalleCitaLibre(atencion);
+        validarTipoServicio(atencion);
 
         TransactionsManager.iniciar();
         try {
@@ -56,7 +61,7 @@ public class AtencionBLImpl implements AtencionBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la atencion medica", e);
+            throw new BLException("No se pudo insertar la atencion medica", e);
         }
     }
 
@@ -65,6 +70,7 @@ public class AtencionBLImpl implements AtencionBL {
         validar(atencion);
         validarDetalleCitaLibre(atencion);
         validarExiste(atencion.getId());
+        validarTipoServicio(atencion);
 
         TransactionsManager.iniciar();
         try {
@@ -98,7 +104,7 @@ public class AtencionBLImpl implements AtencionBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la atencion medica", e);
+            throw new BLException("No se pudo actualizar la atencion medica", e);
         }
     }
 
@@ -123,7 +129,7 @@ public class AtencionBLImpl implements AtencionBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la atencion medica", e);
+            throw new BLException("No se pudo eliminar la atencion medica", e);
         }
     }
 
@@ -186,4 +192,24 @@ public class AtencionBLImpl implements AtencionBL {
         articulo.setStockActual(nuevoStock);
         articuloDAO.update(TransactionsManager.getConnection(), articulo);
     }
+
+    private void validarTipoServicio(Atencion atencion) throws BLException {
+        try {
+            DetalleCita detalle = detalleCitaDAO.buscarDetallePorId(atencion.getDetalleCita().getId());
+            if (detalle == null) {
+                throw new BLException("El servicio de la cita no existe o fue anulado");
+            }
+            boolean esMedico = detalle.getServicio().getTipo() != TipoServicio.ESTETICA;
+            if (esMedico && (atencion.getMotivoConsulta() == null || atencion.getMotivoConsulta().isBlank())) {
+                throw new BLException("El motivo de consulta es obligatorio en servicios médicos");
+            }
+            if (!esMedico && !atencion.getDiagnosticos().isEmpty()) {
+                throw new BLException("No se pueden registrar diagnósticos en un servicio estético");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el tipo de servicio de la atención", e);
+        }
+    }
+
+
 }

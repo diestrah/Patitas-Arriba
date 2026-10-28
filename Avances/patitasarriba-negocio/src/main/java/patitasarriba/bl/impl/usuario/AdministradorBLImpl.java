@@ -47,13 +47,14 @@ public class AdministradorBLImpl implements AdministradorBL {
     public void insert(Administrador admin) throws BLException {
         validar(admin);
         validarCuentaActiva (admin);
+        validarUnicos(admin);
         TransactionsManager.iniciar();
         try {
             administradorDAO.insert(admin);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el administrador", e);
+            throw new BLException("No se pudo insertar el administrador", e);
         }
     }
 
@@ -61,13 +62,14 @@ public class AdministradorBLImpl implements AdministradorBL {
     public void update(Administrador admin) throws BLException {
         validar(admin);
         validarCuentaActiva(admin);
+        validarUnicos(admin);
         TransactionsManager.iniciar();
         try {
             administradorDAO.update(admin);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el administrador", e);
+            throw new BLException("No se pudo actualizar el administrador", e);
         }
     }
 
@@ -83,7 +85,7 @@ public class AdministradorBLImpl implements AdministradorBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el administrador", e);
+            throw new BLException("No se pudo eliminar el administrador", e);
         }
     }
 
@@ -108,5 +110,28 @@ public class AdministradorBLImpl implements AdministradorBL {
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta del administrador", e);
         }
+    }
+
+    // dni y telefono son UNIQUE en la base
+    private void validarUnicos(Administrador admin) throws BLException {
+        try {
+            Administrador porDni;
+            try {
+                porDni = administradorDAO.findByDni(admin.getDni());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer un administrador dado de baja cuya cuenta tambien se dio de baja
+                throw new BLException("Ya existe un administrador dado de baja con el DNI " + admin.getDni());
+            }
+            if (porDni != null && porDni.getId() != admin.getId()) {
+                throw new BLException("Ya existe un administrador con el DNI " + admin.getDni());
+            }
+            for (Administrador otro : administradorDAO.findAll()) {
+                if (otro.getId() != admin.getId() && otro.getTelefono().equals(admin.getTelefono())) {
+                    throw new BLException("Ya existe un administrador con el teléfono " + admin.getTelefono());
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el DNI o el teléfono del administrador", e);
         }
+    }
 }

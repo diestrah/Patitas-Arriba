@@ -47,6 +47,7 @@ public class ServicioBLImpl implements ServicioBL {
     @Override
     public void insert(Servicio entidad) throws BLException {
         validar(entidad);
+        validarNombreUnico(entidad);
         try {
             servicioDAO.insert(entidad);
         } catch (SQLException e) {
@@ -57,6 +58,7 @@ public class ServicioBLImpl implements ServicioBL {
     @Override
     public void update(Servicio entidad) throws BLException {
         validar(entidad);
+        validarNombreUnico(entidad);
         try {
             servicioDAO.update(entidad);
         } catch (SQLException e) {
@@ -107,6 +109,20 @@ public class ServicioBLImpl implements ServicioBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las citas del servicio", e);
+        }
+    }
+
+    // nombre es UNIQUE en la base. buscar_servicio_por_nombre no filtra activo:
+    // detecta tambien servicios dados de baja
+    private void validarNombreUnico(Servicio servicio) throws BLException {
+        try {
+            Servicio existente = servicioDAO.findByName(servicio.getNombre().trim());
+            if (existente != null && existente.getId() != servicio.getId()) {
+                throw new BLException("Ya existe un servicio" + (existente.isActivo() ? "" : " dado de baja")
+                        + " con el nombre '" + servicio.getNombre() + "'");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el nombre del servicio", e);
         }
     }
 

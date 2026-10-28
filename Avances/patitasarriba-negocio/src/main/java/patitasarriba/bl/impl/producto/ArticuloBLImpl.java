@@ -52,7 +52,7 @@ public class ArticuloBLImpl implements ArticuloBL {
         try {
             articuloDAO.insert(articulo);
         } catch (SQLException e) {
-            throw new BLException("No se pudo registrar el articulo", e);
+            throw new BLException("No se pudo insertar el articulo", e);
         }
     }
 

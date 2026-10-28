@@ -40,7 +40,7 @@ public class CategoriaBLImpl implements CategoriaBL {
         try {
             categoriaDAO.insert(categoria);
         } catch (SQLException e) {
-            throw new BLException("No se pudo registrar la categoria de articulo", e);
+            throw new BLException("No se pudo insertar la categoria de articulo", e);
         }
     }
 

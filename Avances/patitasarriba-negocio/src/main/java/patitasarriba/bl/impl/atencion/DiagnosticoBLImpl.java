@@ -50,6 +50,7 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
     @Override
     public void insert(Diagnostico entidad) throws BLException {
         validarNombreEnfermedad(entidad);
+        validarNombreUnico(entidad);
         try {
             diagnosticoDAO.insert(entidad);
         } catch (SQLException e) {
@@ -61,6 +62,7 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
     public void update(Diagnostico entidad) throws BLException {
         validarNombreEnfermedad(entidad);
         validarExiste(entidad.getId());
+        validarNombreUnico(entidad);
         try {
             diagnosticoDAO.update(entidad);
         } catch (SQLException e) {
@@ -102,6 +104,20 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia del diagnostico", e);
+        }
+    }
+
+    // nombre_enfermedad es UNIQUE en la base. buscar_diagnostico_por_nombre_enfermedad no filtra activo:
+    // detecta tambien diagnosticos dados de baja
+    private void validarNombreUnico(Diagnostico diagnostico) throws BLException {
+        try {
+            Diagnostico existente = diagnosticoDAO.findByNombreEnfermedad(diagnostico.getNombreEnfermedad().trim());
+            if (existente != null && existente.getId() != diagnostico.getId()) {
+                throw new BLException("Ya existe un diagnostico" + (existente.isActivo() ? "" : " dado de baja")
+                        + " llamado '" + diagnostico.getNombreEnfermedad() + "'");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el nombre del diagnostico", e);
         }
     }
 }

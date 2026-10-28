@@ -51,13 +51,14 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     public void insert(Veterinario vet) throws BLException {
         validar(vet);
         validarCuentaActiva (vet);
+        validarUnicos(vet);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.insert(vet);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el veterinario", e);
+            throw new BLException("No se pudo insertar el veterinario", e);
         }
     }
 
@@ -65,13 +66,14 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     public void update(Veterinario vet) throws BLException {
         validar(vet);
         validarCuentaActiva (vet);
+        validarUnicos(vet);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.update(vet);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el veterinario", e);
+            throw new BLException("No se pudo actualizar el veterinario", e);
         }
     }
 
@@ -84,7 +86,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar el veterinario", e);
+            throw new BLException("No se pudo eliminar el veterinario", e);
         }
     }
 
@@ -128,4 +130,32 @@ public class VeterinarioBLImpl implements VeterinarioBL {
             throw new BLException("No se pudo verificar las citas del veterinario", e);
         }
     }
+
+    // dni, telefono y numero_colegiatura son UNIQUE en la base
+    private void validarUnicos(Veterinario vet) throws BLException {
+        try {
+            Veterinario porDni;
+            try {
+                porDni = veterinarioDAO.findByDni(vet.getDni());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer un veterinario dado de baja cuya cuenta tambien se dio de baja
+                throw new BLException("Ya existe un veterinario dado de baja con el DNI " + vet.getDni());
+            }
+            if (porDni != null && porDni.getId() != vet.getId()) {
+                throw new BLException("Ya existe un veterinario con el DNI " + vet.getDni());
+            }
+            for (Veterinario otro : veterinarioDAO.findAll()) {
+                if (otro.getId() == vet.getId()) continue;
+                if (otro.getTelefono().equals(vet.getTelefono())) {
+                    throw new BLException("Ya existe un veterinario con el teléfono " + vet.getTelefono());
+                }
+                if (otro.getNumeroColegiatura().equalsIgnoreCase(vet.getNumeroColegiatura())) {
+                    throw new BLException("Ya existe un veterinario con la colegiatura " + vet.getNumeroColegiatura());
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el DNI, el teléfono o la colegiatura del veterinario", e);
+        }
+    }
+
 }

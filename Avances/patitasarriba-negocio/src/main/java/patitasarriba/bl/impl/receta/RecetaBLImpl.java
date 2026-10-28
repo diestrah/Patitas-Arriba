@@ -9,6 +9,8 @@ import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
+import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.producto.TipoServicio;
 import patitasarriba.modelo.receta.Receta;
 import patitasarriba.modelo.receta.DetalleReceta;
 
@@ -41,13 +43,15 @@ public class RecetaBLImpl implements RecetaBL {
     public void insert(Receta entidad) throws BLException {
         validar(entidad);
         validarExistentes(entidad);
+        validarServicioMedico (entidad);
+
         TransactionsManager.iniciar();
         try {
             recetaDAO.insert(entidad);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la receta", e);
+            throw new BLException("No se pudo insertar la receta", e);
         }
     }
 
@@ -55,13 +59,15 @@ public class RecetaBLImpl implements RecetaBL {
     public void update(Receta entidad) throws BLException {
         validar(entidad);
         validarExistentes(entidad);
+        validarServicioMedico (entidad);
+
         TransactionsManager.iniciar();
         try {
             recetaDAO.update(entidad);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la receta", e);
+            throw new BLException("No se pudo actualizar la receta", e);
         }
     }
 
@@ -73,7 +79,7 @@ public class RecetaBLImpl implements RecetaBL {
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
-            throw new BLException("No se pudo registrar la receta", e);
+            throw new BLException("No se pudo eliminar la receta", e);
         }
     }
 
@@ -115,6 +121,17 @@ public class RecetaBLImpl implements RecetaBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la atención o los artículos de la receta", e);
+        }
+    }
+
+    private void validarServicioMedico(Receta receta) throws BLException {
+        try {
+            Atencion atencion = atencionDAO.findById(receta.getAtencion().getId());
+            if (atencion.getDetalleCita().getServicio().getTipo() == TipoServicio.ESTETICA) {
+                throw new BLException("No se pueden emitir recetas en servicios estéticos");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar el tipo de servicio de la atención", e);
         }
     }
 }
