@@ -210,7 +210,7 @@ public class CitaBLImpl implements CitaBL {
         if (a != de) {
             boolean valido = (de == EstadoCita.PENDIENTE
                     && (a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO || a == EstadoCita.CANCELADO))
-                    || (de == EstadoCita.APROBADO && a == EstadoCita.CANCELADO);
+                    || (de == EstadoCita.APROBADO && (a == EstadoCita.CANCELADO || a == EstadoCita.COMPLETADO));
             if (!valido) {
                 throw new BLException("No se puede pasar una cita de " + de + " a " + a);
             }
@@ -220,6 +220,31 @@ public class CitaBLImpl implements CitaBL {
         }
         if (a == EstadoCita.CANCELADO) {
             validarSinAtenciones(actual);
+        }
+        if (a == EstadoCita.COMPLETADO) {
+            validarTodosAtendidos(actual);
+        }
+    }
+
+    // Una cita solo se completa cuando cada uno de sus servicios ya tiene su atencion
+    private void validarTodosAtendidos(Cita cita) throws BLException {
+        try {
+            List<Atencion> atenciones = atencionDAO.findAll();
+            for (DetalleCita detalle : cita.getDetalles()) {
+                boolean atendido = false;
+                for (Atencion atencion : atenciones) {
+                    if (atencion.getDetalleCita().getId() == detalle.getId()) {
+                        atendido = true;
+                        break;
+                    }
+                }
+                if (!atendido) {
+                    throw new BLException("No se puede completar la cita: el servicio "
+                            + detalle.getServicio().getNombre() + " aún no fue atendido");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar las atenciones de la cita", e);
         }
     }
 }
