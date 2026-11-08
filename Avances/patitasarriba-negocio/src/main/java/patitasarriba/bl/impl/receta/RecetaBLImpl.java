@@ -36,7 +36,7 @@ public class RecetaBLImpl implements RecetaBL {
         try {
             Receta receta = recetaDAO.findById(id);
             if(receta==null){
-                throw new NoEncontradoException("No se pudo encontrar el receta con el id="+id);
+                throw new NoEncontradoException("No se pudo encontrar la receta con el id="+id);
             }
             return receta;
         } catch (SQLException e) {
