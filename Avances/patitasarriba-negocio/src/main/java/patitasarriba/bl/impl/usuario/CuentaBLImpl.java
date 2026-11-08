@@ -2,6 +2,8 @@ package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CuentaBL;
+import patitasarriba.bl.NoEncontradoException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.util.HashUtil;
 import patitasarriba.dao.AdministradorDAO;
 import patitasarriba.dao.ClienteDAO;
@@ -37,7 +39,11 @@ public class CuentaBLImpl implements CuentaBL {
     @Override
     public Cuenta findById(Integer id) throws BLException {
         try {
-            return cuentaDAO.findById(id);
+            Cuenta cuenta= cuentaDAO.findById(id);
+            if(cuenta==null){
+                throw new NoEncontradoException("No se pudo encontrar la cuenta con el id "+id);
+            }
+            return cuenta;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la cuenta", e);
         }
@@ -45,8 +51,16 @@ public class CuentaBLImpl implements CuentaBL {
 
     @Override
     public Cuenta findByNombreUsuario(String nombreUsuario) throws BLException {
+        if(nombreUsuario==null || nombreUsuario.isBlank()){
+            throw new ValidacionException("El nombre ingresado debe ser valido");
+        }
+
         try {
-            return cuentaDAO.findByNombreUsuario(nombreUsuario);
+            Cuenta cuenta= cuentaDAO.findByNombreUsuario(nombreUsuario);
+            if(cuenta==null){
+                throw new NoEncontradoException("No se pudo encontrar la cuenta con el nombre "+nombreUsuario);
+            }
+            return cuenta;
         } catch (SQLException e) {
             throw new BLException("Error al buscar la cuenta por nombre de usuario", e);
         }

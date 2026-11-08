@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.ArticuloBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.*;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.boleta.BoletaDAOImpl;
@@ -41,7 +42,7 @@ public class ArticuloBLImpl implements ArticuloBL {
         try {
             Articulo articulo = articuloDAO.findById(id);
             if(articulo==null){
-                throw new BLException("No se encontro el articulo con id :"+id);
+                throw new NoEncontradoException("No se encontro el articulo con id :"+id);
             }
             return articulo;
         } catch (SQLException e) {

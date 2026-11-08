@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.AdministradorBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.AdministradorDAO;
 import patitasarriba.dao.CuentaDAO;
 import patitasarriba.dao.impl.usuario.AdministradorDAOImpl;
@@ -28,7 +29,11 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public Administrador findById(Integer id) throws BLException {
         try {
-            return administradorDAO.findById(id);
+            Administrador administrador = administradorDAO.findById(id);
+            if(administrador==null){
+                throw new NoEncontradoException("No se pudo recuperar el administrador con id: "+id);
+            }
+            return administrador;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el administrador", e);
         }
@@ -77,7 +82,7 @@ public class AdministradorBLImpl implements AdministradorBL {
     public void delete(Integer id) throws BLException {
         TransactionsManager.iniciar();
         try {
-            //para que no nos quedemos en 0
+            //para que no nos quedemos en 0 administradores
             if (administradorDAO.findAll().size() <= 1) {
                 throw new BLException("No se puede eliminar al único administrador activo");
             }

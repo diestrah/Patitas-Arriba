@@ -2,6 +2,8 @@ package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.ClienteBL;
+import patitasarriba.bl.NoEncontradoException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.*;
 import patitasarriba.dao.impl.boleta.BoletaDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
@@ -35,7 +37,11 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public Cliente findById(Integer id) throws BLException {
         try {
-            return clienteDAO.findById(id);
+            Cliente cliente = clienteDAO.findById(id);
+            if(cliente==null){
+                throw new NoEncontradoException("No se pudo recuperar el cliente con id :"+id);
+            }
+            return cliente;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el cliente", e);
         }
@@ -43,8 +49,16 @@ public class ClienteBLImpl implements ClienteBL {
 
     @Override
     public Cliente findByDni(String dni) throws BLException {
+        if(dni==null || dni.isBlank()){
+            throw new ValidacionException("El dni debe ser valido");
+        }
+
         try {
-            return clienteDAO.findByDni(dni);
+            Cliente cliente = clienteDAO.findByDni(dni);
+            if(cliente==null){
+                throw new NoEncontradoException("No se pudo recuperar el cliente con dni "+dni);
+            }
+            return cliente;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el cliente por DNI", e);
         }
