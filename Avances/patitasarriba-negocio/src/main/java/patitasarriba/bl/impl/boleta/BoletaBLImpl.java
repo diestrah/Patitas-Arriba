@@ -5,6 +5,7 @@ import java.util.List;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.BoletaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.BoletaDAO;
@@ -47,7 +48,11 @@ public class BoletaBLImpl implements BoletaBL {
     @Override
     public Boleta findById(Integer id) throws BLException {
         try {
-            return boletaDAO.findById(id);
+            Boleta boleta=boletaDAO.findById(id);
+            if(boleta==null){
+                throw new NoEncontradoException("No se pudo recuperar la boleta con id: "+ id);
+            }
+            return boleta;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la boleta", e);
         }
@@ -114,32 +119,9 @@ public class BoletaBLImpl implements BoletaBL {
 
     // Valida integridad de boleta, existencia de productos y recálculo de precios.
     private void validarYCalcular(Boleta boleta) throws BLException {
-        if (boleta == null) {
-            throw new BLException("La boleta no puede ser nula");
-        }
-        if (boleta.getCliente() == null) {
-            throw new BLException("La boleta debe tener un cliente asociado");
-        }
 
-        if (boleta.getDetalles().isEmpty()) {
-            throw new BLException("La boleta debe tener al menos un detalle");
-        }
-
-        if (boleta.getMetodoPago() == null) {
-            throw new BLException("La boleta debe tener un método de pago");
-        }
-
-        if (boleta.getFecha() == null) {
-            throw new BLException("La boleta debe tener una fecha");
-        }
-
-        if (boleta.getSerieCorrelativo() == null || boleta.getSerieCorrelativo().isBlank()) {
-            throw new BLException("La boleta debe tener serie y correlativo");
-        }
-
-        if (!boleta.getSerieCorrelativo().matches("[A-Z]\\d{3}-\\d{6}")) {
-            throw new BLException("El número de boleta debe tener el formato B001-000123");
-        }
+        //refactorizado para no tener una sábana de código
+        validarDatosBasicos(boleta);
 
         double totalCalculado = 0.0;
 
@@ -156,60 +138,14 @@ public class BoletaBLImpl implements BoletaBL {
             try {
                 // Enrutamiento polimórfico según el tipo de detalle
                 if (detalle instanceof DetalleBoletaArticulo detalleArticulo) {
-                    if (detalleArticulo.getArticulo() == null) {
-                        throw new BLException("Cada detalle de articulo debe tener un articulo");
-                    }
-
-                    // Validaciones específicas para Artículos
-                    Articulo artReal = articuloDAO.findById(detalleArticulo.getArticulo().getId());
-
-                    if (artReal == null || !artReal.isActivo()) {
-                        throw new BLException("El artículo no existe o está inactivo en el catálogo");
-                    }
-
-                    if (detalleArticulo.getInsumoUtilizado() == null) {
-                        // Venta en caja: suma todas las lineas del mismo articulo, para que dos lineas
-                        // (por ejemplo 3 + 3 con stock 5) no dejen el stock en negativo.
-                        // Al modificar, cuenta tambien lo que esta boleta ya habia descontado.
-                        int pedido = 0;
-                        for (DetalleBoleta d : boleta.getDetalles()) {
-                            if (d instanceof DetalleBoletaArticulo a && a.getInsumoUtilizado() == null
-                                    && a.getArticulo().getId() == artReal.getId()) {
-                                pedido += a.getCantidad();
-                            }
-                        }
-                        int disponible = artReal.getStockActual() + cantidadYaVendida(boleta.getId(), artReal.getId());
-                        if (pedido > disponible) {
-                            throw new BLException("Stock insuficiente para el artículo: " + artReal.getNombre()
-                                    + " (Stock disponible: " + disponible + ")");
-                        }
-                    } else {
-                        // Insumo de atencion: no se revisa stock (ya se desconto al registrar la atencion)
-                        validarInsumo(detalleArticulo);
-                    }
-
-                    subTotalSeguro = artReal.getPrecioBase() * detalle.getCantidad();
-
+                    //refactorizado para no tener una sábana de código
+                    subTotalSeguro = calcularSubtotalArticulo(boleta, detalleArticulo);
                 } else if (detalle instanceof DetalleBoletaServicio detalleServicio) {
-                    if (detalleServicio.getDetalleCita() == null || detalleServicio.getDetalleCita().getServicio() == null) {
-                        throw new BLException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
-                    }
-                    if (detalle.getCantidad() != 1) {
-                        throw new BLException("Cada servicio de la cita se cobra una sola vez (cantidad 1)");
-                    }
-
-                    // Validaciones específicas para Servicios
-                    Servicio servReal = servicioDAO.findById(detalleServicio.getDetalleCita().getServicio().getId());
-
-                    if (servReal == null || !servReal.isActivo()) {
-                        throw new BLException("El servicio no existe o está inactivo en el catálogo");
-                    }
-                    subTotalSeguro = servReal.getPrecioBase() * detalle.getCantidad();
-
+                    //refactorizado para no tener una sábana de código
+                    subTotalSeguro = calcularSubtotalServicio(detalleServicio);
                 } else {
                     throw new BLException("Tipo de detalle de boleta no reconocido por el sistema");
                 }
-
             } catch (SQLException e) {
                 throw new BLException("Error técnico al consultar el catálogo de productos", e);
             }
@@ -224,6 +160,84 @@ public class BoletaBLImpl implements BoletaBL {
         }
 
         boleta.setTotal(totalCalculado);
+    }
+
+    // Valida los datos propios de la boleta (cliente, metodo de pago, fecha, serie), sin mirar los detalles
+    private void validarDatosBasicos(Boleta boleta) throws BLException {
+        if (boleta == null) {
+            throw new BLException("La boleta no puede ser nula");
+        }
+        if (boleta.getCliente() == null) {
+            throw new BLException("La boleta debe tener un cliente asociado");
+        }
+        if (boleta.getDetalles().isEmpty()) {
+            throw new BLException("La boleta debe tener al menos un detalle");
+        }
+        if (boleta.getMetodoPago() == null) {
+            throw new BLException("La boleta debe tener un método de pago");
+        }
+        if (boleta.getFecha() == null) {
+            throw new BLException("La boleta debe tener una fecha");
+        }
+        if (boleta.getSerieCorrelativo() == null || boleta.getSerieCorrelativo().isBlank()) {
+            throw new BLException("La boleta debe tener serie y correlativo");
+        }
+        if (!boleta.getSerieCorrelativo().matches("[A-Z]\\d{3}-\\d{6}")) {
+            throw new BLException("El número de boleta debe tener el formato B001-000123");
+        }
+    }
+
+    // Valida un detalle de articulo (venta en caja o cobro de un insumo) y devuelve su subtotal
+    private double calcularSubtotalArticulo(Boleta boleta, DetalleBoletaArticulo detalleArticulo) throws BLException, SQLException {
+        if (detalleArticulo.getArticulo() == null) {
+            throw new BLException("Cada detalle de articulo debe tener un articulo");
+        }
+
+        Articulo artReal = articuloDAO.findById(detalleArticulo.getArticulo().getId());
+
+        if (artReal == null || !artReal.isActivo()) {
+            throw new BLException("El artículo no existe o está inactivo en el catálogo");
+        }
+
+        if (detalleArticulo.getInsumoUtilizado() == null) {
+            // Venta en caja: suma todas las lineas del mismo articulo, para que dos lineas
+            // (por ejemplo 3 + 3 con stock 5) no dejen el stock en negativo.
+            // Al modificar, cuenta tambien lo que esta boleta ya habia descontado.
+            int pedido = 0;
+            for (DetalleBoleta d : boleta.getDetalles()) {
+                if (d instanceof DetalleBoletaArticulo a && a.getInsumoUtilizado() == null
+                        && a.getArticulo().getId() == artReal.getId()) {
+                    pedido += a.getCantidad();
+                }
+            }
+            int disponible = artReal.getStockActual() + cantidadYaVendida(boleta.getId(), artReal.getId());
+            if (pedido > disponible) {
+                throw new BLException("Stock insuficiente para el artículo: " + artReal.getNombre()
+                        + " (Stock disponible: " + disponible + ")");
+            }
+        } else {
+            // Insumo de atencion: no se revisa stock (ya se desconto al registrar la atencion)
+            validarInsumo(detalleArticulo);
+        }
+
+        return artReal.getPrecioBase() * detalleArticulo.getCantidad();
+    }
+
+    // Valida un detalle de servicio (cobro de un servicio de una cita) y devuelve su subtotal
+    private double calcularSubtotalServicio(DetalleBoletaServicio detalleServicio) throws BLException, SQLException {
+        if (detalleServicio.getDetalleCita() == null || detalleServicio.getDetalleCita().getServicio() == null) {
+            throw new BLException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
+        }
+        if (detalleServicio.getCantidad() != 1) {
+            throw new BLException("Cada servicio de la cita se cobra una sola vez (cantidad 1)");
+        }
+
+        Servicio servReal = servicioDAO.findById(detalleServicio.getDetalleCita().getServicio().getId());
+
+        if (servReal == null || !servReal.isActivo()) {
+            throw new BLException("El servicio no existe o está inactivo en el catálogo");
+        }
+        return servReal.getPrecioBase() * detalleServicio.getCantidad();
     }
 
     // Reglas del PDF: el insumo debe ser cobrable, del mismo articulo y sin superar lo usado
