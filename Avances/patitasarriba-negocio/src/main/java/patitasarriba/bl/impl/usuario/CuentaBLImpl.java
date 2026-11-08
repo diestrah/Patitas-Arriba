@@ -52,6 +52,8 @@ public class CuentaBLImpl implements CuentaBL {
         }
     }
 
+
+
     // @Override
     // public Cuenta login(String nombreUsuario, String passwordPlana) throws BLException {
     //     if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||

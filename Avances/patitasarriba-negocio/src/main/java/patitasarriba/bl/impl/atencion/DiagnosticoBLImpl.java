@@ -2,6 +2,8 @@ package patitasarriba.bl.impl.atencion;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.DiagnosticoBL;
+import patitasarriba.bl.NoEncontradoException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.DiagnosticoDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
@@ -20,10 +22,16 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
     @Override
     public Diagnostico findByNombreEnfermedad(String nombreEnfermedad) throws BLException {
         if (nombreEnfermedad == null || nombreEnfermedad.isBlank()) {
-            throw new BLException("El nombre de la enfermedad no puede ser nulo o vacío");
+            throw new ValidacionException("El nombre de la enfermedad no puede ser nulo o vacío");
         }
         try {
-            return diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
+            Diagnostico diagnostico= diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
+            if(diagnostico==null){
+                //mismo caso que fin by id de atención, no verifica el null
+                throw new NoEncontradoException("No se pudo encontrar el diagnostico con el nombre de la enfermedad :"+
+                        nombreEnfermedad);
+            }
+            return diagnostico;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el diagnostico", e);
         }
@@ -39,9 +47,13 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
     }
 
     @Override
-    public Diagnostico findById(Integer integer) throws BLException {
+    public Diagnostico findById(Integer id) throws BLException {
         try {
-            return diagnosticoDAO.findById(integer);
+            Diagnostico diagnostico = diagnosticoDAO.findById(id);
+            if(diagnostico==null){
+                throw new NoEncontradoException("No se encontro el diagnostico con id :"+id);
+            }
+            return diagnostico;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el diagnostico", e);
         }

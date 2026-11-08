@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.atencion;
 
 import patitasarriba.bl.AtencionBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
@@ -39,7 +40,17 @@ public class AtencionBLImpl implements AtencionBL {
     @Override
     public Atencion findById(Integer id) throws BLException {
         try {
-            return atencionDAO.findById(id);
+            Atencion atencion=atencionDAO.findById(id);
+            if(atencion==null){
+                /*
+                * Según claude el SQLExeption solo lanza la excepcion si es que algo
+                * salió mal tecnicamente, pero no valida el retorno de null, y como
+                * lo vamos a necesitar en la capa REST para lanzar los codigos, pues es necesario
+                * haré este cambio para todos los BLImpl :)
+                * */
+                throw new NoEncontradoException("No se encontró la atención con id ="+id);
+            }
+            return atencion;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la atencion medica", e);
         }
