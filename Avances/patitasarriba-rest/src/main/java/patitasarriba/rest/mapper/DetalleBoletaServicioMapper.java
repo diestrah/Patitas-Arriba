@@ -1,7 +1,10 @@
 package patitasarriba.rest.mapper;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.CitaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.impl.cita.CitaBLImpl;
 import patitasarriba.modelo.boleta.Boleta;
 import patitasarriba.modelo.boleta.DetalleBoletaServicio;
 import patitasarriba.modelo.cita.DetalleCita;
@@ -12,6 +15,8 @@ import java.util.List;
 
 // DetalleBoletaServicio no es un recurso propio: viaja embebido dentro de BoletaDTO.detallesServicio.
 public final class DetalleBoletaServicioMapper {
+    private static final CitaBL citaBL = new CitaBLImpl();
+
     private DetalleBoletaServicioMapper() {
     }
 
@@ -34,14 +39,20 @@ public final class DetalleBoletaServicioMapper {
         return dtos;
     }
 
-    // boleta es el contenedor; detalleCita se referencia por id (el DetalleCita de una cita ya
-    // creada, no existe un DetalleCitaBL propio, ver DetalleCitaResolver). precioUnitario/subtotal
-    // del DTO se ignoran (quedan en 0 hasta que BoletaBLImpl.validarYCalcular los recalcule).
+    // boleta es el contenedor; detalleCita se referencia por id, resuelto con
+    // CitaBL.findDetalleById (una sola consulta directa, ver el comentario en CitaBLImpl).
+    // precioUnitario/subtotal del DTO se ignoran (quedan en 0 hasta que
+    // BoletaBLImpl.validarYCalcular los recalcule).
     public static DetalleBoletaServicio toModelo(DetalleBoletaServicioDTO dto, Boleta boleta) throws BLException {
         if (dto.getDetalleCita() == null) {
             throw new ValidacionException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
         }
-        DetalleCita detalleCita = DetalleCitaResolver.buscarPorId(dto.getDetalleCita().getId());
+        DetalleCita detalleCita;
+        try {
+            detalleCita = citaBL.findDetalleById(dto.getDetalleCita().getId());
+        } catch (NoEncontradoException e) {
+            throw new ValidacionException("No existe el detalle de cita con id " + dto.getDetalleCita().getId());
+        }
 
         DetalleBoletaServicio detalle = new DetalleBoletaServicio();
         try {

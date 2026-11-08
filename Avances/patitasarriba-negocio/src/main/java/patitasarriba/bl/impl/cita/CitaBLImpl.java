@@ -9,6 +9,7 @@ import patitasarriba.dao.MascotaDAO;
 import patitasarriba.dao.VeterinarioDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
+import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
 import patitasarriba.dao.impl.usuario.VeterinarioDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
@@ -29,6 +30,7 @@ public class CitaBLImpl implements CitaBL {
     private final MascotaDAO mascotaDAO = new MascotaDAOImpl();
     private final VeterinarioDAO veterinarioDAO = new VeterinarioDAOImpl();
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
+    private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
 
     @Override
     public List<Cita> findAll() throws BLException {
@@ -49,6 +51,22 @@ public class CitaBLImpl implements CitaBL {
             return cita;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la cita", e);
+        }
+    }
+
+    // DetalleCitaDAOImpl.buscarDetallePorId ya hace una sola consulta directa (procedure
+    // buscar_detalle_cita_por_id); este metodo solo lo expone a quien no tiene acceso al DAO
+    // (la capa REST), en vez de que esa capa tenga que recorrer findAll() a mano.
+    @Override
+    public DetalleCita findDetalleById(Integer id) throws BLException {
+        try {
+            DetalleCita detalle = detalleCitaDAO.buscarDetallePorId(id);
+            if (detalle == null) {
+                throw new NoEncontradoException("No existe un detalle de cita con id " + id);
+            }
+            return detalle;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar el detalle de la cita", e);
         }
     }
 

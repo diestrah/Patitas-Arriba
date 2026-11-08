@@ -1,9 +1,11 @@
 package patitasarriba.rest.mapper;
 
 import patitasarriba.bl.ArticuloBL;
+import patitasarriba.bl.AtencionBL;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.impl.atencion.AtencionBLImpl;
 import patitasarriba.bl.impl.producto.ArticuloBLImpl;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
 import patitasarriba.modelo.boleta.Boleta;
@@ -18,6 +20,7 @@ import java.util.List;
 // DetalleBoletaArticulo no es un recurso propio: viaja embebido dentro de BoletaDTO.detallesArticulo.
 public final class DetalleBoletaArticuloMapper {
     private static final ArticuloBL articuloBL = new ArticuloBLImpl();
+    private static final AtencionBL atencionBL = new AtencionBLImpl();
 
     private DetalleBoletaArticuloMapper() {
     }
@@ -61,10 +64,17 @@ public final class DetalleBoletaArticuloMapper {
             throw new ValidacionException("No existe el articulo con id " + dto.getArticulo().getId());
         }
 
+        // findInsumoById busca por el propio id del insumo (una sola consulta directa, ver el
+        // comentario en AtencionBLImpl); idAtencion del ref ya no hace falta para resolverlo,
+        // solo se usa en toDTO para informar de que atencion viene.
         InsumoUtilizado insumoUtilizado = null;
         InsumoUtilizadoRefDTO ref = dto.getInsumoUtilizado();
         if (ref != null) {
-            insumoUtilizado = InsumoUtilizadoResolver.buscarPorId(ref.getIdAtencion(), ref.getId());
+            try {
+                insumoUtilizado = atencionBL.findInsumoById(ref.getId());
+            } catch (NoEncontradoException e) {
+                throw new ValidacionException("No existe el insumo utilizado con id " + ref.getId());
+            }
         }
 
         DetalleBoletaArticulo detalle = new DetalleBoletaArticulo();

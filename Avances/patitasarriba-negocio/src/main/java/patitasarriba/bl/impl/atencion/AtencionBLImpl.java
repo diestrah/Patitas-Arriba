@@ -7,6 +7,7 @@ import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
+import patitasarriba.dao.impl.atencion.InsumoUtilizadoDAOImpl;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
@@ -27,6 +28,7 @@ public class AtencionBLImpl implements AtencionBL {
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
+    private final InsumoUtilizadoDAOImpl insumoUtilizadoDAO = new InsumoUtilizadoDAOImpl();
 
     @Override
     public List<Atencion> findAll() throws BLException {
@@ -53,6 +55,23 @@ public class AtencionBLImpl implements AtencionBL {
             return atencion;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la atencion medica", e);
+        }
+    }
+
+    // InsumoUtilizadoDAOImpl.findById ya hace una sola consulta directa por id (procedure
+    // buscar_insumo_utilizado_por_id); este metodo solo lo expone a quien no tiene acceso al DAO
+    // (la capa REST), en vez de que esa capa tenga que cargar la atencion completa y recorrer
+    // su lista de insumos a mano.
+    @Override
+    public InsumoUtilizado findInsumoById(Integer id) throws BLException {
+        try {
+            InsumoUtilizado insumo = insumoUtilizadoDAO.findById(id);
+            if (insumo == null) {
+                throw new NoEncontradoException("No existe un insumo utilizado con id " + id);
+            }
+            return insumo;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar el insumo utilizado", e);
         }
     }
 

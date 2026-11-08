@@ -1,8 +1,9 @@
 package patitasarriba.rest.dto;
 
 // Referencia liviana a un InsumoUtilizado YA EXISTENTE (de una atencion ya registrada), usada
-// dentro de DetalleBoletaArticuloDTO para cobrar un insumo. No existe un InsumoUtilizadoBL propio
-// (ver InsumoUtilizadoResolver), por eso se necesitan los dos ids para ubicarlo.
+// dentro de DetalleBoletaArticuloDTO para cobrar un insumo. AtencionBL.findInsumoById solo
+// necesita el id del insumo para resolverlo; idAtencion se mantiene por informacion (de donde
+// viene) al convertir a DTO de salida.
 public class InsumoUtilizadoRefDTO {
     private int id;
     private int idAtencion;

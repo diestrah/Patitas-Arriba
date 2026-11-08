@@ -1,7 +1,10 @@
 package patitasarriba.rest.mapper;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.CitaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.impl.cita.CitaBLImpl;
 import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
@@ -16,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class AtencionMapper {
+    private static final CitaBL citaBL = new CitaBLImpl();
+
     private AtencionMapper() {
     }
 
@@ -40,14 +45,20 @@ public final class AtencionMapper {
         return dtos;
     }
 
-    // detalleCita se referencia por id: es el DetalleCita de una cita ya creada (no existe un
-    // DetalleCitaBL propio, ver DetalleCitaResolver). Los insumos y diagnosticos se construyen
-    // despues de tener la Atencion en memoria, porque sus setAtencion() exigen una Atencion no nula.
+    // detalleCita se referencia por id: es el DetalleCita de una cita ya creada, resuelto con
+    // CitaBL.findDetalleById (una sola consulta directa, ver el comentario en CitaBLImpl). Los
+    // insumos y diagnosticos se construyen despues de tener la Atencion en memoria, porque sus
+    // setAtencion() exigen una Atencion no nula.
     public static Atencion toModelo(AtencionDTO dto) throws BLException {
         if (dto.getDetalleCita() == null) {
             throw new ValidacionException("La atencion debe estar asociada a un detalle de cita");
         }
-        DetalleCita detalleCita = DetalleCitaResolver.buscarPorId(dto.getDetalleCita().getId());
+        DetalleCita detalleCita;
+        try {
+            detalleCita = citaBL.findDetalleById(dto.getDetalleCita().getId());
+        } catch (NoEncontradoException e) {
+            throw new ValidacionException("No existe el detalle de cita con id " + dto.getDetalleCita().getId());
+        }
 
         Atencion atencion = new Atencion();
         try {
