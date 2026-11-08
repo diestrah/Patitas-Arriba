@@ -43,7 +43,7 @@ public class AtencionBLImpl implements AtencionBL {
             Atencion atencion=atencionDAO.findById(id);
             if(atencion==null){
                 /*
-                * Según claude el SQLExeption solo lanza la excepcion si es que algo
+                * El SQLExeption solo lanza la excepcion si es que algo
                 * salió mal tecnicamente, pero no valida el retorno de null, y como
                 * lo vamos a necesitar en la capa REST para lanzar los codigos, pues es necesario
                 * haré este cambio para todos los BLImpl :)

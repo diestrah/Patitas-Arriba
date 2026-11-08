@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CategoriaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.CategoriaDAO;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
@@ -27,7 +28,11 @@ public class CategoriaBLImpl implements CategoriaBL {
     @Override
     public Categoria findById(Integer id) throws BLException {
         try {
-            return categoriaDAO.findById(id);
+            Categoria categoria = categoriaDAO.findById(id);
+            if(categoria==null){
+                throw new NoEncontradoException("No se pudo encontrar la categoria con id: " + id);
+            }
+            return categoria;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la categoria de articulo", e);
         }
