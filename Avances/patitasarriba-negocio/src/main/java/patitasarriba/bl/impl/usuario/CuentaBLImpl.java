@@ -56,11 +56,7 @@ public class CuentaBLImpl implements CuentaBL {
         }
 
         try {
-            Cuenta cuenta= cuentaDAO.findByNombreUsuario(nombreUsuario);
-            if(cuenta==null){
-                throw new NoEncontradoException("No se pudo encontrar la cuenta con el nombre "+nombreUsuario);
-            }
-            return cuenta;
+            return cuentaDAO.findByNombreUsuario(nombreUsuario);
         } catch (SQLException e) {
             throw new BLException("Error al buscar la cuenta por nombre de usuario", e);
         }

@@ -51,12 +51,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
             throw new ValidacionException("El dni debe ser valido");
         }
         try {
-            Veterinario veterinario= veterinarioDAO.findByDni(dni);
-            if(veterinario==null){
-                throw new NoEncontradoException("No se pudo recuperar el veterinario con el dni :"
-                        +dni);
-            }
-            return veterinario;
+            return veterinarioDAO.findByDni(dni);
         } catch (SQLException e) {
             throw new BLException("Error al buscar el veterinario por DNI", e);
         }

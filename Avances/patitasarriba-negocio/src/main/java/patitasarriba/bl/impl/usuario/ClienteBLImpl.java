@@ -54,11 +54,7 @@ public class ClienteBLImpl implements ClienteBL {
         }
 
         try {
-            Cliente cliente = clienteDAO.findByDni(dni);
-            if(cliente==null){
-                throw new NoEncontradoException("No se pudo recuperar el cliente con dni "+dni);
-            }
-            return cliente;
+            return clienteDAO.findByDni(dni);
         } catch (SQLException e) {
             throw new BLException("Error al buscar el cliente por DNI", e);
         }

@@ -25,13 +25,7 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
             throw new ValidacionException("El nombre de la enfermedad no puede ser nulo o vacío");
         }
         try {
-            Diagnostico diagnostico= diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
-            if(diagnostico==null){
-                //mismo caso que fin by id de atención, no verifica el null
-                throw new NoEncontradoException("No se pudo encontrar el diagnostico con el nombre de la enfermedad :"+
-                        nombreEnfermedad);
-            }
-            return diagnostico;
+            return diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el diagnostico", e);
         }

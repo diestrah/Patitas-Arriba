@@ -1,7 +1,6 @@
 package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
-import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ServicioBL;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.ServicioDAO;
@@ -22,12 +21,7 @@ public class ServicioBLImpl implements ServicioBL {
             throw new ValidacionException("El nombre no es valido");
         }
         try {
-            Servicio servicio = servicioDAO.findByName(name);
-            if(servicio==null){
-                throw new NoEncontradoException("No se pudo recuperar el servicio con nombre: "+
-                        name);
-            }
-            return servicio;
+            return servicioDAO.findByName(name);
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
