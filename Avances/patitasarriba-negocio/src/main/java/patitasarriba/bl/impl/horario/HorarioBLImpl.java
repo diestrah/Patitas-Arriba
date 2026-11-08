@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.horario;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.HorarioBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.AdministradorDAO;
 import patitasarriba.dao.VeterinarioDAO;
 import patitasarriba.dao.impl.usuario.AdministradorDAOImpl;
@@ -31,7 +32,11 @@ public class HorarioBLImpl implements HorarioBL {
     @Override
     public Horario findById(Integer id) throws BLException {
         try{
-            return horarioDAO.findById(id);
+            Horario horario= horarioDAO.findById(id);
+            if(horario == null){
+                throw new NoEncontradoException("No se pudo encontrar el horario con id: "+id);
+            }
+            return horario;
         } catch (SQLException e) {
             throw new BLException("No se pudo encontrar el horario con id: " + id, e);
         }

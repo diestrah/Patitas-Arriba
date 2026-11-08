@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.receta;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.RecetaBL;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
@@ -31,9 +32,13 @@ public class RecetaBLImpl implements RecetaBL {
     }
 
     @Override
-    public Receta findById(Integer integer) throws BLException {
+    public Receta findById(Integer id) throws BLException {
         try {
-            return recetaDAO.findById(integer);
+            Receta receta = recetaDAO.findById(id);
+            if(receta==null){
+                throw new NoEncontradoException("No se pudo encontrar la receta con el id="+id);
+            }
+            return receta;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la receta", e);
         }

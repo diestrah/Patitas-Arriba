@@ -1,6 +1,8 @@
 package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.VeterinarioBL;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.CuentaDAO;
@@ -32,7 +34,12 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     @Override
     public Veterinario findById(Integer id) throws BLException {
         try {
-            return veterinarioDAO.findById(id);
+            Veterinario veterinario = veterinarioDAO.findById(id);
+            if(veterinario==null){
+                throw new NoEncontradoException("No se pudo recuperar el veterinario con el id :"
+                        +id);
+            }
+            return veterinario;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el veterinario", e);
         }
@@ -40,8 +47,16 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     @Override
     public Veterinario findByDni(String dni) throws BLException {
+        if(dni==null || dni.isBlank()){
+            throw new ValidacionException("El dni debe ser valido");
+        }
         try {
-            return veterinarioDAO.findByDni(dni);
+            Veterinario veterinario= veterinarioDAO.findByDni(dni);
+            if(veterinario==null){
+                throw new NoEncontradoException("No se pudo recuperar el veterinario con el dni :"
+                        +dni);
+            }
+            return veterinario;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el veterinario por DNI", e);
         }

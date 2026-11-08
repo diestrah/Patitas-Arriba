@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.cita;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CitaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.MascotaDAO;
@@ -41,7 +42,11 @@ public class CitaBLImpl implements CitaBL {
     @Override
     public Cita findById(Integer id) throws BLException {
         try {
-            return citaDAO.findById(id);
+            Cita cita = citaDAO.findById(id);
+            if(cita==null){
+                throw new NoEncontradoException("No se encontro la cita con el id " + id);
+            }
+            return cita;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la cita", e);
         }

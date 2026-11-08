@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.mascota;
 
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.MascotaBL;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.ClienteDAO;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
@@ -32,7 +33,11 @@ public class MascotaBLImpl implements MascotaBL {
     @Override
     public Mascota findById(Integer id) throws BLException {
         try{
-            return mascotaDAO.findById(id);
+            Mascota mascota= mascotaDAO.findById(id);
+            if(mascota ==null){
+                throw new NoEncontradoException("No se pudo encontrar la mascota con id :"+id);
+            }
+            return mascota;
         } catch (SQLException e) {
             throw new BLException("Error al obtener la mascota con id: " + id, e);
         }

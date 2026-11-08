@@ -1,13 +1,12 @@
 package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ServicioBL;
-import patitasarriba.dao.CitaDAO;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.ServicioDAO;
-import patitasarriba.dao.impl.cita.CitaDAOImpl;
+import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.impl.producto.ServicioDAOImpl;
-import patitasarriba.modelo.cita.Cita;
-import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.producto.Servicio;
 
 import java.sql.SQLException;
@@ -15,12 +14,20 @@ import java.util.List;
 
 public class ServicioBLImpl implements ServicioBL {
     private final ServicioDAO servicioDAO = new ServicioDAOImpl();
-    private final CitaDAO citaDAO = new CitaDAOImpl();
+    private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
 
     @Override
     public Servicio findByName(String name) throws BLException {
+        if(name==null || name.isBlank()){
+            throw new ValidacionException("El nombre no es valido");
+        }
         try {
-            return servicioDAO.findByName(name);
+            Servicio servicio = servicioDAO.findByName(name);
+            if(servicio==null){
+                throw new NoEncontradoException("No se pudo recuperar el servicio con nombre: "+
+                        name);
+            }
+            return servicio;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
@@ -97,15 +104,15 @@ public class ServicioBLImpl implements ServicioBL {
         }
     }
 
+    // Antes esta validacion traia TODAS las citas (con todos sus detalles) via citaDAO.findAll()
+    // solo para recorrerlas en Java buscando una coincidencia por id_servicio. Ahora se delega el
+    // filtro a la base de datos (existeDetalleConServicio -> listar_detalle_cita_por_servicio),
+    // que como mucho devuelve las filas que coinciden y el DAO solo revisa si hay alguna,
+    // sin mapear objetos DetalleCita completos.
     private void validarSinCitas(int idServicio) throws BLException {
         try {
-            for (Cita cita : citaDAO.findAll()) {
-                for (DetalleCita detalle : cita.getDetalles()) {
-                    if (detalle.getServicio().getId() == idServicio) {
-                        throw new BLException("No se puede eliminar el servicio: está en la cita "
-                                + cita.getId() + " (" + cita.getEstado() + ")");
-                    }
-                }
+            if (detalleCitaDAO.existeDetalleConServicio(idServicio)) {
+                throw new BLException("No se puede eliminar el servicio: está asignado a una cita");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las citas del servicio", e);
