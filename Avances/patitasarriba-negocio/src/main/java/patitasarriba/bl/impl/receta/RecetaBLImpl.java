@@ -1,5 +1,6 @@
 package patitasarriba.bl.impl.receta;
 
+import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.RecetaBL;
@@ -16,7 +17,10 @@ import patitasarriba.modelo.receta.Receta;
 import patitasarriba.modelo.receta.DetalleReceta;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class RecetaBLImpl implements RecetaBL {
     private final RecetaDAO recetaDAO = new RecetaDAOImpl();
@@ -45,7 +49,18 @@ public class RecetaBLImpl implements RecetaBL {
     }
 
     @Override
+    public List<Receta> findByAtencion(Integer idAtencion) throws BLException {
+        List<Receta> recetas = new ArrayList<>();
+        for (Receta receta : findAll()) {
+            if (receta.getAtencion().getId() == idAtencion) recetas.add(receta);
+        }
+        return recetas;
+    }
+
+    @Override
     public void insert(Receta entidad) throws BLException {
+        Activos.marcar(entidad);
+        if (entidad != null) Activos.marcarTodos(entidad.getDetalles());
         validar(entidad);
         validarExistentes(entidad);
         validarServicioMedico (entidad);
@@ -62,6 +77,16 @@ public class RecetaBLImpl implements RecetaBL {
 
     @Override
     public void update(Receta entidad) throws BLException {
+        // RN-GE-06: solo se modifica un registro que existe y esta activo
+        if (entidad != null) {
+            Receta actual = findById(entidad.getId());
+            // RN-RE-06: la receta no se mueve a otra atencion
+            if (entidad.getAtencion() != null && actual.getAtencion().getId() != entidad.getAtencion().getId()) {
+                throw new BLException("No se puede cambiar la atención a la que pertenece una receta");
+            }
+        }
+        Activos.marcar(entidad);
+        if (entidad != null) Activos.marcarTodos(entidad.getDetalles());
         validar(entidad);
         validarExistentes(entidad);
         validarServicioMedico (entidad);
@@ -118,8 +143,18 @@ public class RecetaBLImpl implements RecetaBL {
             if (atencionDAO.findById(receta.getAtencion().getId()) == null) {
                 throw new BLException("La atención no existe o fue anulada");
             }
+            // Al modificar, los articulos que la receta ya tenia se aceptan aunque se hayan dado de baja
+            // despues (son historial); los que se agregan deben estar activos
+            Set<Integer> yaRecetados = new HashSet<>();
+            if (receta.getId() != 0) {
+                Receta actual = recetaDAO.findById(receta.getId());
+                if (actual != null) {
+                    for (DetalleReceta d : actual.getDetalles()) yaRecetados.add(d.getArticulo().getId());
+                }
+            }
             for (DetalleReceta detalle : receta.getDetalles()) {
-                if (articuloDAO.findById(detalle.getArticulo().getId()) == null) {
+                if (!yaRecetados.contains(detalle.getArticulo().getId())
+                        && articuloDAO.findById(detalle.getArticulo().getId()) == null) {
                     throw new BLException("El artículo " + detalle.getArticulo().getNombre()
                             + " no existe o está dado de baja");
                 }

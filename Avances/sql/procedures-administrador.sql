@@ -6,6 +6,7 @@ DROP PROCEDURE IF EXISTS insertar_administrador;
 DROP PROCEDURE IF EXISTS modificar_administrador;
 DROP PROCEDURE IF EXISTS eliminar_administrador;
 DROP PROCEDURE IF EXISTS buscar_administrador_por_id;
+DROP PROCEDURE IF EXISTS buscar_administrador_por_id_historico;
 DROP PROCEDURE IF EXISTS buscar_administrador_por_dni;
 DROP PROCEDURE IF EXISTS buscar_administrador_por_telefono;
 DROP PROCEDURE IF EXISTS buscar_administrador_por_cuenta;
@@ -75,6 +76,15 @@ BEGIN
     FROM administrador
     WHERE id_administrador = p_id
       AND activo = 1;
+END //
+
+-- Igual que buscar_administrador_por_id pero sin filtrar activo: lo usan los DAO para
+-- cargar relaciones de registros historicos (citas, atenciones, boletas, recetas)
+CREATE PROCEDURE buscar_administrador_por_id_historico (IN p_id INT)
+BEGIN
+    SELECT *
+    FROM administrador
+    WHERE id_administrador = p_id;
 END //
 
 -- dni es UNIQUE: no filtra activo, para detectar tambien los administradores inactivos

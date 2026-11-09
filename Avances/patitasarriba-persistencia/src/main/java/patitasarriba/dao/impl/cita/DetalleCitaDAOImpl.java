@@ -92,30 +92,12 @@ public class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
         }
     }
 
-    // Optimizacion de ServicioBLImpl.validarSinCitas: antes esa validacion traia TODAS las citas
-    // (con todos sus detalles, cada uno resolviendo su Servicio y Veterinario) solo para filtrarlas
-    // en memoria. Aqui el filtro por id_servicio lo hace la base de datos (listar_detalle_cita_por_servicio)
-    // y solo se necesita saber si existe al menos una fila, por eso no se mapea a DetalleCita completos.
-    public boolean existeDetalleConServicio(int idServicio) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try (CallableStatement cmd = conn.prepareCall("{call listar_detalle_cita_por_servicio(?)}")) {
-            cmd.setInt("p_id_servicio", idServicio);
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
     private DetalleCita mapear(ResultSet rs, DetalleCita detalle, Cita cita) throws SQLException {
         super.mapear(rs, detalle);
         detalle.setId(rs.getInt("id_detalle_cita"));
         detalle.setObservaciones(rs.getString("observaciones"));
-        var servicio = new ServicioDAOImpl().findById(rs.getInt("id_servicio"));
-        var veterinario = new VeterinarioDAOImpl().findById(rs.getInt("id_veterinario"));
+        var servicio = new ServicioDAOImpl().findByIdHistorico(rs.getInt("id_servicio"));
+        var veterinario = new VeterinarioDAOImpl().findByIdHistorico(rs.getInt("id_veterinario"));
         if (servicio == null || veterinario == null) {
             throw new SQLException("Servicio o veterinario inexistente/inactivo en el detalle " + detalle.getId());
         }

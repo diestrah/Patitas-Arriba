@@ -117,7 +117,7 @@ public class CitaDAOImpl extends RegistroDAOImpl<Cita> implements CitaDAO {
         cita.setEstado(EstadoCita.valueOf(rs.getString("estado")));
         cita.setMascota(new MascotaDAOImpl().findById(rs.getInt("id_mascota")));
         int idAdministrador = rs.getInt("id_administrador");
-        cita.setAdministrador(rs.wasNull() ? null : new AdministradorDAOImpl().findById(idAdministrador));
+        cita.setAdministrador(rs.wasNull() ? null : new AdministradorDAOImpl().findByIdHistorico(idAdministrador));
         cita.setEsEmergencia(rs.getBoolean("es_emergencia"));
         return cita;
     }

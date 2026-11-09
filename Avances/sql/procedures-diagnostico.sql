@@ -7,6 +7,7 @@ DROP PROCEDURE IF EXISTS modificar_diagnostico;
 DROP PROCEDURE IF EXISTS actualizar_diagnostico;
 DROP PROCEDURE IF EXISTS eliminar_diagnostico;
 DROP PROCEDURE IF EXISTS buscar_diagnostico_por_id;
+DROP PROCEDURE IF EXISTS buscar_diagnostico_por_id_historico;
 DROP PROCEDURE IF EXISTS buscar_diagnostico_por_nombre_enfermedad;
 DROP PROCEDURE IF EXISTS listar_diagnosticos;
 
@@ -56,6 +57,15 @@ BEGIN
     FROM diagnostico
     WHERE id_diagnostico = p_id
       AND activo = 1;
+END //
+
+-- Igual que buscar_diagnostico_por_id pero sin filtrar activo: lo usan los DAO para
+-- cargar relaciones de registros historicos (citas, atenciones, boletas, recetas)
+CREATE PROCEDURE buscar_diagnostico_por_id_historico (IN p_id INT)
+BEGIN
+    SELECT *
+    FROM diagnostico
+    WHERE id_diagnostico = p_id;
 END //
 
 -- nombre_enfermedad es UNIQUE: no filtra activo, para detectar tambien los diagnosticos inactivos

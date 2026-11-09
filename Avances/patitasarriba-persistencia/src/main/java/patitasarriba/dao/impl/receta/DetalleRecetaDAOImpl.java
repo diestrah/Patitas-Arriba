@@ -77,7 +77,7 @@ public class DetalleRecetaDAOImpl extends RegistroDAOImpl<DetalleReceta> impleme
         detalle.setFrecuencia(rs.getString("frecuencia"));
         detalle.setDuracionDias(rs.getInt("duracion_dias"));
         detalle.setCantidadTotal(rs.getInt("cantidad_total"));
-        var articulo = new patitasarriba.dao.impl.producto.ArticuloDAOImpl().findById(rs.getInt("id_articulo"));
+        var articulo = new patitasarriba.dao.impl.producto.ArticuloDAOImpl().findByIdHistorico(rs.getInt("id_articulo"));
         if (articulo == null) throw new SQLException("No existe el articulo del detalle de receta");
         detalle.setArticulo(articulo);
         var receta = new patitasarriba.modelo.receta.Receta();

@@ -57,6 +57,29 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
     }
 
     @Override
+    public Articulo findByIdHistorico(Integer id) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (id == null) {
+                throw new IllegalArgumentException("El id no puede ser nulo");
+            }
+
+            String sql = "{call buscar_articulo_por_id_historico(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id", id);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Articulo()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     public void insert(Articulo articulo) throws SQLException {
         if (articulo == null) {
             throw new IllegalArgumentException("El articulo no puede ser nulo");
@@ -68,6 +91,7 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
         String sql = "{call insertar_articulo(?,?,?,?,?,?,?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             setParametrosComunes(cmd, articulo);
+            cmd.setInt("p_stock_actual", articulo.getStockActual());
             cmd.registerOutParameter("p_id", Types.INTEGER);
 
             cmd.execute();
@@ -93,16 +117,14 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
         }
     }
 
-    // Variante para usar dentro de una transaccion ya abierta (ej. BoletaBLImpl.descontarStock):
-    // usa la Connection recibida en vez de abrir una nueva, para no autobloquearse esperando
-    // el candado que ya sostiene esa misma transaccion (ej. por una FK de detalle_boleta_art).
-    @Override
-    public void update(Connection conn, Articulo articulo) throws SQLException {
+    // No modifica el stock (RN-AR-07): el stock solo cambia con ajustarStock
+    private void update(Connection conn, Articulo articulo) throws SQLException {
         if (articulo == null) {
             throw new IllegalArgumentException("El articulo no puede ser nulo");
         }
 
-        String sql = "{call modificar_articulo(?,?,?,?,?,?,?)}";
+        // modificar_articulo no toca stock_actual (RN-AR-07): el stock solo cambia con ajustarStock
+        String sql = "{call modificar_articulo(?,?,?,?,?,?)}";
         try (CallableStatement cmd = conn.prepareCall(sql)) {
             cmd.setInt("p_id", articulo.getId());
             setParametrosComunes(cmd, articulo);
@@ -112,13 +134,24 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
         guardarCategorias(conn, articulo);
     }
 
-    // Los parametros que insertar_articulo y modificar_articulo comparten
+    @Override
+    public boolean ajustarStock(Connection conn, int idArticulo, int cantidad) throws SQLException {
+        try (CallableStatement cmd = conn.prepareCall("{call ajustar_stock_articulo(?,?,?)}")) {
+            cmd.setInt("p_id", idArticulo);
+            cmd.setInt("p_cantidad", cantidad);
+            cmd.registerOutParameter("p_filas", Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_filas") > 0;
+        }
+    }
+
+    // Los parametros que insertar_articulo y modificar_articulo comparten (el stock va aparte:
+    // solo insertar_articulo lo recibe)
     private void setParametrosComunes(CallableStatement cmd, Articulo articulo) throws SQLException {
         cmd.setString("p_nombre", articulo.getNombre());
         cmd.setBigDecimal("p_precio_base", BigDecimal.valueOf(articulo.getPrecioBase()));
         cmd.setString("p_descripcion", articulo.getDescripcion());
         cmd.setBoolean("p_activo", articulo.isActivo());
-        cmd.setInt("p_stock_actual", articulo.getStockActual());
         cmd.setInt("p_stock_minimo", articulo.getStockMinimo());
     }
 

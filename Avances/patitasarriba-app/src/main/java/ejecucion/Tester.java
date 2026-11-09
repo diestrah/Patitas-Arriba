@@ -31,8 +31,10 @@ import java.util.List;
 
 // Prueba de la capa de negocio (BL) contra la base real. Formato del Lab 6:
 // por entidad INSERT / FIND / UPDATE / LISTADO / DELETE y su verificacion; luego el flujo clinico
-// (cita -> atencion -> receta -> boleta). Cada seccion cierra con sus reglas de negocio, que la BL debe rechazar.
-// Los datos llevan un sufijo distinto en cada ejecucion y se dan de baja al terminar.
+// (login -> cita -> atencion -> receta -> historial -> boleta -> bajas). Cada seccion cierra con sus
+// reglas de negocio, que la BL debe rechazar. Los datos llevan un sufijo distinto en cada ejecucion.
+// El catalogo y el personal de prueba se dan de baja al terminar; cliente, citas, atenciones y boletas
+// quedan en la base porque son historial (RN-GE-05).
 public class Tester {
 
     private static final DateTimeFormatter FORMATO_FECHA = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -101,7 +103,7 @@ public class Tester {
         bloque("DELETE");
         campo("id eliminado", categoria.getId());
         bloque("VERIFICACION DELETE");
-        verificarEliminado(categoria.getId(), categoriaBL.findById(categoria.getId()) == null);
+        verificarEliminado(categoria.getId(), noExiste(() -> categoriaBL.findById(categoria.getId())));
     }
 
     // ---------------------------------------------------------------- ARTICULO
@@ -123,14 +125,22 @@ public class Tester {
         double precioAnterior = articulo.getPrecioBase();
         int stockAnterior = articulo.getStockActual();
         articulo.setPrecioBase(49.90);
-        articulo.setStockActual(18);
         articuloBL.update(articulo);
+        // RN-AR-07: modificar el articulo no cambia su stock; se repone con ajustarStock
+        articuloBL.ajustarStock(articulo.getId(), 18 - stockAnterior);
         Articulo actualizado = articuloBL.findById(articulo.getId());
         bloque("UPDATE");
         campo("precio", String.format("S/ %.2f -> S/ %.2f", precioAnterior, actualizado.getPrecioBase()));
         campo("stock", stockAnterior + " -> " + actualizado.getStockActual());
 
         listarArticulos(articuloBL.findAll());
+
+        try {
+            articuloBL.ajustarStock(articulo.getId(), -999);
+            noRechazada("Retirar 999 unidades de stock (hay 18)");
+        } catch (BLException ex) {
+            rechazada("Retirar 999 unidades de stock (hay 18)", ex);
+        }
 
         try {
             categoriaBL.delete(categoria.getId());
@@ -145,7 +155,7 @@ public class Tester {
         bloque("DELETE");
         campo("id eliminado", articulo.getId());
         bloque("VERIFICACION DELETE");
-        verificarEliminado(articulo.getId(), articuloBL.findById(articulo.getId()) == null);
+        verificarEliminado(articulo.getId(), noExiste(() -> articuloBL.findById(articulo.getId())));
     }
 
     // ---------------------------------------------------------------- SERVICIO
@@ -175,7 +185,7 @@ public class Tester {
         bloque("DELETE");
         campo("id eliminado", servicio.getId());
         bloque("VERIFICACION DELETE");
-        verificarEliminado(servicio.getId(), servicioBL.findById(servicio.getId()) == null);
+        verificarEliminado(servicio.getId(), noExiste(() -> servicioBL.findById(servicio.getId())));
     }
 
     // ---------------------------------------------------------------- CLIENTE Y MASCOTA
@@ -209,6 +219,9 @@ public class Tester {
         campo("peso", pesoAnterior + " kg -> " + mascotaBL.findById(mascota.getId()).getPeso() + " kg");
 
         listarMascotas(mascotaBL.findAll());
+        bloque("MASCOTAS DEL CLIENTE");
+        campo("cantidad", mascotaBL.findByCliente(cliente.getId()).size());
+        verificar("el cliente ve su mascota", mascotaBL.findByCliente(cliente.getId()).size() == 1);
 
         // Reglas de negocio: se usa otra cuenta para que solo falle el dato que se quiere probar
         Cuenta cuentaAparte = nuevaCuenta("dup");
@@ -240,8 +253,9 @@ public class Tester {
         bloque("DELETE");
         campo("id eliminado", "mascota " + mascota.getId() + " y cliente " + cliente.getId());
         bloque("VERIFICACION DELETE");
-        verificarEliminado(cliente.getId(), mascotaBL.findById(mascota.getId()) == null
-                && clienteBL.findById(cliente.getId()) == null);
+        int idMascota = mascota.getId();
+        verificarEliminado(cliente.getId(), noExiste(() -> mascotaBL.findById(idMascota))
+                && noExiste(() -> clienteBL.findById(cliente.getId())));
     }
 
     // ---------------------------------------------------------------- FLUJO CLINICO
@@ -272,8 +286,10 @@ public class Tester {
 
         Administrador administrador = administradorExistente();
 
-        Mascota mascota = nuevaMascota(cliente, "Luna", 4.2);
+        Mascota mascota = nuevaMascota(cliente, "Luna", 8.0);
         mascotaBL.insert(mascota);
+        Mascota otraMascota = nuevaMascota(cliente, "Max", 10.0);
+        mascotaBL.insert(otraMascota);
 
         Categoria categoria = nuevaCategoria("Flujo");
         Articulo vacuna = nuevoArticulo("Vacuna antirrabica", 35, 10, categoria);
@@ -291,11 +307,28 @@ public class Tester {
         diagnostico.setDescripcion("Inflamacion del oido");
         diagnosticoBL.insert(diagnostico);
 
-        // ------------------------------------------------------------ CITA
+        // ------------------------------------------------------------ LOGIN (RF01)
+        tituloSeccion("LOGIN");
+
+        Persona persona = cuentaBL.login(cuentaCliente.getNombreUsuario(), "Clave" + SUFIJO);
+        bloque("LOGIN");
+        campo("usuario", cuentaCliente.getNombreUsuario());
+        campo("rol", persona.getClass().getSimpleName());
+        verificar("el login del cliente devuelve un Cliente", persona instanceof Cliente);
+        try {
+            cuentaBL.login(cuentaCliente.getNombreUsuario(), "otra clave");
+            noRechazada("Login con contrasena incorrecta");
+        } catch (BLException ex) {
+            rechazada("Login con contrasena incorrecta", ex);
+        }
+        mostrarReglas();
+
+        // ------------------------------------------------------------ CITA (RF10, RF11)
         tituloSeccion("CITA");
 
+        LocalDate manana = LocalDate.now().plusDays(1);
         Cita cita = new Cita();
-        cita.setFechaHora(LocalDate.now().plusDays(1).atTime(10, 0));
+        cita.setFechaHora(manana.atTime(10, 0));
         cita.setEstado(EstadoCita.PENDIENTE);
         cita.setMascota(mascota);
         cita.agregarDetalle(0, true, "Revisar el oido", consulta, veterinario);
@@ -305,9 +338,7 @@ public class Tester {
         campo("id", cita.getId());
         campo("fecha", FORMATO_FECHA.format(cita.getFechaHora()));
         campo("estado", cita.getEstado());
-        campo("mascota", mascota.getNombre());
-        campo("servicios", "Consulta, Bano y corte");
-        campo("veterinario", veterinario.getNombres() + " " + veterinario.getApellidoPaterno());
+        campo("servicios", "Consulta 30 min + Bano 30 min (10:00 a 11:00)");
 
         try {
             citaBL.insert(citaNueva(mascota, LocalDateTime.now().minusDays(1), consulta, veterinario));
@@ -316,10 +347,30 @@ public class Tester {
             rechazada("Cita con fecha de ayer", ex);
         }
         try {
-            citaBL.insert(citaNueva(mascota, LocalDate.now().plusDays(1).atTime(22, 0), consulta, veterinario));
+            citaBL.insert(citaNueva(mascota, manana.atTime(22, 0), consulta, veterinario));
             noRechazada("Cita a las 22:00 (fuera del horario del veterinario)");
         } catch (BLException ex) {
             rechazada("Cita a las 22:00 (fuera del horario del veterinario)", ex);
+        }
+        try {
+            citaBL.insert(citaNueva(mascota, manana.atTime(17, 45), consulta, veterinario));
+            noRechazada("Cita a las 17:45 de 30 min (termina despues de las 18:00)");
+        } catch (BLException ex) {
+            rechazada("Cita a las 17:45 de 30 min (termina despues de las 18:00)", ex);
+        }
+        try {
+            citaBL.insert(citaNueva(otraMascota, manana.atTime(10, 30), consulta, veterinario));
+            noRechazada("Otra cita del mismo veterinario a las 10:30 (cruce)");
+        } catch (BLException ex) {
+            rechazada("Otra cita del mismo veterinario a las 10:30 (cruce)", ex);
+        }
+        try {
+            Cita otraDuena = citaBL.findById(cita.getId());
+            otraDuena.setMascota(otraMascota);
+            citaBL.update(otraDuena);
+            noRechazada("Cambiar la mascota de la cita");
+        } catch (BLException ex) {
+            rechazada("Cambiar la mascota de la cita", ex);
         }
         try {
             Cita sinAdmin = citaBL.findById(cita.getId());
@@ -339,9 +390,6 @@ public class Tester {
         campo("estado", "PENDIENTE -> " + citaBL.findById(cita.getId()).getEstado());
         campo("administrador", administrador.getNombres() + " " + administrador.getApellidoPaterno());
 
-        DetalleCita detalleConsulta = buscarDetalle(citaBL.findById(cita.getId()), consulta.getNombre());
-        DetalleCita detalleBano = buscarDetalle(citaBL.findById(cita.getId()), bano.getNombre());
-
         try {
             Cita incompleta = citaBL.findById(cita.getId());
             incompleta.setEstado(EstadoCita.COMPLETADO);
@@ -350,12 +398,47 @@ public class Tester {
         } catch (BLException ex) {
             rechazada("Completar la cita sin atender sus servicios", ex);
         }
+
+        // Emergencia: llego hace 30 minutos, se atiende ya y se aprueba despues (RN-CI-11)
+        Cita emergencia = new Cita();
+        emergencia.setFechaHora(LocalDateTime.now().minusMinutes(30).withSecond(0).withNano(0));
+        emergencia.setEstado(EstadoCita.PENDIENTE);
+        emergencia.setEsEmergencia(true);
+        emergencia.setMascota(mascota);
+        emergencia.agregarDetalle(0, true, "Dolor de oido", consulta, veterinario);
+        emergencia.agregarDetalle(0, true, null, bano, veterinario);
+        citaBL.insert(emergencia);
+        bloque("INSERT (emergencia)");
+        campo("id", emergencia.getId());
+        campo("fecha", FORMATO_FECHA.format(emergencia.getFechaHora()) + " (hace 30 min)");
+
+        bloque("CONSULTAS");
+        List<Cita> agenda = citaBL.findByFecha(manana, veterinario.getId());
+        List<Cita> delCliente = citaBL.findByCliente(cliente.getId());
+        campo("agenda manana", agenda.size() + " cita(s) del veterinario");
+        campo("del cliente", delCliente.size() + " cita(s)");
+        verificar("la agenda del veterinario incluye la cita de manana",
+                agenda.stream().anyMatch(c -> c.getId() == cita.getId()));
+        verificar("el cliente tiene 2 citas", delCliente.size() == 2);
         mostrarReglas();
 
-        // ------------------------------------------------------------ ATENCION
+        DetalleCita detalleConsulta = buscarDetalle(citaBL.findById(emergencia.getId()), consulta.getNombre());
+        DetalleCita detalleBano = buscarDetalle(citaBL.findById(emergencia.getId()), bano.getNombre());
+        DetalleCita consultaDeManana = buscarDetalle(citaBL.findById(cita.getId()), consulta.getNombre());
+
+        // ------------------------------------------------------------ ATENCION (RF14)
         tituloSeccion("ATENCION");
 
-        // Estas dos reglas se prueban antes de registrar las atenciones (el servicio aun esta libre)
+        try {
+            Atencion antes = new Atencion();
+            antes.setDetalleCita(consultaDeManana);
+            antes.setFechaHora(LocalDateTime.now().withNano(0));
+            antes.setMotivoConsulta("Antes de tiempo");
+            atencionBL.insert(antes);
+            noRechazada("Atender la cita de manana antes de su hora");
+        } catch (BLException ex) {
+            rechazada("Atender la cita de manana antes de su hora", ex);
+        }
         try {
             Atencion conDiagnostico = new Atencion();
             conDiagnostico.setDetalleCita(detalleBano);
@@ -384,11 +467,9 @@ public class Tester {
         atencionConsulta.agregarInsumoUtilizado(0, true, vacuna, 1, true);
         atencionConsulta.agregarDiagnostico(true, diagnostico, NivelGravedad.LEVE, "Oido izquierdo");
         atencionBL.insert(atencionConsulta);
-        int stockVacuna = articuloBL.findById(vacuna.getId()).getStockActual();
-        bloque("INSERT (consulta)");
+        int stockVacuna = stock(vacuna);
+        bloque("INSERT (consulta, cita de emergencia PENDIENTE)");
         campo("id", atencionConsulta.getId());
-        campo("motivo", atencionConsulta.getMotivoConsulta());
-        campo("diagnostico", diagnostico.getNombreEnfermedad() + " (LEVE)");
         campo("insumo", "Vacuna antirrabica x1 (cobrable)");
         campo("stock vacuna", "10 -> " + stockVacuna);
         verificar("la vacuna descuenta stock", stockVacuna == 9);
@@ -400,8 +481,20 @@ public class Tester {
         atencionBL.insert(atencionBano);
         bloque("INSERT (bano)");
         campo("id", atencionBano.getId());
-        campo("insumo", "Shampoo 500 ml x1 (no cobrable)");
-        campo("stock shampoo", "5 -> " + articuloBL.findById(shampoo.getId()).getStockActual());
+        campo("stock shampoo", "5 -> " + stock(shampoo) + " (insumo no cobrable)");
+        verificar("el shampoo descuenta stock", stock(shampoo) == 4);
+
+        // Modificar la cantidad mueve solo la diferencia (RN-AT-08)
+        Atencion modificada = atencionBL.findById(atencionConsulta.getId());
+        modificada.getInsumosUtilizados().get(0).setCantidadUtilizada(2);
+        atencionBL.update(modificada);
+        int conDos = stock(vacuna);
+        modificada = atencionBL.findById(atencionConsulta.getId());
+        modificada.getInsumosUtilizados().get(0).setCantidadUtilizada(1);
+        atencionBL.update(modificada);
+        bloque("UPDATE (insumo 1 -> 2 -> 1)");
+        campo("stock vacuna", "9 -> " + conDos + " -> " + stock(vacuna));
+        verificar("modificar el insumo ajusta el stock por diferencia", conDos == 8 && stock(vacuna) == 9);
 
         try {
             Atencion repetida = new Atencion();
@@ -415,7 +508,7 @@ public class Tester {
         }
         mostrarReglas();
 
-        // ------------------------------------------------------------ RECETA
+        // ------------------------------------------------------------ RECETA (RF15)
         tituloSeccion("RECETA");
 
         Receta receta = new Receta();
@@ -441,46 +534,72 @@ public class Tester {
         }
         mostrarReglas();
 
+        // ------------------------------------------------------------ HISTORIAL (RF16)
+        tituloSeccion("HISTORIAL CLINICO");
+
+        List<Atencion> historial = atencionBL.findByMascota(mascota.getId());
+        int recetasConsulta = recetaBL.findByAtencion(atencionConsulta.getId()).size();
+        bloque("CONSULTAS");
+        campo("atenciones", historial.size() + " de " + mascota.getNombre());
+        campo("recetas", recetasConsulta + " en la consulta");
+        verificar("el historial de la mascota tiene 2 atenciones", historial.size() == 2);
+        verificar("la consulta tiene 1 receta", recetasConsulta == 1);
+
         // ------------------------------------------------------------ CITA COMPLETADA
         tituloSeccion("CITA COMPLETADA");
 
-        Cita completada = citaBL.findById(cita.getId());
+        Cita aprobarEmergencia = citaBL.findById(emergencia.getId());
+        aprobarEmergencia.setEstado(EstadoCita.APROBADO);
+        aprobarEmergencia.setAdministrador(administrador);
+        citaBL.update(aprobarEmergencia);
+        Cita completada = citaBL.findById(emergencia.getId());
         completada.setEstado(EstadoCita.COMPLETADO);
         citaBL.update(completada);
-        bloque("UPDATE");
-        campo("estado", "APROBADO -> " + citaBL.findById(cita.getId()).getEstado());
+        bloque("UPDATE (emergencia)");
+        campo("estado", "PENDIENTE -> APROBADO -> " + citaBL.findById(emergencia.getId()).getEstado());
 
-        // ------------------------------------------------------------ BOLETA
+        // ------------------------------------------------------------ BOLETA (RF18)
         tituloSeccion("BOLETA");
 
-        Atencion atencionGuardada = atencionBL.findById(atencionConsulta.getId());
-        Boleta boleta = new Boleta();
-        boleta.setCliente(cliente);
-        boleta.setFecha(LocalDateTime.now().withNano(0));
+        Boleta boleta = boletaBL.prepararCobro(cliente.getId());
+        bloque("PREPARAR COBRO");
+        for (DetalleBoleta detalle : boleta.getDetalles()) {
+            campo("pendiente", String.format("%-34s S/ %7.2f", describirLinea(detalle),
+                    detalle.getPrecioUnitario() * detalle.getCantidad()));
+        }
+        verificar("lo pendiente es Consulta + Bano + Vacuna (155.00)",
+                boleta.getDetalles().size() == 3 && Math.abs(boleta.getTotal() - 155) < 0.01);
+
         boleta.setMetodoPago(MetodoPago.YAPE);
-        boleta.setSerieCorrelativo(nuevaSerie(0));
-        boleta.agregarDetalleServicio(0, true, 1, 80, atencionGuardada.getDetalleCita());
-        boleta.agregarDetalleServicio(0, true, 1, 40, detalleBano);
-        boleta.agregarDetalleArticulo(0, true, 1, 35, vacuna, atencionGuardada.getInsumosUtilizados().get(0));
         boleta.agregarDetalleArticulo(0, true, 1, 25, shampoo, null);
         boletaBL.insert(boleta);
-
         Boleta guardada = boletaBL.findById(boleta.getId());
-        bloque("INSERT");
-        campo("serie", guardada.getSerieCorrelativo());
-        campo("cliente", cliente.getNombres() + " " + cliente.getApellidoPaterno());
-        campo("metodo de pago", guardada.getMetodoPago());
+        bloque("INSERT (+ shampoo en caja)");
+        campo("numero", guardada.getSerieCorrelativo());
         for (DetalleBoleta detalle : guardada.getDetalles()) {
             campo("linea", String.format("%-34s S/ %7.2f", describirLinea(detalle), detalle.getSubtotal()));
         }
         campo("total", String.format("S/ %.2f", guardada.getTotal()));
-        int stockShampoo = articuloBL.findById(shampoo.getId()).getStockActual();
-        campo("stock shampoo", "4 -> " + stockShampoo + " (venta de caja)");
+        campo("stock shampoo", "4 -> " + stock(shampoo) + " (venta en caja)");
+        verificar("el numero lo asigna el sistema (B001-nnnnnn)", guardada.getSerieCorrelativo().matches("B001-\\d{6}"));
         verificar("el total es la suma de las lineas (180.00)", Math.abs(guardada.getTotal() - 180) < 0.01);
-        verificar("stock shampoo = 3", stockShampoo == 3);
+        verificar("stock shampoo = 3", stock(shampoo) == 3);
+
+        Boleta compra = nuevaBoleta(cliente);
+        compra.agregarDetalleArticulo(0, true, 1, 25, shampoo, null);
+        boletaBL.insert(compra);
+        String numeroCompra = boletaBL.findById(compra.getId()).getSerieCorrelativo();
+        int stockTrasCompra = stock(shampoo);
+        boletaBL.delete(compra.getId());
+        bloque("COMPRA SIN CITA Y ANULACION");
+        campo("numero", numeroCompra + (noExiste(() -> boletaBL.findById(compra.getId())) ? " (anulada)" : " SIGUE ACTIVA"));
+        campo("stock shampoo", "3 -> " + stockTrasCompra + " -> " + stock(shampoo) + " al anular");
+        verificar("el numero siguiente es el correlativo + 1",
+                Integer.parseInt(numeroCompra.substring(5)) == Integer.parseInt(guardada.getSerieCorrelativo().substring(5)) + 1);
+        verificar("anular devuelve el stock de la venta en caja", stockTrasCompra == 2 && stock(shampoo) == 3);
 
         try {
-            Boleta otra = nuevaBoleta(cliente, nuevaSerie(1));
+            Boleta otra = nuevaBoleta(cliente);
             otra.agregarDetalleServicio(0, true, 1, 80, detalleConsulta);
             boletaBL.insert(otra);
             noRechazada("Facturar de nuevo el servicio 'Consulta'");
@@ -488,7 +607,15 @@ public class Tester {
             rechazada("Facturar de nuevo el servicio 'Consulta'", ex);
         }
         try {
-            Boleta otra = nuevaBoleta(cliente, nuevaSerie(2));
+            Boleta otra = nuevaBoleta(cliente);
+            otra.agregarDetalleServicio(0, true, 1, 80, consultaDeManana);
+            boletaBL.insert(otra);
+            noRechazada("Cobrar la consulta de manana (aun no atendida)");
+        } catch (BLException ex) {
+            rechazada("Cobrar la consulta de manana (aun no atendida)", ex);
+        }
+        try {
+            Boleta otra = nuevaBoleta(cliente);
             otra.agregarDetalleArticulo(0, true, 99, 25, shampoo, null);
             boletaBL.insert(otra);
             noRechazada("Vender 99 unidades de Shampoo (stock 3)");
@@ -497,8 +624,8 @@ public class Tester {
         }
         mostrarReglas();
 
-        // ------------------------------------------------------------ BAJAS
-        tituloSeccion("BAJAS (de hijos a padres)");
+        // ------------------------------------------------------------ BAJAS E HISTORIAL
+        tituloSeccion("BAJAS E HISTORIAL");
 
         try {
             mascotaBL.delete(mascota.getId());
@@ -507,51 +634,61 @@ public class Tester {
             rechazada("Eliminar la mascota 'Luna' (tiene citas)", ex);
         }
         try {
-            servicioBL.delete(consulta.getId());
-            noRechazada("Eliminar el servicio 'Consulta' (esta en una cita)");
+            citaBL.delete(emergencia.getId());
+            noRechazada("Eliminar la cita atendida");
         } catch (BLException ex) {
-            rechazada("Eliminar el servicio 'Consulta' (esta en una cita)", ex);
+            rechazada("Eliminar la cita atendida", ex);
         }
         try {
-            citaBL.delete(cita.getId());
-            noRechazada("Eliminar la cita (tiene atenciones)");
+            atencionBL.delete(atencionBano.getId());
+            noRechazada("Anular una atencion de una cita COMPLETADO");
         } catch (BLException ex) {
-            rechazada("Eliminar la cita (tiene atenciones)", ex);
+            rechazada("Anular una atencion de una cita COMPLETADO", ex);
         }
-        mostrarReglas("REGLAS DE NEGOCIO (no eliminar con dependientes)");
-        System.out.println();
+        try {
+            veterinarioBL.delete(veterinario.getId());
+            noRechazada("Dar de baja al veterinario (tiene la cita de manana APROBADO)");
+        } catch (BLException ex) {
+            rechazada("Dar de baja al veterinario (tiene la cita de manana APROBADO)", ex);
+        }
+        mostrarReglas("REGLAS DE NEGOCIO (el historial se protege)");
 
-        boletaBL.delete(boleta.getId());
-        baja("boleta", boleta.getId(), boletaBL.findById(boleta.getId()) == null);
-        recetaBL.delete(receta.getId());
-        baja("receta", receta.getId(), recetaBL.findById(receta.getId()) == null);
-        atencionBL.delete(atencionConsulta.getId());
-        atencionBL.delete(atencionBano.getId());
-        baja("atencion", atencionConsulta.getId(), atencionBL.findById(atencionConsulta.getId()) == null);
-        citaBL.delete(cita.getId());
-        baja("cita", cita.getId(), citaBL.findById(cita.getId()) == null);
-        mascotaBL.delete(mascota.getId());
-        baja("mascota", mascota.getId(), mascotaBL.findById(mascota.getId()) == null);
-        clienteBL.delete(cliente.getId());
-        baja("cliente", cliente.getId(), clienteBL.findById(cliente.getId()) == null);
+        // La cita de manana no tiene atenciones: se cancela. Luego el veterinario y el catalogo se
+        // pueden dar de baja aunque esten en el historial (RN-GE-02)
+        Cita cancelada = citaBL.findById(cita.getId());
+        cancelada.setEstado(EstadoCita.CANCELADO);
+        citaBL.update(cancelada);
         veterinarioBL.delete(veterinario.getId());
-        baja("veterinario", veterinario.getId(), veterinarioBL.findById(veterinario.getId()) == null);
         servicioBL.delete(consulta.getId());
         servicioBL.delete(bano.getId());
-        baja("servicio", consulta.getId(), servicioBL.findById(consulta.getId()) == null);
         diagnosticoBL.delete(diagnostico.getId());
-        baja("diagnostico", diagnostico.getId(), diagnosticoBL.findById(diagnostico.getId()) == null);
         articuloBL.delete(vacuna.getId());
         articuloBL.delete(shampoo.getId());
-        baja("articulo", vacuna.getId(), articuloBL.findById(vacuna.getId()) == null);
         categoriaBL.delete(categoria.getId());
-        baja("categoria", categoria.getId(), categoriaBL.findById(categoria.getId()) == null);
         for (Horario horario : horarios) {
             horarioBL.delete(horario.getId());
         }
-        cuentaBL.delete(cuentaCliente.getId());
-        cuentaBL.delete(cuentaVet.getId());
-        baja("cuenta", cuentaCliente.getId(), cuentaBL.findById(cuentaCliente.getId()) == null);
+        bloque("BAJAS");
+        campo("cita manana", citaBL.findById(cita.getId()).getEstado());
+        baja("veterinario", veterinario.getId(), noExiste(() -> veterinarioBL.findById(veterinario.getId())));
+        baja("servicio", consulta.getId(), noExiste(() -> servicioBL.findById(consulta.getId())));
+        baja("diagnostico", diagnostico.getId(), noExiste(() -> diagnosticoBL.findById(diagnostico.getId())));
+        baja("articulo", vacuna.getId(), noExiste(() -> articuloBL.findById(vacuna.getId())));
+        baja("categoria", categoria.getId(), noExiste(() -> categoriaBL.findById(categoria.getId())));
+
+        bloque("HISTORIAL TRAS LAS BAJAS");
+        Cita leida = citaBL.findById(emergencia.getId());
+        Receta recetaLeida = recetaBL.findById(receta.getId());
+        Boleta boletaLeida = boletaBL.findById(boleta.getId());
+        campo("cita", leida.getEstado() + " | " + leida.getDetalles().get(0).getServicio().getNombre()
+                + " con " + leida.getDetalles().get(0).getVeterinario().getNombres());
+        campo("receta", recetaLeida.getDetalles().get(0).getArticulo().getNombre());
+        campo("boleta", boletaLeida.getSerieCorrelativo() + " | " + boletaLeida.getDetalles().size() + " lineas");
+        verificar("la cita se lee con su servicio y veterinario dados de baja", leida.getDetalles().size() == 2);
+        verificar("el historial de la mascota sigue completo", atencionBL.findByMascota(mascota.getId()).size() == 2);
+        verificar("la boleta conserva sus 4 lineas", boletaLeida.getDetalles().size() == 4);
+        System.out.println();
+        System.out.println("  Cliente, mascotas, citas, atenciones, receta y boleta quedan en la base: son historial.");
     }
 
     // ---------------------------------------------------------------- Impresion
@@ -621,6 +758,19 @@ public class Tester {
             System.out.println(linea);
         }
         reglas.clear();
+    }
+
+    private interface Busqueda {
+        Object buscar() throws BLException;
+    }
+
+    // findById lanza NoEncontradoException cuando el registro no existe o esta dado de baja
+    private static boolean noExiste(Busqueda busqueda) throws BLException {
+        try {
+            return busqueda.buscar() == null;
+        } catch (NoEncontradoException ex) {
+            return true;
+        }
     }
 
     private static String causa(Exception ex) {
@@ -795,16 +945,16 @@ public class Tester {
         throw new IllegalStateException("la cita no tiene el servicio " + nombreServicio);
     }
 
-    private static Boleta nuevaBoleta(Cliente cliente, String serie) {
+    // El numero de la boleta lo asigna el sistema al emitirla
+    private static Boleta nuevaBoleta(Cliente cliente) {
         Boleta boleta = new Boleta();
         boleta.setCliente(cliente);
         boleta.setFecha(LocalDateTime.now().withNano(0));
         boleta.setMetodoPago(MetodoPago.EFECTIVO);
-        boleta.setSerieCorrelativo(serie);
         return boleta;
     }
 
-    private static String nuevaSerie(int desplazamiento) {
-        return String.format("B001-%06d", (Long.parseLong(SUFIJO) + desplazamiento) % 1_000_000);
+    private static int stock(Articulo articulo) throws BLException {
+        return articuloBL.findById(articulo.getId()).getStockActual();
     }
 }

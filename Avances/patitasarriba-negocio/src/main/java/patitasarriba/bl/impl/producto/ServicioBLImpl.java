@@ -1,10 +1,11 @@
 package patitasarriba.bl.impl.producto;
 
+import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ServicioBL;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.ServicioDAO;
-import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.impl.producto.ServicioDAOImpl;
 import patitasarriba.modelo.producto.Servicio;
 
@@ -13,7 +14,6 @@ import java.util.List;
 
 public class ServicioBLImpl implements ServicioBL {
     private final ServicioDAO servicioDAO = new ServicioDAOImpl();
-    private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
 
     @Override
     public Servicio findByName(String name) throws BLException {
@@ -39,7 +39,11 @@ public class ServicioBLImpl implements ServicioBL {
     @Override
     public Servicio findById(Integer integer) throws BLException {
         try {
-            return servicioDAO.findById(integer);
+            Servicio servicio = servicioDAO.findById(integer);
+            if (servicio == null) {
+                throw new NoEncontradoException("No se encontró el servicio con id " + integer);
+            }
+            return servicio;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
@@ -47,6 +51,7 @@ public class ServicioBLImpl implements ServicioBL {
 
     @Override
     public void insert(Servicio entidad) throws BLException {
+        Activos.marcar(entidad);
         validar(entidad);
         validarNombreUnico(entidad);
         try {
@@ -58,6 +63,9 @@ public class ServicioBLImpl implements ServicioBL {
 
     @Override
     public void update(Servicio entidad) throws BLException {
+        // RN-GE-06: solo se modifica un registro que existe y esta activo
+        if (entidad != null) findById(entidad.getId());
+        Activos.marcar(entidad);
         validar(entidad);
         validarNombreUnico(entidad);
         try {
@@ -69,7 +77,6 @@ public class ServicioBLImpl implements ServicioBL {
 
     @Override
     public void delete(Integer integer) throws BLException {
-        validarSinCitas (integer);
         try {
             servicioDAO.delete(integer);
         } catch (SQLException e) {
@@ -95,21 +102,6 @@ public class ServicioBLImpl implements ServicioBL {
         }
         if (servicio.getDuracionEstimada() != null && servicio.getDuracionEstimada() <= 0){
             throw new BLException("La duración estimada debe ser mayor a 0");
-        }
-    }
-
-    // Antes esta validacion traia TODAS las citas (con todos sus detalles) via citaDAO.findAll()
-    // solo para recorrerlas en Java buscando una coincidencia por id_servicio. Ahora se delega el
-    // filtro a la base de datos (existeDetalleConServicio -> listar_detalle_cita_por_servicio),
-    // que como mucho devuelve las filas que coinciden y el DAO solo revisa si hay alguna,
-    // sin mapear objetos DetalleCita completos.
-    private void validarSinCitas(int idServicio) throws BLException {
-        try {
-            if (detalleCitaDAO.existeDetalleConServicio(idServicio)) {
-                throw new BLException("No se puede eliminar el servicio: está asignado a una cita");
-            }
-        } catch (SQLException e) {
-            throw new BLException("No se pudo verificar las citas del servicio", e);
         }
     }
 

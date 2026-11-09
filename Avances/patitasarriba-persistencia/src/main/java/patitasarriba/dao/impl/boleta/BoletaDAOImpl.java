@@ -215,6 +215,21 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         return buscarIdBoleta("{call buscar_boleta_por_serie_correlativo(?)}", "p_serie_correlativo", serieCorrelativo);
     }
 
+    @Override
+    public int ultimoCorrelativo(String serie) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try (CallableStatement cmd = conn.prepareCall("{call obtener_ultimo_correlativo(?,?)}")) {
+            cmd.setString("p_serie", serie);
+            cmd.registerOutParameter("p_ultimo", java.sql.Types.INTEGER);
+            cmd.execute();
+            return cmd.getInt("p_ultimo");
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
     private int buscarIdBoleta(String sql, String parametro, Object valor) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()

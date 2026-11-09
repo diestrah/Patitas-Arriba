@@ -1,9 +1,11 @@
 package patitasarriba.bl.impl.usuario;
 
+import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.ClienteBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.util.ValidadorPersona;
 import patitasarriba.dao.*;
 import patitasarriba.dao.impl.boleta.BoletaDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
@@ -62,6 +64,7 @@ public class ClienteBLImpl implements ClienteBL {
 
     @Override
     public void insert(Cliente cliente) throws BLException {
+        Activos.marcar(cliente);
         validar(cliente);
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
@@ -77,6 +80,9 @@ public class ClienteBLImpl implements ClienteBL {
 
     @Override
     public void update(Cliente cliente) throws BLException {
+        // RN-GE-06: solo se modifica un registro que existe y esta activo
+        if (cliente != null) findById(cliente.getId());
+        Activos.marcar(cliente);
         validar(cliente);
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
@@ -93,11 +99,14 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public void delete(Integer id) throws BLException {
         if (id == null) throw new BLException("El id del cliente no puede ser nulo");
+        Cliente cliente = findById(id);
         validarSinHistorial(id);
         TransactionsManager.iniciar();
         try {
             mascotaDAO.eliminarPorCliente(id);
             clienteDAO.delete(id);
+            // RN-PE-06: la cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(cliente.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
@@ -126,18 +135,7 @@ public class ClienteBLImpl implements ClienteBL {
     }
 
     private void validar(Cliente cliente) throws BLException {
-        if (cliente == null) {
-            throw new BLException("El cliente no puede ser nulo");
-        }
-        if (cliente.getDni() == null || !cliente.getDni().matches("\\d{8}")) {
-            throw new BLException("El DNI debe contener exactamente 8 dígitos numéricos");
-        }
-        if (cliente.getNombres() == null || cliente.getNombres().trim().isEmpty()) {
-            throw new BLException("El nombre del cliente es obligatorio");
-        }
-        if (cliente.getApellidoPaterno() == null || cliente.getApellidoPaterno().trim().isEmpty()) {
-            throw new BLException("El apellido paterno es obligatorio");
-        }
+        ValidadorPersona.validarDatos(cliente, "cliente");
     }
 
     private void validarCuentaActiva(Cliente cliente) throws BLException {
@@ -149,25 +147,19 @@ public class ClienteBLImpl implements ClienteBL {
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta del cliente", e);
         }
+        ValidadorPersona.validarCuentaLibre(cliente);
     }
 
     private void validarUnicos(Cliente cliente) throws BLException {
         try {
-            Cliente porDni;
-            try {
-                porDni = clienteDAO.findByDni(cliente.getDni());
-            } catch (IllegalArgumentException e) {
-                // El DAO falla al leer un cliente dado de baja cuya cuenta tambien se dio de baja:
-                // igual significa que el DNI ya existe
-                throw new BLException("Ya existe un cliente dado de baja con el DNI " + cliente.getDni());
-            }
+            Cliente porDni = clienteDAO.findByDni(cliente.getDni());
             if (porDni != null && porDni.getId() != cliente.getId()) {
                 throw new BLException("Ya existe un cliente con el DNI " + cliente.getDni());
             }
-            for (Cliente otro : clienteDAO.findAll()) {
-                if (otro.getId() != cliente.getId() && otro.getTelefono().equals(cliente.getTelefono())) {
-                    throw new BLException("Ya existe un cliente con el teléfono " + cliente.getTelefono());
-                }
+            // buscar_cliente_por_telefono no filtra activo: el telefono de un cliente dado de baja sigue ocupado
+            Cliente porTelefono = clienteDAO.findByTelefono(cliente.getTelefono());
+            if (porTelefono != null && porTelefono.getId() != cliente.getId()) {
+                throw new BLException("Ya existe un cliente con el teléfono " + cliente.getTelefono());
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del cliente", e);
