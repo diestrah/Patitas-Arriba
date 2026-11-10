@@ -89,10 +89,14 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        if (id == null) throw new BLException("El id del veterinario no puede ser nulo");
+        Veterinario vet = findById(id);
         validarSinCitas (id);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(vet.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();

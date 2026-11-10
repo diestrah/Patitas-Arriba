@@ -89,9 +89,12 @@ public class AdministradorBLImpl implements AdministradorBL {
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar los administradores activos", e);
         }
+        Administrador admin = findById(id);
         TransactionsManager.iniciar();
         try {
             administradorDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(admin.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();

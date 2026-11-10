@@ -93,11 +93,14 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public void delete(Integer id) throws BLException {
         if (id == null) throw new BLException("El id del cliente no puede ser nulo");
+        Cliente cliente = findById(id);
         validarSinHistorial(id);
         TransactionsManager.iniciar();
         try {
             mascotaDAO.eliminarPorCliente(id);
             clienteDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(cliente.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();

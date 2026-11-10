@@ -107,13 +107,36 @@ public class BoletaBLImpl implements BoletaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        if (id == null) throw new BLException("El id de la boleta no puede ser nulo");
+        Boleta actual = obtenerActiva(id);
         TransactionsManager.iniciar();
         try {
+            // Anular devuelve al stock lo vendido en caja. Los insumos no, porque se usaron en la atencion
+            for (DetalleBoleta d : actual.getDetalles()) {
+                if (d instanceof DetalleBoletaArticulo a && a.getInsumoUtilizado() == null) {
+                    Articulo art = articuloDAO.findById(a.getArticulo().getId());
+                    art.setStockActual(art.getStockActual() + a.getCantidad());
+                    articuloDAO.update(TransactionsManager.getConnection(), art);
+                }
+            }
             boletaDAO.delete(id);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo eliminar la boleta", e);
+        }
+    }
+
+    // Una boleta anulada ya no se vuelve a anular (su stock ya se devolvio)
+    private Boleta obtenerActiva(int id) throws BLException {
+        try {
+            Boleta actual = boletaDAO.findById(id);
+            if (actual == null) {
+                throw new NoEncontradoException("No existe una boleta activa con id " + id);
+            }
+            return actual;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar la boleta", e);
         }
     }
 
@@ -236,6 +259,12 @@ public class BoletaBLImpl implements BoletaBL {
 
         if (servReal == null || !servReal.isActivo()) {
             throw new BLException("El servicio no existe o está inactivo en el catálogo");
+        }
+        // Solo se cobra un servicio de la cita que ya tiene su atencion registrada (y activa)
+        Atencion atencion = atencionDAO.findByDetalleCita(detalleServicio.getDetalleCita().getId());
+        if (atencion == null || !atencion.isActivo()) {
+            throw new BLException("El servicio " + servReal.getNombre()
+                    + " aún no fue atendido: solo se cobran servicios con atención registrada");
         }
         return servReal.getPrecioBase() * detalleServicio.getCantidad();
     }
