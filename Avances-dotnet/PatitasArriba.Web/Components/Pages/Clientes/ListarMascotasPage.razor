@@ -16,7 +16,7 @@
     }
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -42,23 +42,29 @@ else {
         <PropertyColumn Title="Nacimiento" Property="m => m.FechaNacimiento" Format="dd/MM/yyyy" />
         <PropertyColumn Title="Dueño" Property="m => m.NombreDueno" Sortable="true" />
         <TemplateColumn Title="Acciones">
-            @* Orden: ver (historial), editar, eliminar *@
-            <div class="acciones-flujo">
-                <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(context.Id)">
-                    <Icono Nombre="clipboard" /><span>Historial</span>
-                </button>
+            @* Espacios fijos: historial | editar | eliminar *@
+            <div class="acciones-fija">
+                <span class="slot-texto">
+                    <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(context.Id)">
+                        <Icono Nombre="clipboard" /><span>Historial</span>
+                    </button>
+                </span>
                 @if (Sesion.EsAdministrador) {
-                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarMascota(context.Id)">
-                        <Icono Nombre="edit" />
-                    </button>
-                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
-                        <Icono Nombre="trash" />
-                    </button>
+                    <span class="slot-icono">
+                        <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarMascota(context.Id)">
+                            <Icono Nombre="edit" />
+                        </button>
+                    </span>
+                    <span class="slot-icono">
+                        <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                            <Icono Nombre="trash" />
+                        </button>
+                    </span>
                 }
             </div>
         </TemplateColumn>
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 <ConfirmarDialogo Visible="MascotaAEliminar != null"

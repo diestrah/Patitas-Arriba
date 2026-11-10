@@ -2,17 +2,34 @@
 @inject SesionDemo Sesion;
 @inject NavigationManager Nav;
 
-<nav class="navbar navbar-expand navbar-dark bg-primary px-3">
-    <a class="navbar-brand" href="">Patitas Arriba</a>
+<nav class="navbar navbar-expand barra-principal px-3 sticky-top">
+    <a class="navbar-brand marca-barra" href="">
+        <span class="marca-logo">
+            <svg viewBox="0 0 64 64" width="20" height="20" fill="currentColor" aria-hidden="true">
+                <ellipse cx="32" cy="42" rx="14" ry="12" />
+                <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)" />
+                <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)" />
+                <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)" />
+                <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)" />
+            </svg>
+        </span>
+        <span>Patitas Arriba</span>
+    </a>
 
     @* El menú muestra solo las opciones del rol que inició sesión (ver Seguridad/Permisos.cs) *@
     <ul class="navbar-nav me-auto">
         @foreach (KeyValuePair<string, List<OpcionMenu>> grupo in Permisos.MenuDelRol(Sesion.Rol)) {
             <li class="nav-item dropdown">
-                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">@grupo.Key</button>
+                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <Icono Nombre="@Permisos.IconoDeGrupo(grupo.Key)" /><span>@grupo.Key</span>
+                </button>
                 <ul class="dropdown-menu">
                     @foreach (OpcionMenu opcion in grupo.Value) {
-                        <li><NavLink class="dropdown-item" href="@opcion.Href">@opcion.Texto</NavLink></li>
+                        <li>
+                            <NavLink class="dropdown-item" href="@opcion.Href">
+                                <Icono Nombre="@opcion.Icono" /><span>@opcion.Texto</span>
+                            </NavLink>
+                        </li>
                     }
                 </ul>
             </li>
@@ -22,15 +39,27 @@
     <ul class="navbar-nav">
         @if (Sesion.Rol != null) {
             <li class="nav-item dropdown">
-                <button class="nav-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    @Sesion.NombreUsuario (@TextoEnum.De(Sesion.Rol.Value))
+                <button class="nav-link dropdown-toggle usuario-barra" type="button" data-bs-toggle="dropdown" title="@Sesion.NombreUsuario">
+                    <span class="avatar">@Sesion.Iniciales</span>
+                    <span class="usuario-texto">
+                        <span class="usuario-nombre">@Sesion.NombreCorto</span>
+                        <span class="usuario-rol">@TextoEnum.De(Sesion.Rol.Value)</span>
+                    </span>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">Cerrar sesión</button></li>
+                    <li><NavLink class="dropdown-item" href="" Match="NavLinkMatch.All"><Icono Nombre="home" /><span>Inicio</span></NavLink></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li>
+                        <button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">
+                            <Icono Nombre="log-out" /><span>Cerrar sesión</span>
+                        </button>
+                    </li>
                 </ul>
             </li>
         } else {
-            <li class="nav-item"><NavLink class="nav-link" href="login">Iniciar sesión</NavLink></li>
+            <li class="nav-item">
+                <NavLink class="nav-link" href="login"><Icono Nombre="log-in" /><span>Iniciar sesión</span></NavLink>
+            </li>
         }
     </ul>
 </nav>

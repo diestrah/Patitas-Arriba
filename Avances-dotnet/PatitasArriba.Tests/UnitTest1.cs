@@ -12,7 +12,15 @@ public class PruebasInterfaz : PageTest
 {
     private const string BaseUrl = "http://localhost:5118";
 
-    // Inicia sesion eligiendo el rol. Blazor Server tarda un instante en enlazar los eventos,
+    // Cuenta de los datos de ejemplo para cada rol: el rol ya no se elige, se deduce de la cuenta
+    private static string UsuarioDelRol(string rol) => rol switch
+    {
+        "ADMINISTRADOR" => "diego.lopez",
+        "VETERINARIO" => "carla.vega",
+        _ => "ana.torres"
+    };
+
+    // Inicia sesion con la cuenta del rol. Blazor Server tarda un instante en enlazar los eventos,
     // por eso se reintenta si todavia no aparece el saludo.
     private async Task IniciarSesionAsync(string rol)
     {
@@ -21,9 +29,8 @@ public class PruebasInterfaz : PageTest
             await Page.GotoAsync($"{BaseUrl}/login");
             await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            await Page.Locator("input.form-control").First.FillAsync("usuario.demo");
-            await Page.Locator("input[type=password]").FillAsync("clave123");
-            await Page.Locator("select.form-select").SelectOptionAsync(rol);
+            await Page.Locator("#correo").FillAsync(UsuarioDelRol(rol));
+            await Page.Locator("#clave").FillAsync("clave123");
             await Page.GetByRole(AriaRole.Button, new() { Name = "Ingresar", Exact = true }).ClickAsync();
 
             try

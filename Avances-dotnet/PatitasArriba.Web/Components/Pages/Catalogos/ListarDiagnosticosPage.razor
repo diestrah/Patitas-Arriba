@@ -16,7 +16,7 @@
     }
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Enfermedad:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la enfermedad..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -49,7 +49,7 @@ else {
             </TemplateColumn>
         }
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 <ConfirmarDialogo Visible="DiagnosticoAEliminar != null"

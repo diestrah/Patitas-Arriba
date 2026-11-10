@@ -9,7 +9,7 @@
 <h3 class="mb-1">Cuentas de usuario</h3>
 <p class="text-muted small mb-3">Las cuentas se crean al registrar un cliente, un veterinario o un administrador.</p>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Usuario o correo:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el usuario o el correo..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -57,7 +57,7 @@ else {
             </div>
         </TemplateColumn>
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 <ConfirmarDialogo Visible="CuentaAEliminar != null"

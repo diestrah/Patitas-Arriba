@@ -1,45 +1,131 @@
 @page "/login"
+@layout LayoutVacio
+@implements IAsyncDisposable
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IJSRuntime JS;
 
-<PageTitle>Iniciar sesión</PageTitle>
+<PageTitle>Iniciar sesión · Patitas Arriba</PageTitle>
 
-<div class="col-md-4 mx-auto">
-    <h3 class="mb-3">Iniciar sesión</h3>
-
-    <EditForm Model="ViewModel" OnValidSubmit="Ingresar">
-        <DataAnnotationsValidator />
-
-        <div class="mb-3">
-            <label class="form-label">Usuario</label>
-            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.NombreUsuario" />
-            <ValidationMessage For="() => ViewModel.NombreUsuario" />
+<div class="login-page">
+    @* La sala con los perritos la dibuja wwwroot/js/login-patitas.js dentro del <svg id="sala"> *@
+    <section class="stage-panel" id="stage" data-state="idle" aria-hidden="true">
+        <svg class="sala" id="sala" viewBox="0 0 1200 1000" preserveAspectRatio="xMidYMax meet" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="marca">
+            <div class="logo">
+                <svg viewBox="0 0 64 64" width="28" height="28" fill="#fff">
+                    <ellipse cx="32" cy="42" rx="14" ry="12" />
+                    <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)" />
+                    <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)" />
+                    <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)" />
+                    <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)" />
+                </svg>
+            </div>
+            <h1>Patitas Arriba<small>Clínica y estética veterinaria</small></h1>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Contraseña</label>
-            <InputText tabindex="2" type="password" class="form-control" @bind-Value="ViewModel.Password" />
-            <ValidationMessage For="() => ViewModel.Password" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Ingresar como</label>
-            <InputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.Perfil">
-                @foreach (RolUsuario rol in Roles) {
-                    <option value="@rol">@TextoEnum.De(rol)</option>
+    </section>
+
+    <section class="form-panel">
+        <div class="login-contenedor">
+            <EditForm Model="ViewModel" OnValidSubmit="Ingresar" class="login-tarjeta">
+                <DataAnnotationsValidator />
+
+                <h2>¡Hola de nuevo!</h2>
+                <p class="sub">Ingresa con tu usuario o correo y tu contraseña.</p>
+
+                @if (MensajeError != null) {
+                    <div class="login-error">@MensajeError</div>
                 }
-            </InputSelect>
-            <div class="form-text">Mientras no se enlaza con el backend: simula el rol de la cuenta.</div>
+
+                <div class="campo">
+                    <label for="correo">Usuario o correo</label>
+                    <div class="input-wrap">
+                        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
+                        <InputText id="correo" tabindex="1" class="login-input" placeholder="usuario o nombre@correo.com" autocomplete="username" @bind-Value="ViewModel.NombreUsuario" />
+                    </div>
+                    <ValidationMessage For="() => ViewModel.NombreUsuario" />
+                </div>
+
+                <div class="campo">
+                    <label for="clave">Contraseña</label>
+                    <div class="input-wrap">
+                        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+                        <InputText id="clave" tabindex="2" type="password" class="login-input" placeholder="••••••••" autocomplete="current-password" @bind-Value="ViewModel.Password" />
+                        @* Mostrar u ocultar la contraseña lo maneja login-patitas.js (los perritos espían con un ojo) *@
+                        <button class="eye-btn" type="button" id="ver" aria-label="Mostrar contraseña" title="Mostrar contraseña">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
+                        </button>
+                    </div>
+                    <ValidationMessage For="() => ViewModel.Password" />
+                </div>
+
+                <button class="login-boton" type="submit" tabindex="3">
+                    Ingresar
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                </button>
+
+                <div class="login-ayuda">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
+                    <span>No eliges tu rol: el sistema lo detecta según tu cuenta.</span>
+                </div>
+
+                @* Mientras no se enlaza con el backend: cuentas de los datos de ejemplo, con cualquier contraseña *@
+                <div class="login-demo">
+                    Cuentas de prueba (cualquier contraseña):
+                    <div class="chips">
+                        <button type="button" class="chip" @onclick='() => Rellenar("diego.lopez")'><b>diego.lopez</b> · Administrador</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("carla.vega")'><b>carla.vega</b> · Veterinaria</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("ana.torres")'><b>ana.torres</b> · Cliente</button>
+                    </div>
+                </div>
+            </EditForm>
+            <p class="lema">Cuidamos a tu mejor amigo con mucho cariño <span>♥</span></p>
         </div>
-        <button tabindex="4" type="submit" class="btn btn-primary btn-texto w-100 justify-content-center"><Icono Nombre="log-in" /><span>Ingresar</span></button>
-    </EditForm>
+    </section>
 </div>
 
 @code {
     private LoginViewModel ViewModel { get; set; } = new();
-    private RolUsuario[] Roles { get; } = Enum.GetValues<RolUsuario>();
+    private string? MensajeError { get; set; }
 
-    // Sin backend: no se valida la cuenta, solo se simula el rol elegido. Al enlazar: POST /login
-    private void Ingresar() {
-        Sesion.IniciarSesion(ViewModel.Perfil);
+    protected override async Task OnAfterRenderAsync(bool firstRender) {
+        if (firstRender) {
+            try {
+                await JS.InvokeVoidAsync("iniciarSalaLogin");
+            } catch (JSException) {
+                // Si la animación falla, el formulario sigue funcionando
+            }
+        }
+    }
+
+    private void Rellenar(string usuario) {
+        ViewModel.NombreUsuario = usuario;
+        ViewModel.Password = "patitas123";
+        MensajeError = null;
+    }
+
+    // Sin backend: busca la cuenta en los datos de ejemplo y deduce el rol. Al enlazar: POST /login.
+    // Ante cualquier fallo el mensaje es el mismo, sin decir si falló el usuario o la contraseña (RN-CU-05)
+    private async Task Ingresar() {
+        MensajeError = null;
+        if (!Sesion.IniciarSesion(ViewModel.NombreUsuario, ViewModel.Password)) {
+            MensajeError = "Usuario o contraseña incorrectos";
+            return;
+        }
+        try {
+            await JS.InvokeVoidAsync("celebrarLogin");
+            await Task.Delay(700);
+        } catch (JSException) {
+        }
         Nav.NavigateTo("/");
+    }
+
+    public async ValueTask DisposeAsync() {
+        try {
+            await JS.InvokeVoidAsync("detenerSalaLogin");
+        } catch (JSDisconnectedException) {
+        } catch (InvalidOperationException) {
+        } catch (JSException) {
+        }
     }
 }

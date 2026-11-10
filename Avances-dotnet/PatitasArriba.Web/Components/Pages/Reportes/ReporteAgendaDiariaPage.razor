@@ -5,7 +5,7 @@
 
 <h3 class="mb-3">Reporte de agenda diaria</h3>
 
-<div class="d-flex align-items-center gap-2 mb-3 no-print">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3 no-print">
     <label class="text-nowrap">Fecha:</label>
     <input tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Generar()"><Icono Nombre="search" /><span>Generar</span></button>

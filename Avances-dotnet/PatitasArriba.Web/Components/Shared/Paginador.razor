@@ -1,0 +1,75 @@
+@* Paginador en español para las tablas QuickGrid (reemplaza al Paginator de QuickGrid, que viene en inglés).
+   Uso: <Paginador State="Paginacion" />, con el mismo PaginationState que recibe la QuickGrid. *@
+@using Microsoft.AspNetCore.Components.QuickGrid
+@implements IDisposable
+
+@if (State.TotalItemCount > 0) {
+    <div class="paginador">
+        <span class="paginador-total">@State.TotalItemCount @(State.TotalItemCount == 1 ? "registro" : "registros")</span>
+        <nav class="paginador-nav" aria-label="Paginación">
+            <button type="button" class="btn-pagina" title="Primera página" aria-label="Primera página" disabled="@(!PuedeRetroceder)" @onclick="() => IrA(0)">
+                <Icono Nombre="chevrons-left" />
+            </button>
+            <button type="button" class="btn-pagina" title="Página anterior" aria-label="Página anterior" disabled="@(!PuedeRetroceder)" @onclick="() => IrA(State.CurrentPageIndex - 1)">
+                <Icono Nombre="chevron-left" />
+            </button>
+            @foreach (int pagina in Paginas) {
+                <button type="button" class="@(pagina == State.CurrentPageIndex ? "btn-pagina activa" : "btn-pagina")" aria-label="@($"Página {pagina + 1}")" @onclick="() => IrA(pagina)">
+                    @(pagina + 1)
+                </button>
+            }
+            <button type="button" class="btn-pagina" title="Página siguiente" aria-label="Página siguiente" disabled="@(!PuedeAvanzar)" @onclick="() => IrA(State.CurrentPageIndex + 1)">
+                <Icono Nombre="chevron-right" />
+            </button>
+            <button type="button" class="btn-pagina" title="Última página" aria-label="Última página" disabled="@(!PuedeAvanzar)" @onclick="() => IrA(UltimaPagina)">
+                <Icono Nombre="chevrons-right" />
+            </button>
+        </nav>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired]
+    public PaginationState State { get; set; } = default!;
+
+    private PaginationState? Suscrito { get; set; }
+
+    private int UltimaPagina => State.LastPageIndex ?? 0;
+    private bool PuedeRetroceder => State.CurrentPageIndex > 0;
+    private bool PuedeAvanzar => State.CurrentPageIndex < UltimaPagina;
+
+    // Hasta 5 números de página alrededor de la actual
+    private IEnumerable<int> Paginas {
+        get {
+            int desde = Math.Max(0, State.CurrentPageIndex - 2);
+            int hasta = Math.Min(UltimaPagina, desde + 4);
+            desde = Math.Max(0, hasta - 4);
+            return Enumerable.Range(desde, hasta - desde + 1);
+        }
+    }
+
+    // La QuickGrid avisa cuando cambia el total (por ejemplo, al filtrar); entonces se vuelve a dibujar
+    protected override void OnParametersSet() {
+        if (Suscrito != State) {
+            if (Suscrito != null) {
+                Suscrito.TotalItemCountChanged -= AlCambiarTotal;
+            }
+            State.TotalItemCountChanged += AlCambiarTotal;
+            Suscrito = State;
+        }
+    }
+
+    private void AlCambiarTotal(object? sender, int? total) {
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task IrA(int pagina) {
+        await State.SetCurrentPageIndexAsync(Math.Clamp(pagina, 0, UltimaPagina));
+    }
+
+    public void Dispose() {
+        if (Suscrito != null) {
+            Suscrito.TotalItemCountChanged -= AlCambiarTotal;
+        }
+    }
+}

@@ -31,44 +31,60 @@ namespace PatitasArriba.Web.Seguridad {
 
         public static readonly IReadOnlyDictionary<string, List<OpcionMenu>> Menu = new Dictionary<string, List<OpcionMenu>> {
             ["Clientes"] = [
-                new OpcionMenu { Texto = "Clientes", Href = "clientes", Permiso = "Clientes" },
-                new OpcionMenu { Texto = "Mascotas", Href = "mascotas", Permiso = "Mascotas" }
+                new OpcionMenu { Texto = "Clientes", Href = "clientes", Permiso = "Clientes", Icono = "users" },
+                new OpcionMenu { Texto = "Mascotas", Href = "mascotas", Permiso = "Mascotas", Icono = "paw" }
             ],
             ["Citas"] = [
-                new OpcionMenu { Texto = "Gestión de citas", Href = "citas", Permiso = "Citas" },
-                new OpcionMenu { Texto = "Mi agenda", Href = "mi-agenda", Permiso = "Agenda" }
+                new OpcionMenu { Texto = "Gestión de citas", Href = "citas", Permiso = "Citas", Icono = "calendar" },
+                new OpcionMenu { Texto = "Mi agenda", Href = "mi-agenda", Permiso = "Agenda", Icono = "clock" }
             ],
             ["Clínica"] = [
-                new OpcionMenu { Texto = "Atenciones", Href = "atenciones", Permiso = "Atenciones" },
-                new OpcionMenu { Texto = "Recetas médicas", Href = "recetas", Permiso = "Recetas" }
+                new OpcionMenu { Texto = "Atenciones", Href = "atenciones", Permiso = "Atenciones", Icono = "stethoscope" },
+                new OpcionMenu { Texto = "Recetas médicas", Href = "recetas", Permiso = "Recetas", Icono = "file-text" }
             ],
             ["Catálogos"] = [
-                new OpcionMenu { Texto = "Servicios", Href = "servicios", Permiso = "Servicios" },
-                new OpcionMenu { Texto = "Diagnósticos", Href = "diagnosticos", Permiso = "Diagnosticos" }
+                new OpcionMenu { Texto = "Servicios", Href = "servicios", Permiso = "Servicios", Icono = "tag" },
+                new OpcionMenu { Texto = "Diagnósticos", Href = "diagnosticos", Permiso = "Diagnosticos", Icono = "clipboard" }
             ],
             ["Inventario"] = [
-                new OpcionMenu { Texto = "Artículos", Href = "articulos", Permiso = "Articulos" },
-                new OpcionMenu { Texto = "Categorías", Href = "categorias", Permiso = "Categorias" }
+                new OpcionMenu { Texto = "Artículos", Href = "articulos", Permiso = "Articulos", Icono = "box" },
+                new OpcionMenu { Texto = "Categorías", Href = "categorias", Permiso = "Categorias", Icono = "list" }
             ],
             ["Personal"] = [
-                new OpcionMenu { Texto = "Veterinarios", Href = "veterinarios", Permiso = "Personal" },
-                new OpcionMenu { Texto = "Administradores", Href = "administradores", Permiso = "Personal" },
-                new OpcionMenu { Texto = "Horarios de atención", Href = "horarios", Permiso = "Horarios" },
-                new OpcionMenu { Texto = "Cuentas de usuario", Href = "cuentas-usuario", Permiso = "CuentasUsuario" }
+                new OpcionMenu { Texto = "Veterinarios", Href = "veterinarios", Permiso = "Personal", Icono = "stethoscope" },
+                new OpcionMenu { Texto = "Administradores", Href = "administradores", Permiso = "Personal", Icono = "user" },
+                new OpcionMenu { Texto = "Horarios de atención", Href = "horarios", Permiso = "Horarios", Icono = "clock" },
+                new OpcionMenu { Texto = "Cuentas de usuario", Href = "cuentas-usuario", Permiso = "CuentasUsuario", Icono = "key" }
             ],
             ["Caja"] = [
-                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas" }
+                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" }
             ],
             ["Reportes"] = [
-                new OpcionMenu { Texto = "Agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda" },
-                new OpcionMenu { Texto = "Historial clínico", Href = "reportes/historial-clinico", Permiso = "ReporteHistorial" }
+                new OpcionMenu { Texto = "Agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda", Icono = "bar-chart" },
+                new OpcionMenu { Texto = "Historial clínico", Href = "reportes/historial-clinico", Permiso = "ReporteHistorial", Icono = "clipboard" }
             ],
             ["Mi portal"] = [
-                new OpcionMenu { Texto = "Mis mascotas", Href = "mis-mascotas", Permiso = "MisMascotas" },
-                new OpcionMenu { Texto = "Mis citas", Href = "mis-citas", Permiso = "MisCitas" },
-                new OpcionMenu { Texto = "Reservar cita", Href = "mis-citas/nueva", Permiso = "MisCitas" }
+                new OpcionMenu { Texto = "Mis mascotas", Href = "mis-mascotas", Permiso = "MisMascotas", Icono = "paw" },
+                new OpcionMenu { Texto = "Mis citas", Href = "mis-citas", Permiso = "MisCitas", Icono = "calendar" },
+                new OpcionMenu { Texto = "Reservar cita", Href = "mis-citas/nueva", Permiso = "MisCitas", Icono = "plus" }
             ]
         };
+
+        // Ícono de cada grupo del menú superior
+        public static string IconoDeGrupo(string grupo) {
+            return grupo switch {
+                "Clientes" => "users",
+                "Citas" => "calendar",
+                "Clínica" => "stethoscope",
+                "Catálogos" => "tag",
+                "Inventario" => "box",
+                "Personal" => "user",
+                "Caja" => "receipt",
+                "Reportes" => "bar-chart",
+                "Mi portal" => "paw",
+                _ => "list"
+            };
+        }
 
         public static bool TienePermiso(RolUsuario? rol, string permiso) {
             if (rol == null) {

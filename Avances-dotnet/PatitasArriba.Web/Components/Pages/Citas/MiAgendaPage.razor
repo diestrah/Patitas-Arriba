@@ -8,7 +8,7 @@
 
 <h3 class="mb-3">Mi agenda</h3>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Fecha:</label>
     <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -30,22 +30,34 @@ else {
         </TemplateColumn>
         <PropertyColumn Title="Dueño" Property="i => i.NombreCliente" />
         <PropertyColumn Title="Servicio" Property="i => i.NombreServicio" />
+        @* El estado va en su propia columna (no es un botón) *@
+        <TemplateColumn Title="Estado">
+            @if (Atenciones.ContainsKey(context.IdDetalleCita)) {
+                <span class="estado estado-aprobado">Atendido</span>
+            } else {
+                <span class="estado estado-pendiente">Por atender</span>
+            }
+        </TemplateColumn>
         <TemplateColumn Title="Acciones">
-            <div class="acciones-flujo">
-                @* Cada servicio se atiende una sola vez (RN-AT-02) *@
-                @if (Atenciones.ContainsKey(context.IdDetalleCita)) {
-                    <button class="btn btn-outline-primary btn-icono" title="Editar la atención" aria-label="Editar la atención" @onclick="() => EditarAtencion(Atenciones[context.IdDetalleCita])">
-                        <Icono Nombre="edit" />
+            @* Espacios fijos: atender o editar la atención | historial *@
+            <div class="acciones-fija">
+                <span class="slot-texto">
+                    @* Cada servicio se atiende una sola vez (RN-AT-02); después solo se edita su atención *@
+                    @if (Atenciones.ContainsKey(context.IdDetalleCita)) {
+                        <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => EditarAtencion(Atenciones[context.IdDetalleCita])">
+                            <Icono Nombre="edit" /><span>Ver atención</span>
+                        </button>
+                    } else {
+                        <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Atender(context.IdDetalleCita)">
+                            <Icono Nombre="activity" /><span>Atender</span>
+                        </button>
+                    }
+                </span>
+                <span class="slot-texto">
+                    <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(context.IdMascota)">
+                        <Icono Nombre="clipboard" /><span>Historial</span>
                     </button>
-                    <span class="estado estado-aprobado">Atendido</span>
-                } else {
-                    <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Atender(context.IdDetalleCita)">
-                        <Icono Nombre="activity" /><span>Atender</span>
-                    </button>
-                }
-                <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(context.IdMascota)">
-                    <Icono Nombre="clipboard" /><span>Historial</span>
-                </button>
+                </span>
             </div>
         </TemplateColumn>
     </QuickGrid>

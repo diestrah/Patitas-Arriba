@@ -1,13 +1,177 @@
 @page "/"
 @inject SesionDemo Sesion;
 
+@using System.Globalization
+
 <PageTitle>Inicio</PageTitle>
 
-@if (Sesion.Rol != null) {
-    <h3 class="mb-1">Bienvenido, @Sesion.NombreUsuario</h3>
-    <p class="text-muted">Ingresó como @TextoEnum.De(Sesion.Rol.Value). Use el menú superior para ir a sus opciones.</p>
+@if (Sesion.Rol == null) {
+    <section class="inicio-hero">
+        <div>
+            <span class="inicio-chip">Clínica y estética veterinaria</span>
+            <h2>Bienvenido a Patitas Arriba</h2>
+            <p>Citas, atenciones, recetas, inventario y caja de la clínica en un solo lugar.</p>
+            <a class="btn btn-warning btn-texto" href="login"><Icono Nombre="log-in" /><span>Iniciar sesión</span></a>
+        </div>
+        <DibujoInicio />
+    </section>
 } else {
-    <h3 class="mb-1">Bienvenido a Patitas Arriba</h3>
-    <p class="text-muted mb-4">Sistema de gestión de la clínica y estética veterinaria Patas Arriba.</p>
-    <a class="btn btn-primary btn-texto" href="login"><Icono Nombre="log-in" /><span>Iniciar sesión</span></a>
+    <section class="inicio-hero">
+        <div>
+            <span class="inicio-chip">@Saludo · @Fecha</span>
+            <h2>Bienvenido, @Sesion.Nombres</h2>
+            <p>Ingresó como <strong>@TextoEnum.De(Sesion.Rol.Value)</strong>. Aquí tiene un resumen de hoy y sus accesos más usados.</p>
+        </div>
+        <DibujoInicio />
+    </section>
+
+    <div class="row g-3 mb-4">
+        @foreach (Indicador indicador in Indicadores) {
+            <div class="col-sm-6 col-xl-3">
+                <a class="@($"indicador indicador-{indicador.Color}")" href="@indicador.Href">
+                    <span class="indicador-icono"><Icono Nombre="@indicador.Icono" /></span>
+                    <span class="indicador-valor">@indicador.Valor</span>
+                    <span class="indicador-texto">@indicador.Texto</span>
+                </a>
+            </div>
+        }
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">@TituloLista</span>
+                    <a class="small fw-bold" href="@HrefLista">Ver todo</a>
+                </div>
+                <div class="card-body">
+                    @if (Lista.Count == 0) {
+                        <p class="text-muted mb-0">@TextoListaVacia</p>
+                    } else {
+                        <ul class="lista-agenda">
+                            @foreach (ItemInicio item in Lista) {
+                                <li>
+                                    <span class="lista-hora">@item.Hora</span>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-bold">@item.Titulo</div>
+                                        <div class="small text-muted">@item.Detalle</div>
+                                    </div>
+                                    <span class="estado @item.ClaseEstado">@item.Estado</span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header fw-bold">Accesos rápidos</div>
+                <div class="card-body">
+                    <div class="accesos">
+                        @foreach (OpcionMenu opcion in Accesos) {
+                            <a class="acceso" href="@opcion.Href">
+                                <span class="acceso-icono"><Icono Nombre="@opcion.Icono" /></span>
+                                <span>@opcion.Texto</span>
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // Una tarjeta de resumen (número grande) y una fila de la lista del día
+    private record Indicador(string Icono, string Valor, string Texto, string Href, string Color);
+    private record ItemInicio(string Hora, string Titulo, string Detalle, string Estado, string ClaseEstado);
+
+    private List<Indicador> Indicadores { get; set; } = [];
+    private List<ItemInicio> Lista { get; set; } = [];
+    private List<OpcionMenu> Accesos { get; set; } = [];
+    private string TituloLista { get; set; } = "";
+    private string HrefLista { get; set; } = "";
+    private string TextoListaVacia { get; set; } = "";
+
+    private static readonly CultureInfo Peru = new("es-PE");
+    private string Fecha => DateTime.Today.ToString("dddd d 'de' MMMM", Peru);
+    private string Saludo => DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 19 ? "Buenas tardes" : "Buenas noches";
+
+    // Mientras no se enlaza con el backend, el resumen se arma con los datos de ejemplo
+    protected override void OnInitialized() {
+        if (Sesion.Rol == null) {
+            return;
+        }
+        Accesos = Permisos.MenuDelRol(Sesion.Rol).SelectMany(g => g.Value).ToList();
+        HashSet<int> atendidos = DatosEjemplo.DetallesAtendidos();
+
+        if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
+            List<CitaViewModel> citas = DatosEjemplo.Citas();
+            double porCobrar = DatosEjemplo.Clientes().Sum(c => DatosEjemplo.PendientesDeCobro(c.Id).Sum(l => l.SubTotal));
+            Indicadores = [
+                new("calendar", citas.Count(c => c.FechaHora?.Date == DateTime.Today).ToString(), "Citas de hoy", "citas", "verde"),
+                new("clock", citas.Count(c => c.Estado == EstadoCita.PENDIENTE).ToString(), "Citas por aprobar", "citas", "mostaza"),
+                new("alert", DatosEjemplo.Articulos().Count(a => a.StockBajo).ToString(), "Artículos con stock bajo", "articulos", "terracota"),
+                new("wallet", $"S/ {porCobrar:N2}", "Pendiente de cobro", "boletas/nueva", "salvia")
+            ];
+            TituloLista = "Agenda de hoy";
+            HrefLista = "reportes/agenda-diaria";
+            TextoListaVacia = "No hay servicios programados para hoy.";
+            Lista = DatosEjemplo.AgendaDeHoy().Select(i => ItemDeAgenda(i, atendidos, conVeterinario: true)).ToList();
+        } else if (Sesion.Rol == RolUsuario.VETERINARIO) {
+            List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario);
+            int porAtender = agenda.Count(i => !atendidos.Contains(i.IdDetalleCita));
+            Indicadores = [
+                new("clock", agenda.Count.ToString(), "Servicios de hoy", "mi-agenda", "verde"),
+                new("activity", porAtender.ToString(), "Por atender", "mi-agenda", "mostaza"),
+                new("check-circle", (agenda.Count - porAtender).ToString(), "Atendidos hoy", "atenciones", "salvia"),
+                new("file-text", DatosEjemplo.Recetas().Count(r => r.NombreVeterinario == Sesion.NombreUsuario).ToString(), "Recetas emitidas", "recetas", "terracota")
+            ];
+            TituloLista = "Mi agenda de hoy";
+            HrefLista = "mi-agenda";
+            TextoListaVacia = "No tiene servicios programados para hoy.";
+            Lista = agenda.Select(i => ItemDeAgenda(i, atendidos, conVeterinario: false)).ToList();
+        } else {
+            List<CitaViewModel> citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
+            List<MascotaViewModel> mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
+            CitaViewModel? proxima = citas.Where(c => c.EsModificable && c.FechaHora > DateTime.Now).OrderBy(c => c.FechaHora).FirstOrDefault();
+            int atenciones = DatosEjemplo.Atenciones().Count(a => mascotas.Any(m => m.Id == a.IdMascota));
+            Indicadores = [
+                new("paw", mascotas.Count.ToString(), "Mis mascotas", "mis-mascotas", "verde"),
+                new("calendar", proxima?.FechaHora?.ToString("dd/MM HH:mm") ?? "—", "Próxima cita", "mis-citas", "mostaza"),
+                new("clock", citas.Count(c => c.Estado == EstadoCita.PENDIENTE).ToString(), "Citas por confirmar", "mis-citas", "salvia"),
+                new("heart", atenciones.ToString(), "Atenciones de mis mascotas", "mis-mascotas", "terracota")
+            ];
+            TituloLista = "Mis citas";
+            HrefLista = "mis-citas";
+            TextoListaVacia = "Todavía no tiene citas. Puede reservar una desde Mi portal.";
+            Lista = citas.Take(5).Select(c => new ItemInicio(
+                c.FechaHora?.ToString("dd/MM HH:mm") ?? "",
+                $"{c.NombreMascota} · {c.TextoServicios}",
+                string.Join(", ", c.Detalles.Select(d => d.NombreVeterinario).Distinct()),
+                TextoEnum.De(c.Estado),
+                ClaseDeEstado(c.Estado))).ToList();
+        }
+    }
+
+    private static ItemInicio ItemDeAgenda(ItemAgendaViewModel item, HashSet<int> atendidos, bool conVeterinario) {
+        bool atendido = atendidos.Contains(item.IdDetalleCita);
+        string detalle = conVeterinario ? $"{item.NombreCliente} · {item.NombreVeterinario}" : item.NombreCliente;
+        if (item.EsEmergencia) {
+            detalle += " · Emergencia";
+        }
+        return new ItemInicio(item.FechaHora.ToString("HH:mm"), $"{item.NombreMascota} · {item.NombreServicio}", detalle,
+            atendido ? "Atendido" : "Por atender", atendido ? "estado-aprobado" : "estado-pendiente");
+    }
+
+    private static string ClaseDeEstado(EstadoCita estado) {
+        return estado switch {
+            EstadoCita.PENDIENTE => "estado-pendiente",
+            EstadoCita.APROBADO => "estado-aprobado",
+            EstadoCita.COMPLETADO => "estado-completado",
+            EstadoCita.RECHAZADO => "estado-rechazado",
+            _ => "estado-cancelado"
+        };
+    }
 }

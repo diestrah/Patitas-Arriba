@@ -7,7 +7,7 @@
 
 <h3 class="mb-3">Atenciones</h3>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -32,27 +32,37 @@ else {
         <PropertyColumn Title="Veterinario" Property="a => a.NombreVeterinario" />
         <PropertyColumn Title="Motivo" Property="a => a.MotivoConsulta" />
         <TemplateColumn Title="Acciones">
-            @* Orden: editar, acción positiva (receta), acción negativa (anular) *@
-            <div class="acciones-flujo">
-                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
-                    <Icono Nombre="edit" />
-                </button>
-                @* RN-RE-02: no se emiten recetas en servicios estéticos *@
-                @if (context.EsServicioMedico) {
-                    <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => NuevaReceta(context.Id)">
-                        <Icono Nombre="file-text" /><span>Receta</span>
+            @* Espacios fijos: editar | receta (positiva) | anular (negativa). Si una acción no aplica, queda un guion *@
+            <div class="acciones-fija">
+                <span class="slot-icono">
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
+                        <Icono Nombre="edit" />
                     </button>
-                }
-                @* RN-AT-10: no se anula si tiene recetas emitidas o insumos cobrados *@
-                @if (PuedeAnularse(context)) {
-                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
-                        <Icono Nombre="ban" /><span>Anular</span>
-                    </button>
-                }
+                </span>
+                <span class="slot-texto">
+                    @* RN-RE-02: no se emiten recetas en servicios estéticos *@
+                    @if (context.EsServicioMedico) {
+                        <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => NuevaReceta(context.Id)">
+                            <Icono Nombre="file-text" /><span>Receta</span>
+                        </button>
+                    } else {
+                        <span class="slot-guion" title="Los servicios estéticos no llevan receta">—</span>
+                    }
+                </span>
+                <span class="slot-texto">
+                    @* RN-AT-10: no se anula si tiene recetas emitidas o insumos cobrados *@
+                    @if (PuedeAnularse(context)) {
+                        <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
+                            <Icono Nombre="ban" /><span>Anular</span>
+                        </button>
+                    } else {
+                        <span class="slot-guion" title="Tiene receta o insumos ya cobrados">—</span>
+                    }
+                </span>
             </div>
         </TemplateColumn>
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 <ConfirmarDialogo Visible="AtencionAAnular != null"

@@ -29,22 +29,35 @@ else {
             <BadgeEstadoCita Estado="context.Estado" />
         </TemplateColumn>
         <TemplateColumn Title="Acciones">
-            <div class="acciones-flujo">
-                <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
-                    <Icono Nombre="eye" />
-                </button>
-                @if (PuedeModificarse(context)) {
-                    <button class="btn btn-outline-primary btn-icono" title="Modificar reserva" aria-label="Modificar reserva" @onclick="() => ModificarReserva(context.Id)">
-                        <Icono Nombre="edit" />
+            @* Espacios fijos: ver | modificar | cancelar. Si una acción no aplica, queda un guion *@
+            <div class="acciones-fija">
+                <span class="slot-icono">
+                    <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
+                        <Icono Nombre="eye" />
                     </button>
-                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCancelacion(context)">
-                        <Icono Nombre="x" /><span>Cancelar reserva</span>
-                    </button>
-                }
+                </span>
+                <span class="slot-icono">
+                    @if (PuedeModificarse(context)) {
+                        <button class="btn btn-outline-primary btn-icono" title="Modificar reserva" aria-label="Modificar reserva" @onclick="() => ModificarReserva(context.Id)">
+                            <Icono Nombre="edit" />
+                        </button>
+                    } else {
+                        <span class="slot-guion">—</span>
+                    }
+                </span>
+                <span class="slot-texto">
+                    @if (PuedeModificarse(context)) {
+                        <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCancelacion(context)">
+                            <Icono Nombre="x" /><span>Cancelar reserva</span>
+                        </button>
+                    } else {
+                        <span class="slot-guion">—</span>
+                    }
+                </span>
             </div>
         </TemplateColumn>
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 @if (CitaSeleccionada != null) {

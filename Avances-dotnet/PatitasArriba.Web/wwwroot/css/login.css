@@ -1,0 +1,131 @@
+
+/* ============================================================================
+   INICIO DE SESIÓN (pantalla completa, sin menú). Sala animada: wwwroot/js/login-patitas.js
+   ============================================================================ */
+.login-page { min-height: 100vh; display: grid; grid-template-columns: 1.25fr 1fr; background: var(--pa-crema); }
+.login-page .stage-panel { position: relative; overflow: hidden; min-height: 100vh; background: #dce8d4; }
+.login-page .sala { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.login-page .marca { position: absolute; z-index: 3; top: 22px; left: 24px; display: flex; align-items: center; gap: 12px;
+    padding: 8px 18px 8px 8px; border-radius: 18px; background: rgba(255,255,255,.93); box-shadow: 0 8px 22px rgba(50,86,66,.18); }
+.login-page .marca .logo { width: 44px; height: 44px; border-radius: 13px; background: var(--pa-verde); display: grid; place-items: center; }
+.login-page .marca h1 { margin: 0; font-size: 1.25rem; font-weight: 800; line-height: 1.1; color: var(--pa-verde-oscuro); }
+.login-page .marca small { display: block; color: #6b7a70; font-weight: 600; font-size: .78rem; margin-top: 2px; }
+
+/* ---- decoración que se mueve ---- */
+.login-page .nube { animation: drift 46s linear infinite; }
+.login-page .nube.n2 { animation-duration: 64s; animation-delay: -30s; }
+@keyframes drift { from { transform: translateX(-180px); } to { transform: translateX(380px); } }
+
+/* ---- perros: vida en reposo ---- */
+.login-page .dog, .login-page .breathe { transform-box: fill-box; transform-origin: 50% 100%; }
+.login-page .breathe { animation: breathe 3.6s ease-in-out infinite; }
+@keyframes breathe { 0%,100% { transform: scale(1, 1); } 50% { transform: scale(1.012, 1.018); } }
+.login-page .tail { transform-box: fill-box; transform-origin: 0% 100%; animation: wag-idle 2.6s ease-in-out infinite; }
+@keyframes wag-idle { 0%,100% { transform: rotate(-6deg); } 50% { transform: rotate(9deg); } }
+@keyframes wag-happy { from { transform: rotate(-24deg); } to { transform: rotate(28deg); } }
+.login-page .head-look { transform-box: fill-box; transform-origin: 50% 90%; }
+.login-page .head-look, .login-page .pupil { transition: none; }
+.login-page .settling .head-look, .login-page .settling .pupil { transition: transform .35s ease; }
+.login-page .head-pose { transform-box: fill-box; transform-origin: 50% 90%; transition: transform .4s ease; }
+.login-page .ear { transform-box: fill-box; transition: transform .4s ease; }
+.login-page .ear-l { transform-origin: 85% 95%; }
+.login-page .ear-r { transform-origin: 15% 95%; }
+.login-page .twitch .ear-l { animation: twitch-l .5s ease-in-out; }
+.login-page .twitch .ear-r { animation: twitch-r .5s ease-in-out .06s; }
+@keyframes twitch-l { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-12deg); } 65% { transform: rotate(5deg); } }
+@keyframes twitch-r { 0%,100% { transform: rotate(0); } 30% { transform: rotate(12deg); } 65% { transform: rotate(-5deg); } }
+.login-page .lid { transform-box: fill-box; transform-origin: 50% 0%; transform: scaleY(0); transition: transform .16s ease; }
+.login-page .lash { opacity: 0; transition: opacity .12s; }
+.login-page .chi1 .lid { transform: scaleY(.42); }
+.login-page .blink .lid { transform: scaleY(1); }
+.login-page .mouth-open, .login-page .tongue-big { opacity: 0; transition: opacity .15s; }
+.login-page .blush { opacity: .5; transition: opacity .2s; }
+.login-page .brow { transform-box: fill-box; transition: transform .2s; }
+.login-page .tongue-out { transform-box: fill-box; transform-origin: 50% 0%; }
+.login-page .sink { transition: transform .45s cubic-bezier(.4,1.3,.5,1); }
+.login-page .boston-paws { transition: transform .35s ease, opacity .25s; }
+
+/* ---- al escribir el usuario: se emocionan y saltan ---- */
+.login-page [data-state="email"] .tail { animation: wag-happy .24s ease-in-out infinite alternate; }
+.login-page [data-state="email"] .mouth-open, .login-page [data-state="email"] .tongue-big { opacity: 1; }
+.login-page [data-state="email"] .mouth-closed { opacity: 0; }
+.login-page [data-state="email"] .blush { opacity: 1; }
+.login-page [data-state="email"] .brow { transform: translateY(-4px); }
+.login-page [data-state="email"] .dog { animation: hop .8s ease-in-out infinite; }
+.login-page [data-state="email"] .dog.chi2 { animation-delay: .12s; }
+.login-page [data-state="email"] .dog.scottie { animation-delay: .24s; }
+.login-page [data-state="email"] .dog.corgi { animation-delay: .08s; }
+.login-page [data-state="email"] .dog.chi3 { animation-delay: .2s; }
+.login-page [data-state="email"] .dog.pug { animation-delay: .32s; }
+.login-page [data-state="email"] .dog.boston { animation: none; }
+.login-page [data-state="email"] .boston .sink { animation: bob .55s ease-in-out infinite alternate; }
+.login-page [data-state="email"] .pug .tongue-out { animation: lick .22s ease-in-out infinite alternate; }
+@keyframes hop { 0%,100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(0) scale(1.05, .93); }
+                 45% { transform: translateY(-26px) scale(.97, 1.04); } 80% { transform: translateY(0) scale(1.03, .96); } }
+@keyframes bob { from { transform: translateY(0); } to { transform: translateY(-26px); } }
+@keyframes lick { from { transform: rotate(-9deg); } to { transform: rotate(9deg) scaleY(1.12); } }
+
+/* ---- contraseña: cierran los ojitos; visible: espían con un ojo ---- */
+.login-page [data-state="password"] .lid { transform: scaleY(1); }
+.login-page [data-state="password"] .lash { opacity: 1; }
+.login-page [data-state="password"] .dog[data-pw="aside"] .head-pose { transform: rotate(-8deg) translateX(-6px); }
+.login-page [data-state="password"] .dog[data-pw="down"] .head-pose { transform: translateY(7px) rotate(3deg); }
+.login-page [data-state="password"] .boston .sink { transform: translateY(112px); }
+.login-page [data-state="password"] .boston-paws { transform: translateY(18px); opacity: 0; }
+.login-page [data-state="peek"] .eye-l .lid { transform: scaleY(1); }
+.login-page [data-state="peek"] .eye-l .lash { opacity: 1; }
+.login-page [data-state="peek"] .eye-r .lid { transform: scaleY(.3); }
+.login-page [data-state="peek"] .head-pose { transform: rotate(5deg); }
+.login-page [data-state="peek"] .boston .sink { transform: translateY(70px); }
+
+/* ---- al ingresar ---- */
+.login-page .celebrate .dog { animation: jump .5s ease-out 3 !important; }
+@keyframes jump { 0%,100% { transform: translateY(0); } 45% { transform: translateY(-48px); } }
+.login-page .heart { position: absolute; z-index: 9; font-size: 24px; color: #e88fa0; pointer-events: none; text-shadow: 0 2px 6px rgba(0,0,0,.18);
+    animation: rise 2s ease-out forwards; }
+@keyframes rise { 0% { opacity: 0; transform: translate(0,0) scale(.5); } 15% { opacity: 1; }
+                  100% { opacity: 0; transform: translate(var(--dx), -120px) scale(1.15); } }
+
+/* ---- formulario ---- */
+.login-page .form-panel { display: grid; place-items: center; padding: 32px 24px; }
+.login-page .login-contenedor { width: 100%; max-width: 420px; }
+.login-page .login-tarjeta { background: #fff; border-radius: 22px; padding: 36px 34px 30px;
+    box-shadow: 0 18px 50px rgba(50,86,66,.16); border: 1px solid #ece3d2; }
+.login-page .login-tarjeta h2 { margin: 0 0 4px; font-size: 1.7rem; font-weight: 800; color: var(--pa-texto); }
+.login-page .login-tarjeta .sub { margin: 0 0 22px; color: #6b7a70; font-size: .95rem; }
+.login-page .campo { margin-bottom: 16px; }
+.login-page .campo label { display: block; font-weight: 700; font-size: .86rem; margin-bottom: 6px; }
+.login-page .input-wrap { position: relative; }
+.login-page .login-input { width: 100%; padding: 12px 44px 12px 42px; border: 1.5px solid #e2dccf; border-radius: 12px; font-size: 1rem; outline: none;
+    background: #fbf9f5; color: var(--pa-texto); transition: border-color .15s, box-shadow .15s, background .15s; }
+.login-page .login-input:focus { border-color: var(--pa-verde); box-shadow: 0 0 0 4px rgba(63,107,82,.18); background: #fff; }
+.login-page .input-wrap .ico { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); width: 18px; height: 18px; color: #8a978e; pointer-events: none; }
+.login-page .eye-btn { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; padding: 6px; border-radius: 8px; color: #8a978e; }
+.login-page .eye-btn:hover { background: var(--pa-salvia); color: var(--pa-verde); }
+.login-page .eye-btn svg { display: block; width: 20px; height: 20px; }
+.login-page .login-boton { width: 100%; border: 0; border-radius: 12px; padding: 13px; margin-top: 6px; font-size: 1.02rem; font-weight: 800; cursor: pointer; color: #fff;
+    background: var(--pa-verde); transition: background .15s, transform .1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.login-page .login-boton:hover { background: var(--pa-verde-oscuro); }
+.login-page .login-boton:active { transform: scale(.985); }
+.login-page .login-error { margin-bottom: 14px; padding: 10px 12px; border-radius: 10px; background: #f6e4e0; color: var(--pa-terracota-oscuro); font-size: .9rem; font-weight: 600; }
+.login-page .login-ayuda { margin-top: 18px; padding: 10px 12px; border-radius: 10px; background: var(--pa-salvia); color: var(--pa-verde-oscuro); font-size: .83rem; display: flex; gap: 8px; }
+.login-page .login-ayuda svg { flex: none; margin-top: 1px; }
+.login-page .login-demo { margin-top: 12px; font-size: .8rem; color: #6b7a70; }
+.login-page .login-demo .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.login-page .chip { border: 1px solid #e2dccf; background: #fffaf0; color: var(--pa-texto); border-radius: 99px; padding: 4px 10px; font-size: .78rem; font-weight: 600; cursor: pointer; }
+.login-page .chip:hover { border-color: var(--pa-mostaza); background: #fdf0d2; }
+.login-page .chip b { color: var(--pa-verde); }
+.login-page .lema { margin: 18px 0 0; text-align: center; color: #6b7a70; font-size: .9rem; }
+.login-page .lema span { color: #e0607e; }
+
+@media (max-width: 860px) {
+    .login-page { grid-template-columns: 1fr; }
+    .login-page .stage-panel { min-height: 0; height: 92vw; max-height: 620px; }
+    .login-page .marca { top: 12px; left: 12px; padding: 6px 14px 6px 6px; }
+    .login-page .marca .logo { width: 36px; height: 36px; }
+    .login-page .marca h1 { font-size: 1.05rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .login-page .tail, .login-page .dog, .login-page .breathe, .login-page .nube, .login-page .sink, .login-page .tongue-out, .login-page .ear { animation: none !important; }
+}

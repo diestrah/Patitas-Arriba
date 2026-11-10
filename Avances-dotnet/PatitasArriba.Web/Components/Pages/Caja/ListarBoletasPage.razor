@@ -13,7 +13,7 @@
     </button>
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-3 no-print">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3 no-print">
     <label class="text-nowrap">Cliente, DNI o N.° de boleta:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el cliente, su DNI o la serie-correlativo..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -50,7 +50,7 @@ else {
                     </button>
                 </TemplateColumn>
             </QuickGrid>
-            <Paginator State="Paginacion"></Paginator>
+            <Paginador State="Paginacion" />
         </div>
         <div class="col-lg-5 print-ancho">
             @if (BoletaSeleccionada == null) {

@@ -13,7 +13,7 @@
     </button>
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Fecha:</label>
     <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
@@ -44,38 +44,53 @@ else {
             <BadgeEstadoCita Estado="context.Estado" />
         </TemplateColumn>
         <TemplateColumn Title="Acciones">
-            @* Orden fijo: ver, editar, acción positiva, acción negativa. Solo aparecen las que el backend permite *@
-            <div class="acciones-flujo">
-                <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
-                    <Icono Nombre="eye" />
-                </button>
-                @if (context.EsModificable) {
-                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCita(context.Id)">
-                        <Icono Nombre="edit" />
+            @* Espacios fijos: ver | editar | acción positiva | acción negativa.
+               Solo aparecen las acciones que el backend permite; si una no aplica, queda un guion *@
+            <div class="acciones-fija">
+                <span class="slot-icono">
+                    <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
+                        <Icono Nombre="eye" />
                     </button>
-                }
-                @if (context.Estado == EstadoCita.PENDIENTE) {
-                    <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Aprobar(context)">
-                        <Icono Nombre="check" /><span>Aprobar</span>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.RECHAZADO)">
-                        <Icono Nombre="x" /><span>Rechazar</span>
-                    </button>
-                }
-                @if (context.Estado == EstadoCita.APROBADO && PuedeCompletarse(context)) {
-                    <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Completar(context)">
-                        <Icono Nombre="check-circle" /><span>Completar</span>
-                    </button>
-                }
-                @if (context.Estado == EstadoCita.APROBADO && PuedeCancelarse(context)) {
-                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.CANCELADO)">
-                        <Icono Nombre="x" /><span>Cancelar cita</span>
-                    </button>
-                }
+                </span>
+                <span class="slot-icono">
+                    @if (context.EsModificable) {
+                        <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCita(context.Id)">
+                            <Icono Nombre="edit" />
+                        </button>
+                    } else {
+                        <span class="slot-guion">—</span>
+                    }
+                </span>
+                <span class="slot-texto">
+                    @if (context.Estado == EstadoCita.PENDIENTE) {
+                        <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Aprobar(context)">
+                            <Icono Nombre="check" /><span>Aprobar</span>
+                        </button>
+                    } else if (context.Estado == EstadoCita.APROBADO && PuedeCompletarse(context)) {
+                        <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Completar(context)">
+                            <Icono Nombre="check-circle" /><span>Completar</span>
+                        </button>
+                    } else {
+                        <span class="slot-guion">—</span>
+                    }
+                </span>
+                <span class="slot-texto">
+                    @if (context.Estado == EstadoCita.PENDIENTE) {
+                        <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.RECHAZADO)">
+                            <Icono Nombre="x" /><span>Rechazar</span>
+                        </button>
+                    } else if (context.Estado == EstadoCita.APROBADO && PuedeCancelarse(context)) {
+                        <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.CANCELADO)">
+                            <Icono Nombre="x" /><span>Cancelar cita</span>
+                        </button>
+                    } else {
+                        <span class="slot-guion">—</span>
+                    }
+                </span>
             </div>
         </TemplateColumn>
     </QuickGrid>
-    <Paginator State="Paginacion"></Paginator>
+    <Paginador State="Paginacion" />
 }
 
 @* Maestro-detalle: el detalle de la cita elegida con "Ver" aparece debajo de la tabla *@
