@@ -1,7 +1,8 @@
 package patitasarriba.rest.dto;
 
 public class AtencionDiagnosticoDTO {
-    private boolean activo;
+    // Si el JSON no trae "activo", queda en true (igual que el modelo Registro)
+    private boolean activo = true;
     private DiagnosticoDTO diagnostico;
     private String nivelGravedad;
     private String detalleDiagnostico;

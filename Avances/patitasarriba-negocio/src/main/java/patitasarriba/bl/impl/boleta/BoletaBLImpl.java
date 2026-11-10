@@ -64,6 +64,10 @@ public class BoletaBLImpl implements BoletaBL {
         validarYCalcular(boleta);
         validarNoRepetidos(boleta);
         validarDuenio(boleta);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        boleta.setActivo(true);
+        boleta.getDetalles().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             // Guardar boleta y sus detalles

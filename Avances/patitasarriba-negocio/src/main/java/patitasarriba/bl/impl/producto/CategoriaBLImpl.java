@@ -42,6 +42,9 @@ public class CategoriaBLImpl implements CategoriaBL {
     public void insert(Categoria categoria) throws BLException {
         validar(categoria);
         validarNombreUnico(categoria);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        categoria.setActivo(true);
         try {
             categoriaDAO.insert(categoria);
         } catch (SQLException e) {

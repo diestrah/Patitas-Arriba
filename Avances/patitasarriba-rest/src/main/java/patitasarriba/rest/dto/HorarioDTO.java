@@ -2,7 +2,8 @@ package patitasarriba.rest.dto;
 
 public class HorarioDTO {
     private int id;
-    private boolean activo;
+    // Si el JSON no trae "activo", queda en true (igual que el modelo Registro)
+    private boolean activo = true;
     private String diaSemana;
     private String horaInicio;
     private String horaFin;

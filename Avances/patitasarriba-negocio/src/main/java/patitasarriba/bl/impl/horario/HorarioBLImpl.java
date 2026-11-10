@@ -45,6 +45,9 @@ public class HorarioBLImpl implements HorarioBL {
     @Override
     public void insert(Horario horario) throws BLException {
         validar(horario);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        horario.setActivo(true);
         try{
             horarioDAO.insert(horario);
         } catch (SQLException e) {

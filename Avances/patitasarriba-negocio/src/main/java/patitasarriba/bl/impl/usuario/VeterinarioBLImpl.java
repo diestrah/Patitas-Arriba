@@ -62,6 +62,9 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         validar(vet);
         validarCuentaActiva (vet);
         validarUnicos(vet);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        vet.setActivo(true);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.insert(vet);

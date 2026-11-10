@@ -2,7 +2,8 @@ package patitasarriba.rest.dto;
 
 public class DetalleBoletaArticuloDTO {
     private int id;
-    private boolean activo;
+    // Si el JSON no trae "activo", queda en true (igual que el modelo Registro)
+    private boolean activo = true;
     private int cantidad;
     private double precioUnitario;
     private double subtotal;

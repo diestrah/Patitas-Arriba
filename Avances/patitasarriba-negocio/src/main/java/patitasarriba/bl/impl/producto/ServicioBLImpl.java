@@ -49,6 +49,9 @@ public class ServicioBLImpl implements ServicioBL {
     public void insert(Servicio entidad) throws BLException {
         validar(entidad);
         validarNombreUnico(entidad);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        entidad.setActivo(true);
         try {
             servicioDAO.insert(entidad);
         } catch (SQLException e) {

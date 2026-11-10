@@ -54,6 +54,9 @@ public class ArticuloBLImpl implements ArticuloBL {
     public void insert(Articulo articulo) throws BLException {
         validarPrecio(articulo);
         validarCategoriaExiste(articulo);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        articulo.setActivo(true);
         try {
             articuloDAO.insert(articulo);
         } catch (SQLException e) {

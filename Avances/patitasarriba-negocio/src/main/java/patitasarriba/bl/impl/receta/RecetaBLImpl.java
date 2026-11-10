@@ -50,6 +50,10 @@ public class RecetaBLImpl implements RecetaBL {
         validarExistentes(entidad);
         validarServicioMedico (entidad);
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        entidad.setActivo(true);
+        entidad.getDetalles().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             recetaDAO.insert(entidad);

@@ -47,6 +47,9 @@ public class MascotaBLImpl implements MascotaBL {
     public void insert(Mascota mascota) throws BLException {
         validar(mascota);
         validarClienteActivo(mascota);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        mascota.setActivo(true);
         try{
             mascotaDAO.insert(mascota);
         } catch (SQLException e) {

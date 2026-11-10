@@ -78,6 +78,10 @@ public class CitaBLImpl implements CitaBL {
         validarMascotaExiste(cita);
         validarDisponibilidad(cita);
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        cita.setActivo(true);
+        cita.getDetalles().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             citaDAO.insert(cita);

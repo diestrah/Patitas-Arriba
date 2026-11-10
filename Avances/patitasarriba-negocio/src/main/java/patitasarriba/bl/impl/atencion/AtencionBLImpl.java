@@ -81,6 +81,11 @@ public class AtencionBLImpl implements AtencionBL {
         validarDetalleCitaLibre(atencion);
         validarTipoServicio(atencion);
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        atencion.setActivo(true);
+        atencion.getInsumosUtilizados().forEach(d -> d.setActivo(true));
+        atencion.getDiagnosticos().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             //para el descuento de stock

@@ -53,6 +53,9 @@ public class AdministradorBLImpl implements AdministradorBL {
         validar(admin);
         validarCuentaActiva (admin);
         validarUnicos(admin);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        admin.setActivo(true);
         TransactionsManager.iniciar();
         try {
             administradorDAO.insert(admin);

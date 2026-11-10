@@ -5,7 +5,8 @@ import java.util.List;
 
 public class VeterinarioDTO {
     private int id;
-    private boolean activo;
+    // Si el JSON no trae "activo", queda en true (igual que el modelo Registro)
+    private boolean activo = true;
     private CuentaDTO cuenta;
     private String dni;
     private String nombres;

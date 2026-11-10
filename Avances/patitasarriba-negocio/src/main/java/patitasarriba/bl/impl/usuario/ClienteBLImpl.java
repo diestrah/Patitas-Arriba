@@ -65,6 +65,9 @@ public class ClienteBLImpl implements ClienteBL {
         validar(cliente);
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        cliente.setActivo(true);
         TransactionsManager.iniciar();
         try {
             clienteDAO.insert(cliente);

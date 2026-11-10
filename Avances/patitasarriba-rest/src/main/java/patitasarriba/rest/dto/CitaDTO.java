@@ -5,7 +5,8 @@ import java.util.List;
 
 public class CitaDTO {
     private int id;
-    private boolean activo;
+    // Si el JSON no trae "activo", queda en true (igual que el modelo Registro)
+    private boolean activo = true;
     private String fechaHora;
     private String estado;
     private MascotaDTO mascota;

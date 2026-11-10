@@ -95,6 +95,9 @@ public class CuentaBLImpl implements CuentaBL {
 
         cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        cuenta.setActivo(true);
         TransactionsManager.iniciar();
         try {
             cuentaDAO.insert(cuenta);
