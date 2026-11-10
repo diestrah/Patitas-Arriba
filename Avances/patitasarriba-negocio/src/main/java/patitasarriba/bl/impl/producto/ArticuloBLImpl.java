@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.ArticuloBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.*;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
@@ -54,6 +55,9 @@ public class ArticuloBLImpl implements ArticuloBL {
     public void insert(Articulo articulo) throws BLException {
         validarPrecio(articulo);
         validarCategoriaExiste(articulo);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        articulo.setActivo(true);
         try {
             articuloDAO.insert(articulo);
         } catch (SQLException e) {
@@ -64,7 +68,7 @@ public class ArticuloBLImpl implements ArticuloBL {
     @Override
     public void update(Articulo articulo) throws BLException {
         if (articulo == null) {
-            throw new BLException("El articulo no puede ser nulo");
+            throw new ValidacionException("El articulo no puede ser nulo");
         }
         validarExiste(articulo.getId());
         validarPrecio(articulo);
@@ -89,27 +93,27 @@ public class ArticuloBLImpl implements ArticuloBL {
 
     private void validarPrecio(Articulo articulo) throws BLException {
         if (articulo == null) {
-            throw new BLException("El articulo no puede ser nulo");
+            throw new ValidacionException("El articulo no puede ser nulo");
         }
         if (articulo.getNombre() == null || articulo.getNombre().isBlank()) {
-            throw new BLException("El nombre del articulo es obligatorio");
+            throw new ValidacionException("El nombre del articulo es obligatorio");
         }
         if (articulo.getPrecioBase() <= 0) {
-            throw new BLException("El precio base del articulo debe ser mayor a 0");
+            throw new ValidacionException("El precio base del articulo debe ser mayor a 0");
         }
         if (articulo.getStockActual() < 0 || articulo.getStockMinimo() < 0) {
-            throw new BLException("El stock no puede ser negativo");
+            throw new ValidacionException("El stock no puede ser negativo");
         }
     }
 
     private void validarCategoriaExiste(Articulo articulo) throws BLException {
         if (articulo.getCategorias() == null || articulo.getCategorias().isEmpty()) {
-            throw new BLException("El articulo debe tener al menos una categoria");
+            throw new ValidacionException("El articulo debe tener al menos una categoria");
         }
         try {
             for (Categoria categoria : articulo.getCategorias()) {
                 if (categoria == null || categoriaDAO.findById(categoria.getId()) == null) {
-                    throw new BLException("Una de las categorias asignadas al articulo no existe");
+                    throw new ValidacionException("Una de las categorias asignadas al articulo no existe");
                 }
             }
         } catch (SQLException e) {
@@ -120,7 +124,7 @@ public class ArticuloBLImpl implements ArticuloBL {
     private void validarExiste(int id) throws BLException {
         try {
             if (articuloDAO.findById(id) == null) {
-                throw new BLException("No existe un articulo con id " + id);
+                throw new NoEncontradoException("No existe un articulo con id " + id);
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia del articulo", e);
@@ -133,21 +137,21 @@ public class ArticuloBLImpl implements ArticuloBL {
             for (Atencion atencion : atencionDAO.findAll()) {
                 for (InsumoUtilizado insumo : atencion.getInsumosUtilizados()) {
                     if (insumo.getArticulo().getId() == idArticulo) {
-                        throw new BLException("No se puede eliminar: el artículo se usó en la atención " + atencion.getId());
+                        throw new ValidacionException("No se puede eliminar: el artículo se usó en la atención " + atencion.getId());
                     }
                 }
             }
             for (Receta receta : recetaDAO.findAll()) {
                 for (DetalleReceta detalle : receta.getDetalles()) {
                     if (detalle.getArticulo().getId() == idArticulo) {
-                        throw new BLException("No se puede eliminar: el artículo está en la receta " + receta.getId());
+                        throw new ValidacionException("No se puede eliminar: el artículo está en la receta " + receta.getId());
                     }
                 }
             }
             for (Boleta boleta : boletaDAO.findAll()) {
                 for (DetalleBoleta detalle : boleta.getDetalles()) {
                     if (detalle instanceof DetalleBoletaArticulo linea && linea.getArticulo().getId() == idArticulo) {
-                        throw new BLException("No se puede eliminar: el artículo se vendió en la boleta "
+                        throw new ValidacionException("No se puede eliminar: el artículo se vendió en la boleta "
                                 + boleta.getSerieCorrelativo());
                     }
                 }

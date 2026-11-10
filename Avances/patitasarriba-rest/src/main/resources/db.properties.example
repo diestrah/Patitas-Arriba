@@ -1,0 +1,5 @@
+servidor=TU_SERVIDOR.rds.amazonaws.com
+puerto=3306
+esquema=patitasarriba
+usuario=TU_USUARIO
+password=TU_PASSWORD

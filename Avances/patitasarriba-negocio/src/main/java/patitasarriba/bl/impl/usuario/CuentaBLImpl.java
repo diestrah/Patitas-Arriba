@@ -20,6 +20,7 @@ import patitasarriba.modelo.usuario.Cuenta;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.List;
 
 public class CuentaBLImpl implements CuentaBL {
@@ -64,33 +65,44 @@ public class CuentaBLImpl implements CuentaBL {
 
 
 
-    // @Override
-    // public Cuenta login(String nombreUsuario, String passwordPlana) throws BLException {
-    //     if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
-    //             passwordPlana == null || passwordPlana.trim().isEmpty()) {
-    //         throw new BLException("Debe ingresar el usuario y la contraseña");
-    //     }
-    //
-    //     Cuenta cuenta = findByNombreUsuario(nombreUsuario);
-    //     if (cuenta == null || !cuenta.isActivo()) {
-    //         throw new BLException("Usuario o contraseña incorrectos");
-    //     }
-    //
-    //     String hashIngresado = HashUtil.generarHashSHA256(passwordPlana);
-    //     if (!cuenta.getPassword().equals(hashIngresado)) {
-    //         throw new BLException("Usuario o contraseña incorrectos");
-    //     }
-    //
-    //     return cuenta;
-    // }
+    // Las unicas BLException que quedan en este metodo (ambas "Usuario o contraseña incorrectos")
+    // son, a proposito, indistinguibles entre si: no hay que decirle al que llama si fallo el
+    // usuario o la contraseña (evita que alguien use el login para adivinar que usuarios existen).
+    // AuthResource se apoya en eso para mapear cualquier BLException de este metodo a 401.
+    @Override
+    public Cuenta login(String nombreUsuario, String passwordPlana) throws BLException {
+        if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
+                passwordPlana == null || passwordPlana.trim().isEmpty()) {
+            throw new ValidacionException("Debe ingresar el usuario y la contraseña");
+        }
+
+        Cuenta cuenta = findByNombreUsuario(nombreUsuario);
+        if (cuenta == null || !cuenta.isActivo()) {
+            throw new BLException("Usuario o contraseña incorrectos");
+        }
+
+        String hashIngresado = HashUtil.generarHashSHA256(passwordPlana);
+        if (!cuenta.getPassword().equals(hashIngresado)) {
+            throw new BLException("Usuario o contraseña incorrectos");
+        }
+
+        return cuenta;
+    }
 
     @Override
     public void insert(Cuenta cuenta) throws BLException {
         validar(cuenta);
+        if (cuenta.getPassword() == null || cuenta.getPassword().trim().isEmpty()) {
+            throw new ValidacionException("La contraseña es obligatoria");
+        }
         validarUnicos(cuenta);
 
         cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
+        cuenta.setFechaCreacion(LocalDate.now());
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        cuenta.setActivo(true);
         TransactionsManager.iniciar();
         try {
             cuentaDAO.insert(cuenta);
@@ -108,11 +120,14 @@ public class CuentaBLImpl implements CuentaBL {
         validarUnicos(cuenta);
         try {
             Cuenta actual = cuentaDAO.findById(cuenta.getId());
-            if (actual == null) throw new BLException("No existe una cuenta activa con id " + cuenta.getId());
+            if (actual == null) throw new NoEncontradoException("No existe una cuenta activa con id " + cuenta.getId());
+            if (cuenta.getPassword() == null || cuenta.getPassword().trim().isEmpty()) {
+                cuenta.setPassword(actual.getPassword());
             // Si llega el mismo hash que esta guardado, la contrasena no cambio: no se vuelve a hashear
-            if (!cuenta.getPassword().equals(actual.getPassword())) {
+            } else if (!cuenta.getPassword().equals(actual.getPassword())) {
                 cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
             }
+            cuenta.setFechaCreacion(actual.getFechaCreacion());
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta", e);
         }
@@ -128,6 +143,7 @@ public class CuentaBLImpl implements CuentaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         validarSinPersonaActiva(id);
         TransactionsManager.iniciar();
         try {
@@ -142,16 +158,13 @@ public class CuentaBLImpl implements CuentaBL {
 
     private void validar(Cuenta cuenta) throws BLException {
         if (cuenta == null) {
-            throw new BLException("La cuenta no puede ser nula");
+            throw new ValidacionException("La cuenta no puede ser nula");
         }
         if (cuenta.getNombreUsuario() == null || cuenta.getNombreUsuario().trim().isEmpty()) {
-            throw new BLException("El nombre de usuario es obligatorio");
-        }
-        if (cuenta.getPassword() == null || cuenta.getPassword().trim().isEmpty()) {
-            throw new BLException("La contraseña es obligatoria");
+            throw new ValidacionException("El nombre de usuario es obligatorio");
         }
         if (cuenta.getCorreo() == null || !cuenta.getCorreo().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
-            throw new BLException("Debe ingresar un correo electrónico válido");
+            throw new ValidacionException("Debe ingresar un correo electrónico válido");
         }
     }
 
@@ -159,13 +172,13 @@ public class CuentaBLImpl implements CuentaBL {
     private void validarSinPersonaActiva(int idCuenta) throws BLException {
         try {
             for (Cliente c : clienteDAO.findAll()) {
-                if (c.getCuenta().getId() == idCuenta) throw new BLException("No se puede eliminar: la cuenta la usa un cliente activo");
+                if (c.getCuenta().getId() == idCuenta) throw new ValidacionException("No se puede eliminar: la cuenta la usa un cliente activo");
             }
             for (Veterinario v : veterinarioDAO.findAll()) {
-                if (v.getCuenta().getId() == idCuenta) throw new BLException("No se puede eliminar: la cuenta la usa un veterinario activo");
+                if (v.getCuenta().getId() == idCuenta) throw new ValidacionException("No se puede eliminar: la cuenta la usa un veterinario activo");
             }
             for (Administrador a : administradorDAO.findAll()) {
-                if (a.getCuenta().getId() == idCuenta) throw new BLException("No se puede eliminar: la cuenta la usa un administrador activo");
+                if (a.getCuenta().getId() == idCuenta) throw new ValidacionException("No se puede eliminar: la cuenta la usa un administrador activo");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar quién usa la cuenta", e);
@@ -178,15 +191,25 @@ public class CuentaBLImpl implements CuentaBL {
             // buscar_cuenta_por_nombre_usuario no filtra activo: detecta tambien cuentas dadas de baja
             Cuenta porUsuario = cuentaDAO.findByNombreUsuario(cuenta.getNombreUsuario());
             if (porUsuario != null && porUsuario.getId() != cuenta.getId()) {
-                throw new BLException("El nombre de usuario '" + cuenta.getNombreUsuario() + "' ya está en uso");
+                throw new ValidacionException("El nombre de usuario '" + cuenta.getNombreUsuario() + "' ya está en uso");
             }
             for (Cuenta otra : cuentaDAO.findAll()) {
                 if (otra.getId() != cuenta.getId() && otra.getCorreo().equalsIgnoreCase(cuenta.getCorreo())) {
-                    throw new BLException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
+                    throw new ValidacionException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
                 }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el usuario o el correo", e);
+        }
+    }
+
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (cuentaDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe una cuenta con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia de la cuenta", e);
         }
     }
 }

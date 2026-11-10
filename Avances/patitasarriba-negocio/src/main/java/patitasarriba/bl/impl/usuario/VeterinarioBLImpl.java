@@ -62,6 +62,9 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         validar(vet);
         validarCuentaActiva (vet);
         validarUnicos(vet);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        vet.setActivo(true);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.insert(vet);
@@ -75,6 +78,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     @Override
     public void update(Veterinario vet) throws BLException {
         validar(vet);
+        validarExiste(vet.getId());
         validarCuentaActiva (vet);
         validarUnicos(vet);
         TransactionsManager.iniciar();
@@ -89,6 +93,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         validarSinCitas (id);
         TransactionsManager.iniciar();
         try {
@@ -102,24 +107,24 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     private void validar(Veterinario vet) throws BLException {
         if (vet == null) {
-            throw new BLException("El veterinario no puede ser nulo");
+            throw new ValidacionException("El veterinario no puede ser nulo");
         }
         if (vet.getDni() == null || !vet.getDni().matches("\\d{8}")) {
-            throw new BLException("El DNI debe contener exactamente 8 dígitos numéricos");
+            throw new ValidacionException("El DNI debe contener exactamente 8 dígitos numéricos");
         }
         if (vet.getNombres() == null || vet.getNombres().trim().isEmpty()) {
-            throw new BLException("El nombre del veterinario es obligatorio");
+            throw new ValidacionException("El nombre del veterinario es obligatorio");
         }
         if (vet.getNumeroColegiatura() == null || vet.getNumeroColegiatura().trim().isEmpty()) {
-            throw new BLException("El número de colegiatura es obligatorio");
+            throw new ValidacionException("El número de colegiatura es obligatorio");
         }
     }
 
     private void validarCuentaActiva(Veterinario vet) throws BLException {
-        if (vet.getCuenta() == null) throw new BLException("El veterinario debe tener una cuenta");
+        if (vet.getCuenta() == null) throw new ValidacionException("El veterinario debe tener una cuenta");
         try {
             if (cuentaDAO.findById(vet.getCuenta().getId()) == null) {
-                throw new BLException("La cuenta no existe o está dada de baja");
+                throw new ValidacionException("La cuenta no existe o está dada de baja");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta del veterinario", e);
@@ -131,7 +136,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
             for (Cita cita : citaDAO.findAll()) {
                 for (DetalleCita detalle : cita.getDetalles()) {
                     if (detalle.getVeterinario().getId() == idVeterinario) {
-                        throw new BLException("No se puede eliminar el veterinario: está asignado a la cita "
+                        throw new ValidacionException("No se puede eliminar el veterinario: está asignado a la cita "
                                 + cita.getId() + " (" + cita.getEstado() + ")");
                     }
                 }
@@ -149,18 +154,18 @@ public class VeterinarioBLImpl implements VeterinarioBL {
                 porDni = veterinarioDAO.findByDni(vet.getDni());
             } catch (IllegalArgumentException e) {
                 // El DAO falla al leer un veterinario dado de baja cuya cuenta tambien se dio de baja
-                throw new BLException("Ya existe un veterinario dado de baja con el DNI " + vet.getDni());
+                throw new ValidacionException("Ya existe un veterinario dado de baja con el DNI " + vet.getDni());
             }
             if (porDni != null && porDni.getId() != vet.getId()) {
-                throw new BLException("Ya existe un veterinario con el DNI " + vet.getDni());
+                throw new ValidacionException("Ya existe un veterinario con el DNI " + vet.getDni());
             }
             for (Veterinario otro : veterinarioDAO.findAll()) {
                 if (otro.getId() == vet.getId()) continue;
                 if (otro.getTelefono().equals(vet.getTelefono())) {
-                    throw new BLException("Ya existe un veterinario con el teléfono " + vet.getTelefono());
+                    throw new ValidacionException("Ya existe un veterinario con el teléfono " + vet.getTelefono());
                 }
                 if (otro.getNumeroColegiatura().equalsIgnoreCase(vet.getNumeroColegiatura())) {
-                    throw new BLException("Ya existe un veterinario con la colegiatura " + vet.getNumeroColegiatura());
+                    throw new ValidacionException("Ya existe un veterinario con la colegiatura " + vet.getNumeroColegiatura());
                 }
             }
         } catch (SQLException e) {
@@ -168,4 +173,13 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         }
     }
 
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (veterinarioDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe un veterinario con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia del veterinario", e);
+        }
+    }
 }

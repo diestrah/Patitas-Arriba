@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.mascota;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.MascotaBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.CitaDAO;
@@ -47,6 +48,9 @@ public class MascotaBLImpl implements MascotaBL {
     public void insert(Mascota mascota) throws BLException {
         validar(mascota);
         validarClienteActivo(mascota);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        mascota.setActivo(true);
         try{
             mascotaDAO.insert(mascota);
         } catch (SQLException e) {
@@ -57,6 +61,7 @@ public class MascotaBLImpl implements MascotaBL {
     @Override
     public void update(Mascota mascota) throws BLException {
         validar(mascota);
+        validarExiste(mascota.getId());
         validarClienteActivo(mascota);
         try{
             mascotaDAO.update(mascota);
@@ -67,7 +72,8 @@ public class MascotaBLImpl implements MascotaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        if (id == null) throw new BLException("El id de la mascota no puede ser nulo");
+        if (id == null) throw new ValidacionException("El id de la mascota no puede ser nulo");
+        validarExiste(id);
         validarSinCitas(id);
         try{
             mascotaDAO.delete(id);
@@ -81,7 +87,7 @@ public class MascotaBLImpl implements MascotaBL {
     private void validarClienteActivo(Mascota mascota) throws BLException {
         try {
             if (clienteDAO.findById(mascota.getCliente().getId()) == null) {
-                throw new BLException("El cliente no existe o está dado de baja");
+                throw new ValidacionException("El cliente no existe o está dado de baja");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el cliente de la mascota", e);
@@ -94,7 +100,7 @@ public class MascotaBLImpl implements MascotaBL {
         try {
             for (Cita cita : citaDAO.findAll()) {
                 if (cita.getMascota().getId() == idMascota) {
-                    throw new BLException("No se puede eliminar la mascota: tiene la cita " + cita.getId()
+                    throw new ValidacionException("No se puede eliminar la mascota: tiene la cita " + cita.getId()
                             + " registrada (" + cita.getEstado() + ")");
                 }
             }
@@ -105,23 +111,33 @@ public class MascotaBLImpl implements MascotaBL {
 
     private void validar(Mascota mascota) throws BLException {
         if (mascota == null) {
-            throw new BLException("La mascota no puede ser nula");
+            throw new ValidacionException("La mascota no puede ser nula");
         }
         if (mascota.getNombre() == null || mascota.getNombre().isBlank()) {
-            throw new BLException("El nombre de la mascota es obligatorio");
+            throw new ValidacionException("El nombre de la mascota es obligatorio");
         }
         if (mascota.getSexo() == null || mascota.getTipoMascota() == null) {
-            throw new BLException("La mascota debe tener sexo y tipo");
+            throw new ValidacionException("La mascota debe tener sexo y tipo");
         }
         if (mascota.getCliente() == null) {
-            throw new BLException("La mascota debe tener un cliente asociado");
+            throw new ValidacionException("La mascota debe tener un cliente asociado");
         }
         if (mascota.getPeso() <= 0) {
-            throw new BLException("El peso de la mascota debe ser mayor a 0");
+            throw new ValidacionException("El peso de la mascota debe ser mayor a 0");
         }
         if (mascota.getFechaNacimiento() != null
                 && mascota.getFechaNacimiento().isAfter(LocalDate.now())) {
-            throw new BLException("La fecha de nacimiento no puede estar en el futuro");
+            throw new ValidacionException("La fecha de nacimiento no puede estar en el futuro");
+        }
+    }
+
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (mascotaDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe una mascota con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia de la mascota", e);
         }
     }
 }

@@ -2,11 +2,13 @@ package patitasarriba.bl.impl.atencion;
 
 import patitasarriba.bl.AtencionBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
 import patitasarriba.dao.AtencionDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
 import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
+import patitasarriba.dao.impl.atencion.InsumoUtilizadoDAOImpl;
 import patitasarriba.dao.impl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.impl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
@@ -27,6 +29,7 @@ public class AtencionBLImpl implements AtencionBL {
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
+    private final InsumoUtilizadoDAOImpl insumoUtilizadoDAO = new InsumoUtilizadoDAOImpl();
 
     @Override
     public List<Atencion> findAll() throws BLException {
@@ -56,12 +59,34 @@ public class AtencionBLImpl implements AtencionBL {
         }
     }
 
+    // InsumoUtilizadoDAOImpl.findById ya hace una sola consulta directa por id (procedure
+    // buscar_insumo_utilizado_por_id); este metodo solo lo expone a quien no tiene acceso al DAO
+    // (la capa REST), en vez de que esa capa tenga que cargar la atencion completa y recorrer
+    // su lista de insumos a mano.
+    @Override
+    public InsumoUtilizado findInsumoById(Integer id) throws BLException {
+        try {
+            InsumoUtilizado insumo = insumoUtilizadoDAO.findById(id);
+            if (insumo == null) {
+                throw new NoEncontradoException("No existe un insumo utilizado con id " + id);
+            }
+            return insumo;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo recuperar el insumo utilizado", e);
+        }
+    }
+
     @Override
     public void insert(Atencion atencion) throws BLException {
         validar(atencion);
         validarDetalleCitaLibre(atencion);
         validarTipoServicio(atencion);
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        atencion.setActivo(true);
+        atencion.getInsumosUtilizados().forEach(d -> d.setActivo(true));
+        atencion.getDiagnosticos().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             //para el descuento de stock
@@ -122,11 +147,12 @@ public class AtencionBLImpl implements AtencionBL {
     //para que atencion no borre boletas
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         // 1. Verifica que la atención no tenga recetas (si no, las recetas dejarían de poder leerse)
         try {
             for (Receta receta : new RecetaDAOImpl().findAll()) {
                 if (receta.getAtencion().getId() == id) {
-                    throw new BLException("No se puede anular la atención: tiene la receta " + receta.getId());
+                    throw new ValidacionException("No se puede anular la atención: tiene la receta " + receta.getId());
                 }
             }
         } catch (SQLException e) {
@@ -146,22 +172,22 @@ public class AtencionBLImpl implements AtencionBL {
 
     private void validar(Atencion atencion) throws BLException {
         if (atencion == null) {
-            throw new BLException("La atencion medica no puede ser nula");
+            throw new ValidacionException("La atencion medica no puede ser nula");
         }
         if (atencion.getDetalleCita() == null) {
-            throw new BLException("La atencion medica debe estar asociada a un detalle de cita");
+            throw new ValidacionException("La atencion medica debe estar asociada a un detalle de cita");
         }
         if (atencion.getFechaHora() == null) {
-            throw new BLException("La atencion medica debe tener fecha y hora");
+            throw new ValidacionException("La atencion medica debe tener fecha y hora");
         }
         for (InsumoUtilizado insumo : atencion.getInsumosUtilizados()) {
             if (insumo == null || insumo.getArticulo() == null || insumo.getCantidadUtilizada() <= 0) {
-                throw new BLException("Cada insumo utilizado debe tener un articulo y una cantidad mayor a 0");
+                throw new ValidacionException("Cada insumo utilizado debe tener un articulo y una cantidad mayor a 0");
             }
         }
         for (AtencionDiagnostico diagnostico : atencion.getDiagnosticos()) {
             if (diagnostico == null || diagnostico.getDiagnostico() == null || diagnostico.getNivelGravedad() == null) {
-                throw new BLException("Cada diagnostico debe tener un diagnostico y un nivel de gravedad");
+                throw new ValidacionException("Cada diagnostico debe tener un diagnostico y un nivel de gravedad");
             }
         }
     }
@@ -173,7 +199,7 @@ public class AtencionBLImpl implements AtencionBL {
                 if (otra.getId() != atencion.getId()
                         && otra.getDetalleCita() != null
                         && otra.getDetalleCita().getId() == atencion.getDetalleCita().getId()) {
-                    throw new BLException("Ese servicio de la cita ya tiene una atencion registrada");
+                    throw new ValidacionException("Ese servicio de la cita ya tiene una atencion registrada");
                 }
             }
         } catch (SQLException e) {
@@ -184,7 +210,7 @@ public class AtencionBLImpl implements AtencionBL {
     private void validarExiste(int id) throws BLException {
         try {
             if (atencionDAO.findById(id) == null) {
-                throw new BLException("No existe una atencion medica con id " + id);
+                throw new NoEncontradoException("No existe una atencion medica con id " + id);
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia de la atencion medica", e);
@@ -208,14 +234,14 @@ public class AtencionBLImpl implements AtencionBL {
         try {
             DetalleCita detalle = detalleCitaDAO.buscarDetallePorId(atencion.getDetalleCita().getId());
             if (detalle == null) {
-                throw new BLException("El servicio de la cita no existe o fue anulado");
+                throw new ValidacionException("El servicio de la cita no existe o fue anulado");
             }
             boolean esMedico = detalle.getServicio().getTipo() != TipoServicio.ESTETICA;
             if (esMedico && (atencion.getMotivoConsulta() == null || atencion.getMotivoConsulta().isBlank())) {
-                throw new BLException("El motivo de consulta es obligatorio en servicios médicos");
+                throw new ValidacionException("El motivo de consulta es obligatorio en servicios médicos");
             }
             if (!esMedico && !atencion.getDiagnosticos().isEmpty()) {
-                throw new BLException("No se pueden registrar diagnósticos en un servicio estético");
+                throw new ValidacionException("No se pueden registrar diagnósticos en un servicio estético");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el tipo de servicio de la atención", e);
