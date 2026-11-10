@@ -8,7 +8,7 @@ public class ServicioDTO {
     private double precioBase;
     private String descripcion;
     private String tipo;
-    private Integer duracionEstimada;
+    private int duracionEstimada;
 
     public ServicioDTO() {
     }
