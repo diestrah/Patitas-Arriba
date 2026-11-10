@@ -9,6 +9,7 @@ DROP PROCEDURE IF EXISTS eliminar_detalles_por_cita;
 DROP PROCEDURE IF EXISTS buscar_detalle_cita_por_id;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_cita;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_veterinario;
+DROP PROCEDURE IF EXISTS listar_detalle_cita_por_servicio;
 
 DELIMITER //
 
@@ -87,6 +88,18 @@ BEGIN
     SELECT *
     FROM detalle_cita
     WHERE id_veterinario = p_id_veterinario
+      AND activo = 1;
+END //
+
+-- Detalles activos de un servicio especifico. Optimizacion de ServicioBLImpl.validarSinCitas:
+-- antes se traian TODAS las citas (con todos sus detalles) para recorrerlas en Java y ver si
+-- alguna usaba el servicio; con esto el filtro lo hace la base de datos (WHERE id_servicio = ?)
+-- y el DAO solo necesita saber si hay al menos una fila, no mapear objetos completos.
+CREATE PROCEDURE listar_detalle_cita_por_servicio (IN p_id_servicio INT)
+BEGIN
+    SELECT *
+    FROM detalle_cita
+    WHERE id_servicio = p_id_servicio
       AND activo = 1;
 END //
 

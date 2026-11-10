@@ -6,7 +6,6 @@ DROP PROCEDURE IF EXISTS insertar_cuenta;
 DROP PROCEDURE IF EXISTS modificar_cuenta;
 DROP PROCEDURE IF EXISTS eliminar_cuenta;
 DROP PROCEDURE IF EXISTS buscar_cuenta_por_id;
-DROP PROCEDURE IF EXISTS buscar_cuenta_por_id_historico;
 DROP PROCEDURE IF EXISTS buscar_cuenta_por_nombre_usuario;
 DROP PROCEDURE IF EXISTS buscar_cuenta_por_correo;
 DROP PROCEDURE IF EXISTS listar_cuentas;
@@ -63,15 +62,6 @@ BEGIN
     FROM cuenta
     WHERE id_cuenta = p_id
       AND activo = 1;
-END //
-
--- Igual que buscar_cuenta_por_id pero sin filtrar activo: lo usan los DAO para
--- cargar relaciones de registros historicos (citas, atenciones, boletas, recetas)
-CREATE PROCEDURE buscar_cuenta_por_id_historico (IN p_id INT)
-BEGIN
-    SELECT *
-    FROM cuenta
-    WHERE id_cuenta = p_id;
 END //
 
 -- nombre_usuario es UNIQUE: no filtra activo, para detectar tambien las cuentas inactivas

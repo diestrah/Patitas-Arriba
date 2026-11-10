@@ -80,29 +80,6 @@ public class ClienteDAOImpl extends RegistroDAOImpl<Cliente> implements ClienteD
     }
 
     @Override
-    public Cliente findByTelefono(String telefono) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (telefono == null || telefono.isBlank()) {
-                throw new IllegalArgumentException("El teléfono no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_cliente_por_telefono(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_telefono", telefono);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cliente()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public Cliente findByCuenta(Integer idCuenta) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
@@ -214,7 +191,7 @@ public class ClienteDAOImpl extends RegistroDAOImpl<Cliente> implements ClienteD
 
         // FK obligatoria: se resuelve el objeto completo
         int idCuenta = rs.getInt("id_cuenta");
-        cliente.setCuenta(new CuentaDAOImpl().findByIdHistorico(idCuenta));
+        cliente.setCuenta(new CuentaDAOImpl().findById(idCuenta));
 
         return cliente;
     }

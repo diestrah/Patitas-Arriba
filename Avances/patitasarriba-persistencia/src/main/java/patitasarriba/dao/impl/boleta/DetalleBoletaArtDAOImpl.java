@@ -76,7 +76,7 @@ class DetalleBoletaArtDAOImpl extends RegistroDAOImpl<DetalleBoletaArticulo> imp
         detalle.setCantidad(rs.getInt("cantidad"));
         detalle.setPrecioUnitario(rs.getDouble("precio_unitario"));
         detalle.setSubtotal(rs.getDouble("subtotal"));
-        var articulo = new ArticuloDAOImpl().findByIdHistorico(rs.getInt("id_articulo"));
+        var articulo = new ArticuloDAOImpl().findById(rs.getInt("id_articulo"));
         if (articulo == null) throw new SQLException("No existe el articulo de la linea de boleta");
         detalle.setArticulo(articulo);
         int idInsumo = rs.getInt("id_insumo_utilizado");

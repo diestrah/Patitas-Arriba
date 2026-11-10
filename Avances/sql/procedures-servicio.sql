@@ -6,7 +6,6 @@ DROP PROCEDURE IF EXISTS insertar_servicio;
 DROP PROCEDURE IF EXISTS modificar_servicio;
 DROP PROCEDURE IF EXISTS eliminar_servicio;
 DROP PROCEDURE IF EXISTS buscar_servicio_por_id;
-DROP PROCEDURE IF EXISTS buscar_servicio_por_id_historico;
 DROP PROCEDURE IF EXISTS buscar_servicio_por_nombre;
 DROP PROCEDURE IF EXISTS listar_servicios;
 
@@ -71,15 +70,6 @@ BEGIN
     FROM servicio
     WHERE id_servicio = p_id
       AND activo = 1;
-END //
-
--- Igual que buscar_servicio_por_id pero sin filtrar activo: lo usan los DAO para
--- cargar relaciones de registros historicos (citas, atenciones, boletas, recetas)
-CREATE PROCEDURE buscar_servicio_por_id_historico (IN p_id INT)
-BEGIN
-    SELECT *
-    FROM servicio
-    WHERE id_servicio = p_id;
 END //
 
 -- nombre es UNIQUE: no filtra activo, para detectar tambien los servicios inactivos

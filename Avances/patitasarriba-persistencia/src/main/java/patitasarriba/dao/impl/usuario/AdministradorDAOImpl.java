@@ -57,29 +57,6 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
     }
 
     @Override
-    public Administrador findByIdHistorico(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_administrador_por_id_historico(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Administrador()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public Administrador findByDni(String dni) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
@@ -92,29 +69,6 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
             String sql = "{call buscar_administrador_por_dni(?)}";
             try (CallableStatement cmd = conn.prepareCall(sql)) {
                 cmd.setString("p_dni", dni);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Administrador()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Administrador findByTelefono(String telefono) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (telefono == null || telefono.isBlank()) {
-                throw new IllegalArgumentException("El teléfono no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_administrador_por_telefono(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_telefono", telefono);
 
                 try (ResultSet rs = cmd.executeQuery()) {
                     return rs.next() ? mapear(rs, new Administrador()) : null;
@@ -247,7 +201,7 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
 
         // FK obligatoria: se resuelve el objeto completo
         int idCuenta = rs.getInt("id_cuenta");
-        administrador.setCuenta(new CuentaDAOImpl().findByIdHistorico(idCuenta));
+        administrador.setCuenta(new CuentaDAOImpl().findById(idCuenta));
         administrador.setHorarios(new HorarioAdministradorDAOImpl().listarPorAdministrador(administrador.getId()));
 
         return administrador;

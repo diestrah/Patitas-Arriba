@@ -66,25 +66,6 @@ public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements Atenci
         }
     }
 
-    @Override
-    public Atencion findByDetalleCita(int idDetalleCita) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call buscar_atencion_por_detalle_cita(?)}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_detalle_cita", idDetalleCita);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Atencion()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
     // Inserta en la tabla maestra y orquesta sus 2 listas de detalle (insumos
     // y diagnosticos) de forma atomica: requiere que la capa de negocio ya haya
     // llamado TransactionsManager.iniciar() antes de esto.

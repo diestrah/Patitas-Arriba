@@ -62,30 +62,6 @@ public class ServicioDAOImpl extends RegistroDAOImpl<Servicio> implements Servic
     }
 
     @Override
-    public Servicio findByIdHistorico(Integer integer) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (integer == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_servicio_por_id_historico(?)}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-
-                cmd.setInt("p_id", integer);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Servicio()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public void insert(Servicio modelo) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()

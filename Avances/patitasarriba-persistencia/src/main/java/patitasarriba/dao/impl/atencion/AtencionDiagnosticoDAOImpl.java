@@ -86,7 +86,7 @@ implements AtencionDiagnosticoDAO {
         atencion.setId(rs.getInt("id_atencion"));
         detalle.setAtencion(atencion);
 
-        Diagnostico diagnostico = new DiagnosticoDAOImpl().findByIdHistorico(rs.getInt("id_diagnostico"));
+        Diagnostico diagnostico = new DiagnosticoDAOImpl().findById(rs.getInt("id_diagnostico"));
 
         if (diagnostico == null) {
             throw new SQLException("No se encontró el diagnóstico asociado a la atención");

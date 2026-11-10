@@ -1,6 +1,5 @@
 package patitasarriba.bl.impl.usuario;
 
-import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CuentaBL;
 import patitasarriba.bl.NoEncontradoException;
@@ -66,8 +65,7 @@ public class CuentaBLImpl implements CuentaBL {
 
 
 
-    // RN-CU-05 y RN-CU-06: solo entran cuentas activas, y el mensaje de error es siempre el mismo
-    // para no revelar si el usuario existe
+    // RF01: el mensaje de error es el mismo si falla el usuario o la contrasena
     @Override
     public Persona login(String nombreUsuario, String passwordPlana) throws BLException {
         if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
@@ -85,7 +83,7 @@ public class CuentaBLImpl implements CuentaBL {
             throw new BLException("Usuario o contraseña incorrectos");
         }
 
-        // El rol lo da el tipo de persona duena de la cuenta (RN-CU-08: es una sola)
+        // El rol lo da el tipo de persona duena de la cuenta
         try {
             Persona persona = clienteDAO.findByCuenta(cuenta.getId());
             if (persona == null) persona = veterinarioDAO.findByCuenta(cuenta.getId());
@@ -101,7 +99,6 @@ public class CuentaBLImpl implements CuentaBL {
 
     @Override
     public void insert(Cuenta cuenta) throws BLException {
-        Activos.marcar(cuenta);
         validar(cuenta);
         validarUnicos(cuenta);
 
@@ -120,7 +117,6 @@ public class CuentaBLImpl implements CuentaBL {
     //hash la contrasena
     @Override
     public void update(Cuenta cuenta) throws BLException {
-        Activos.marcar(cuenta);
         validar(cuenta);
         validarUnicos(cuenta);
         try {
@@ -197,11 +193,10 @@ public class CuentaBLImpl implements CuentaBL {
             if (porUsuario != null && porUsuario.getId() != cuenta.getId()) {
                 throw new BLException("El nombre de usuario '" + cuenta.getNombreUsuario() + "' ya está en uso");
             }
-            // buscar_cuenta_por_correo tampoco filtra activo, y la collation de la BD
-            // compara sin distinguir mayusculas (RN-CU-03)
-            Cuenta porCorreo = cuentaDAO.findByCorreo(cuenta.getCorreo());
-            if (porCorreo != null && porCorreo.getId() != cuenta.getId()) {
-                throw new BLException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
+            for (Cuenta otra : cuentaDAO.findAll()) {
+                if (otra.getId() != cuenta.getId() && otra.getCorreo().equalsIgnoreCase(cuenta.getCorreo())) {
+                    throw new BLException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
+                }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el usuario o el correo", e);

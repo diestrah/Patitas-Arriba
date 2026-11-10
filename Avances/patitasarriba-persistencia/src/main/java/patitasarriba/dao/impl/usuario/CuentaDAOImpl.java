@@ -57,29 +57,6 @@ public class CuentaDAOImpl extends RegistroDAOImpl<Cuenta> implements CuentaDAO 
     }
 
     @Override
-    public Cuenta findByIdHistorico(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_cuenta_por_id_historico(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cuenta()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public Cuenta findByNombreUsuario(String nombreUsuario) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
@@ -92,29 +69,6 @@ public class CuentaDAOImpl extends RegistroDAOImpl<Cuenta> implements CuentaDAO 
             String sql = "{call buscar_cuenta_por_nombre_usuario(?)}";
             try (CallableStatement cmd = conn.prepareCall(sql)) {
                 cmd.setString("p_nombre_usuario", nombreUsuario);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cuenta()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Cuenta findByCorreo(String correo) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (correo == null || correo.isBlank()) {
-                throw new IllegalArgumentException("El correo no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_cuenta_por_correo(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_correo", correo);
 
                 try (ResultSet rs = cmd.executeQuery()) {
                     return rs.next() ? mapear(rs, new Cuenta()) : null;

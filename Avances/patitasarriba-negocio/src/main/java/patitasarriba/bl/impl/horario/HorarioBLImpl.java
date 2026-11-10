@@ -1,6 +1,5 @@
 package patitasarriba.bl.impl.horario;
 
-import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.HorarioBL;
 import patitasarriba.bl.NoEncontradoException;
@@ -45,7 +44,6 @@ public class HorarioBLImpl implements HorarioBL {
 
     @Override
     public void insert(Horario horario) throws BLException {
-        Activos.marcar(horario);
         validar(horario);
         try{
             horarioDAO.insert(horario);
@@ -56,9 +54,6 @@ public class HorarioBLImpl implements HorarioBL {
 
     @Override
     public void update(Horario horario) throws BLException {
-        // RN-GE-06: solo se modifica un registro que existe y esta activo
-        if (horario != null) findById(horario.getId());
-        Activos.marcar(horario);
         validar(horario);
         try{
             horarioDAO.update(horario);

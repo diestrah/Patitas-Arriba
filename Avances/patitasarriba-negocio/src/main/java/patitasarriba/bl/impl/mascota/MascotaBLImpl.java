@@ -1,6 +1,5 @@
 package patitasarriba.bl.impl.mascota;
 
-import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.MascotaBL;
 import patitasarriba.bl.NoEncontradoException;
@@ -46,6 +45,7 @@ public class MascotaBLImpl implements MascotaBL {
 
     @Override
     public List<Mascota> findByCliente(Integer idCliente) throws BLException {
+        if (idCliente == null) throw new BLException("El id del cliente no puede ser nulo");
         try {
             return mascotaDAO.listarPorCliente(idCliente);
         } catch (SQLException e) {
@@ -55,7 +55,6 @@ public class MascotaBLImpl implements MascotaBL {
 
     @Override
     public void insert(Mascota mascota) throws BLException {
-        Activos.marcar(mascota);
         validar(mascota);
         validarClienteActivo(mascota);
         try{
@@ -67,9 +66,6 @@ public class MascotaBLImpl implements MascotaBL {
 
     @Override
     public void update(Mascota mascota) throws BLException {
-        // RN-GE-06: solo se modifica un registro que existe y esta activo
-        if (mascota != null) findById(mascota.getId());
-        Activos.marcar(mascota);
         validar(mascota);
         validarClienteActivo(mascota);
         try{
@@ -130,15 +126,11 @@ public class MascotaBLImpl implements MascotaBL {
         if (mascota.getCliente() == null) {
             throw new BLException("La mascota debe tener un cliente asociado");
         }
-        // RN-MA-04: el peso es opcional (0 = no registrado), pero nunca negativo
-        if (mascota.getPeso() < 0) {
-            throw new BLException("El peso de la mascota no puede ser negativo");
+        if (mascota.getPeso() <= 0) {
+            throw new BLException("El peso de la mascota debe ser mayor a 0");
         }
-        // RN-MA-02 y RN-MA-05: la fecha de nacimiento es obligatoria (NOT NULL en la BD) y no puede ser futura
-        if (mascota.getFechaNacimiento() == null) {
-            throw new BLException("La fecha de nacimiento de la mascota es obligatoria");
-        }
-        if (mascota.getFechaNacimiento().isAfter(LocalDate.now())) {
+        if (mascota.getFechaNacimiento() != null
+                && mascota.getFechaNacimiento().isAfter(LocalDate.now())) {
             throw new BLException("La fecha de nacimiento no puede estar en el futuro");
         }
     }

@@ -79,9 +79,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 cmd.setInt("p_id_cliente", mascota.getCliente().getId());
                 cmd.setString("p_nombre", mascota.getNombre());
                 cmd.setString("p_sexo", mapearSexoABase(mascota.getSexo()));
-                // peso 0 significa "no registrado": se guarda NULL
-                if (mascota.getPeso() > 0) cmd.setDouble("p_peso", mascota.getPeso());
-                else cmd.setNull("p_peso", Types.DECIMAL);
+                cmd.setDouble("p_peso", mascota.getPeso());
                 cmd.setDate("p_fecha_nacimiento", Date.valueOf(mascota.getFechaNacimiento()));
                 cmd.setString("p_tipo_mascota", mascota.getTipoMascota().name());
                 cmd.setString("p_raza", mascota.getRaza());
@@ -112,9 +110,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 cmd.setInt("p_id_cliente", mascota.getCliente().getId());
                 cmd.setString("p_nombre", mascota.getNombre());
                 cmd.setString("p_sexo", mapearSexoABase(mascota.getSexo()));
-                // peso 0 significa "no registrado": se guarda NULL
-                if (mascota.getPeso() > 0) cmd.setDouble("p_peso", mascota.getPeso());
-                else cmd.setNull("p_peso", Types.DECIMAL);
+                cmd.setDouble("p_peso", mascota.getPeso());
                 cmd.setDate("p_fecha_nacimiento", Date.valueOf(mascota.getFechaNacimiento()));
                 cmd.setString("p_tipo_mascota", mascota.getTipoMascota().name());
                 cmd.setString("p_raza", mascota.getRaza());

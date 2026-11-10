@@ -1,6 +1,5 @@
 package patitasarriba.bl.impl.producto;
 
-import patitasarriba.bl.util.Activos;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.CategoriaBL;
 import patitasarriba.bl.NoEncontradoException;
@@ -41,7 +40,6 @@ public class CategoriaBLImpl implements CategoriaBL {
 
     @Override
     public void insert(Categoria categoria) throws BLException {
-        Activos.marcar(categoria);
         validar(categoria);
         validarNombreUnico(categoria);
         try {
@@ -53,7 +51,6 @@ public class CategoriaBLImpl implements CategoriaBL {
 
     @Override
     public void update(Categoria categoria) throws BLException {
-        Activos.marcar(categoria);
         validar(categoria);
         validarExiste(categoria.getId());
         validarNombreUnico(categoria);

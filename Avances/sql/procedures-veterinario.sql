@@ -6,7 +6,6 @@ DROP PROCEDURE IF EXISTS insertar_veterinario;
 DROP PROCEDURE IF EXISTS modificar_veterinario;
 DROP PROCEDURE IF EXISTS eliminar_veterinario;
 DROP PROCEDURE IF EXISTS buscar_veterinario_por_id;
-DROP PROCEDURE IF EXISTS buscar_veterinario_por_id_historico;
 DROP PROCEDURE IF EXISTS buscar_veterinario_por_dni;
 DROP PROCEDURE IF EXISTS buscar_veterinario_por_telefono;
 DROP PROCEDURE IF EXISTS buscar_veterinario_por_colegiatura;
@@ -80,15 +79,6 @@ BEGIN
     FROM veterinario
     WHERE id_veterinario = p_id
       AND activo = 1;
-END //
-
--- Igual que buscar_veterinario_por_id pero sin filtrar activo: lo usan los DAO para
--- cargar relaciones de registros historicos (citas, atenciones, boletas, recetas)
-CREATE PROCEDURE buscar_veterinario_por_id_historico (IN p_id INT)
-BEGIN
-    SELECT *
-    FROM veterinario
-    WHERE id_veterinario = p_id;
 END //
 
 -- dni es UNIQUE: no filtra activo, para detectar tambien los veterinarios inactivos

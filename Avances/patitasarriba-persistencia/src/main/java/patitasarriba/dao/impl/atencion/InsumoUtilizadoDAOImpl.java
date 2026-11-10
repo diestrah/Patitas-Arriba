@@ -127,7 +127,7 @@ implements InsumoUtilizadoDAO {
         atencion.setId(rs.getInt("id_atencion"));
         insumo.setAtencion(atencion);
 
-        Articulo articulo = new ArticuloDAOImpl().findByIdHistorico(rs.getInt("id_articulo"));
+        Articulo articulo = new ArticuloDAOImpl().findById(rs.getInt("id_articulo"));
 
         if (articulo == null) {
             throw new SQLException("No se encontró el artículo del insumo utilizado");
