@@ -6,7 +6,7 @@
     <div class="col-md-8 mb-3">
         <label class="form-label">Correo electrónico</label>
         @if (EsNueva) {
-            <InputText tabindex="@TabIndexInicial" type="email" class="form-control" placeholder="nombre@correo.com" autocomplete="off" @bind-Value="Persona.Correo" />
+            <PaInputText tabindex="@TabIndexInicial" type="email" class="form-control" placeholder="nombre@correo.com" autocomplete="off" @bind-Value="Persona.Correo" />
             <div class="form-text">Le enviaremos un correo para que elija su contraseña. Usted no la conoce.</div>
             <ValidationMessage For="() => Persona.Correo" />
         } else {

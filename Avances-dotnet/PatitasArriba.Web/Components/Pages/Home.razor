@@ -7,7 +7,10 @@
 <PageTitle>Inicio</PageTitle>
 
 @* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized) *@
-@if (Sesion.Rol != null) {
+@if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
+    @* El administrador tiene su propio inicio: citas por aprobar, stock bajo y lo cobrado hoy *@
+    <InicioAdministrador />
+} else if (Sesion.Rol != null) {
     <section class="inicio-hero">
         <div>
             <span class="inicio-chip">@Saludo · @Fecha</span>
@@ -96,23 +99,13 @@
             Nav.NavigateTo("login", replace: true);
             return;
         }
+        if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
+            return;
+        }
         Accesos = Permisos.MenuDelRol(Sesion.Rol).SelectMany(g => g.Value).ToList();
         HashSet<int> atendidos = DatosEjemplo.DetallesAtendidos();
 
-        if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
-            List<CitaViewModel> citas = DatosEjemplo.Citas();
-            double porCobrar = DatosEjemplo.Clientes().Sum(c => DatosEjemplo.PendientesDeCobro(c.Id).Sum(l => l.SubTotal));
-            Indicadores = [
-                new("calendar", citas.Count(c => c.FechaHora?.Date == DateTime.Today).ToString(), "Citas de hoy", "citas", "verde"),
-                new("clock", citas.Count(c => c.Estado == EstadoCita.PENDIENTE).ToString(), "Citas por aprobar", "citas", "mostaza"),
-                new("alert", DatosEjemplo.Articulos().Count(a => a.StockBajo).ToString(), "Artículos con stock bajo", "articulos", "terracota"),
-                new("wallet", $"S/ {porCobrar:N2}", "Pendiente de cobro", "boletas/nueva", "salvia")
-            ];
-            TituloLista = "Agenda de hoy";
-            HrefLista = "reportes/agenda-diaria";
-            TextoListaVacia = "No hay servicios programados para hoy.";
-            Lista = DatosEjemplo.AgendaDeHoy().Select(i => ItemDeAgenda(i, atendidos, conVeterinario: true)).ToList();
-        } else if (Sesion.Rol == RolUsuario.VETERINARIO) {
+        if (Sesion.Rol == RolUsuario.VETERINARIO) {
             List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario);
             int porAtender = agenda.Count(i => !atendidos.Contains(i.IdDetalleCita));
             Indicadores = [
@@ -124,7 +117,7 @@
             TituloLista = "Mi agenda de hoy";
             HrefLista = "mi-agenda";
             TextoListaVacia = "No tiene servicios programados para hoy.";
-            Lista = agenda.Select(i => ItemDeAgenda(i, atendidos, conVeterinario: false)).ToList();
+            Lista = agenda.Select(i => ItemDeAgenda(i, atendidos)).ToList();
         } else {
             List<CitaViewModel> citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
             List<MascotaViewModel> mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
@@ -148,9 +141,9 @@
         }
     }
 
-    private static ItemInicio ItemDeAgenda(ItemAgendaViewModel item, HashSet<int> atendidos, bool conVeterinario) {
+    private static ItemInicio ItemDeAgenda(ItemAgendaViewModel item, HashSet<int> atendidos) {
         bool atendido = atendidos.Contains(item.IdDetalleCita);
-        string detalle = conVeterinario ? $"{item.NombreCliente} · {item.NombreVeterinario}" : item.NombreCliente;
+        string detalle = item.NombreCliente;
         if (item.EsEmergencia) {
             detalle += " · Emergencia";
         }

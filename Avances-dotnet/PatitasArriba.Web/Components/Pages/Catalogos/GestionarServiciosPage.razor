@@ -12,31 +12,31 @@
 
         <div class="mb-3">
             <label class="form-label">Nombre</label>
-            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
+            <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
             <ValidationMessage For="() => ViewModel.Nombre" />
         </div>
         <div class="mb-3">
             <label class="form-label">Tipo de servicio</label>
-            <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.TipoServicio">
+            <PaInputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.TipoServicio">
                 @foreach (TipoServicio tipo in Tipos) {
                     <option value="@tipo">@TextoEnum.De(tipo)</option>
                 }
-            </InputSelect>
+            </PaInputSelect>
         </div>
         <div class="mb-3">
             <label class="form-label">Descripción</label>
-            <InputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
+            <PaInputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
             <ValidationMessage For="() => ViewModel.Descripcion" />
         </div>
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Precio (S/)</label>
-                <InputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.PrecioBase" />
+                <PaInputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.PrecioBase" />
                 <ValidationMessage For="() => ViewModel.PrecioBase" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Duración estimada (minutos)</label>
-                <InputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.DuracionEstimada" />
+                <PaInputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.DuracionEstimada" />
                 <div class="form-text">Opcional. Si se deja vacía, la agenda usa 30 minutos.</div>
                 <ValidationMessage For="() => ViewModel.DuracionEstimada" />
             </div>

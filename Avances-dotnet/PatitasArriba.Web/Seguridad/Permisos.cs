@@ -12,6 +12,7 @@ namespace PatitasArriba.Web.Seguridad {
             ["Clientes"] = [Administrador, Veterinario],
             ["Mascotas"] = [Administrador, Veterinario],
             ["Citas"] = [Administrador],
+            ["AgendaDiaria"] = [Administrador],
             ["Agenda"] = [Veterinario],
             ["Atenciones"] = [Veterinario],
             ["Recetas"] = [Veterinario],
@@ -35,6 +36,7 @@ namespace PatitasArriba.Web.Seguridad {
                 new OpcionMenu { Texto = "Mascotas", Href = "mascotas", Permiso = "Mascotas", Icono = "paw" }
             ],
             ["Citas"] = [
+                new OpcionMenu { Texto = "Agenda diaria", Href = "agenda", Permiso = "AgendaDiaria", Icono = "calendar" },
                 new OpcionMenu { Texto = "Gestión de citas", Href = "citas", Permiso = "Citas", Icono = "calendar" },
                 new OpcionMenu { Texto = "Mi agenda", Href = "mi-agenda", Permiso = "Agenda", Icono = "clock" }
             ],
@@ -57,10 +59,11 @@ namespace PatitasArriba.Web.Seguridad {
                 new OpcionMenu { Texto = "Cuentas de usuario", Href = "cuentas-usuario", Permiso = "CuentasUsuario", Icono = "key" }
             ],
             ["Caja"] = [
-                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" }
+                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" },
+                new OpcionMenu { Texto = "Nueva boleta", Href = "boletas/nueva", Permiso = "Boletas", Icono = "file-text" }
             ],
             ["Reportes"] = [
-                new OpcionMenu { Texto = "Agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda", Icono = "bar-chart" },
+                new OpcionMenu { Texto = "Reporte de agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda", Icono = "bar-chart" },
                 new OpcionMenu { Texto = "Historial clínico", Href = "reportes/historial-clinico", Permiso = "ReporteHistorial", Icono = "clipboard" }
             ],
             ["Mi portal"] = [

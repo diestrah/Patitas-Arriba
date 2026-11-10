@@ -184,13 +184,47 @@ namespace PatitasArriba.Web.Datos {
             return Citas().Where(c => c.IdCliente == idCliente).OrderByDescending(c => c.FechaHora).ToList();
         }
 
+        // Servicios programados de un día, uno por cada servicio de cada cita (las rechazadas y canceladas no ocupan agenda).
+        // Los servicios de una cita se atienden uno tras otro desde la hora de la cita, según su duración (RN-CI-05).
+        // Al enlazar: GET /citas?fecha=AAAA-MM-DD (y &veterinario={id}); la duración viene en detalle.servicio.duracionEstimada.
+        // Si la pantalla trabaja con su propia lista de citas, la envía para ver reflejados sus cambios.
+        public static List<ItemAgendaViewModel> AgendaDelDia(DateTime fecha, List<CitaViewModel>? citas = null) {
+            citas ??= Citas();
+            List<ServicioViewModel> servicios = Servicios();
+            List<ItemAgendaViewModel> agenda = [];
+
+            foreach (CitaViewModel cita in citas) {
+                if (cita.FechaHora?.Date != fecha.Date || cita.Estado == EstadoCita.RECHAZADO || cita.Estado == EstadoCita.CANCELADO) {
+                    continue;
+                }
+                DateTime inicio = cita.FechaHora.Value;
+                foreach (DetalleCitaViewModel detalle in cita.Detalles) {
+                    ServicioViewModel servicio = servicios.First(s => s.Id == detalle.IdServicio);
+                    int duracion = servicio.DuracionEstimada ?? 30;
+                    agenda.Add(new ItemAgendaViewModel {
+                        IdCita = cita.Id,
+                        IdDetalleCita = detalle.Id,
+                        IdMascota = cita.IdMascota,
+                        FechaHora = inicio,
+                        DuracionMinutos = duracion,
+                        NombreMascota = cita.NombreMascota,
+                        NombreCliente = cita.NombreCliente,
+                        NombreServicio = servicio.Nombre,
+                        TipoServicio = servicio.TipoServicio,
+                        NombreVeterinario = detalle.NombreVeterinario,
+                        EsEmergencia = cita.EsEmergencia,
+                        EstadoCita = cita.Estado
+                    });
+                    inicio = inicio.AddMinutes(duracion);
+                }
+            }
+            return agenda.OrderBy(i => i.FechaHora).ToList();
+        }
+
         // Todos los servicios programados para hoy
-        public static List<ItemAgendaViewModel> AgendaDeHoy() => [
-            new() { IdCita = 1, IdDetalleCita = 1, IdMascota = 1, FechaHora = Hoy.AddHours(9), NombreMascota = "Firulais", NombreCliente = "Ana Torres Quispe", NombreServicio = "Consulta general", TipoServicio = TipoServicio.CONSULTA_MEDICA, NombreVeterinario = "Carla Vega Soto" },
-            new() { IdCita = 1, IdDetalleCita = 2, IdMascota = 1, FechaHora = Hoy.AddHours(9.5), NombreMascota = "Firulais", NombreCliente = "Ana Torres Quispe", NombreServicio = "Vacuna antirrábica", TipoServicio = TipoServicio.VACUNACION, NombreVeterinario = "Carla Vega Soto" },
-            new() { IdCita = 2, IdDetalleCita = 3, IdMascota = 3, FechaHora = Hoy.AddHours(10.5), NombreMascota = "Rocky", NombreCliente = "Luis Ramírez Paredes", NombreServicio = "Baño y corte", TipoServicio = TipoServicio.ESTETICA, NombreVeterinario = "Miguel Ángel Castro Ruiz" },
-            new() { IdCita = 3, IdDetalleCita = 4, IdMascota = 4, FechaHora = Hoy.AddHours(11), NombreMascota = "Luna", NombreCliente = "María Fernanda Salas Cáceres", NombreServicio = "Atención de emergencia", TipoServicio = TipoServicio.EMERGENCIA, NombreVeterinario = "Carla Vega Soto", EsEmergencia = true }
-        ];
+        public static List<ItemAgendaViewModel> AgendaDeHoy() {
+            return AgendaDelDia(Hoy);
+        }
 
         // Agenda del veterinario que inició sesión
         public static List<ItemAgendaViewModel> AgendaDeVeterinario(string nombreVeterinario) {
@@ -245,6 +279,8 @@ namespace PatitasArriba.Web.Datos {
 
         // ---------------------------------------------------------------- Boletas (GET /boletas)
         public static List<BoletaViewModel> Boletas() => [
+            new() { Id = 5, SerieCorrelativo = "B001-000125", Fecha = Hoy.AddDays(-1).AddHours(12.5), IdCliente = 4, NombreCliente = "Jorge Huamán Rojas", DniCliente = "46987123", MetodoPago = MetodoPago.EFECTIVO, IsActivo = false,
+                    Lineas = [new() { Tipo = "Artículo", IdArticulo = 4, Descripcion = "Shampoo antipulgas", Cantidad = 2, PrecioUnitario = 25.00 }] },
             new() { Id = 4, SerieCorrelativo = "B001-000124", Fecha = Hoy.AddHours(8.75), IdCliente = 2, NombreCliente = "Luis Ramírez Paredes", DniCliente = "41236598", MetodoPago = MetodoPago.TARJETA_DE_DEBITO,
                     Lineas = [new() { Tipo = "Artículo", IdArticulo = 6, Descripcion = "Alimento Pro Plan 3 kg", Cantidad = 1, PrecioUnitario = 89.90 }] },
             new() { Id = 3, SerieCorrelativo = "B001-000123", Fecha = Hoy.AddDays(-7).AddHours(10.8), IdCliente = 1, NombreCliente = "Ana Torres Quispe", DniCliente = "45879632", MetodoPago = MetodoPago.YAPE,

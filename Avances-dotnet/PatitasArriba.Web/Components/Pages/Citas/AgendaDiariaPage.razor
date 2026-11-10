@@ -1,0 +1,252 @@
+@page "/agenda"
+@inject SesionDemo Sesion;
+
+@using System.Globalization
+
+<PageTitle>Agenda diaria</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Agenda diaria</h3>
+    <a class="btn btn-warning btn-texto" href="reportes/agenda-diaria">
+        <Icono Nombre="file-text" /><span>Generar reporte</span>
+    </a>
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button class="btn btn-outline-primary btn-icono" title="Día anterior" aria-label="Día anterior" @onclick="() => CambiarDia(-1)">
+        <Icono Nombre="chevron-left" />
+    </button>
+    <strong class="text-center" style="min-width: 15rem">@TextoFecha</strong>
+    <button class="btn btn-outline-primary btn-icono" title="Día siguiente" aria-label="Día siguiente" @onclick="() => CambiarDia(1)">
+        <Icono Nombre="chevron-right" />
+    </button>
+    <input type="date" class="form-control w-auto" aria-label="Elegir fecha" @bind="Fecha" @bind:format="yyyy-MM-dd" @bind:after="Recalcular" />
+    <button class="btn btn-outline-primary" @onclick="() => IrAHoy()">Hoy</button>
+    <label class="text-nowrap ms-2" for="filtro-vet">Veterinario:</label>
+    <select id="filtro-vet" class="form-select w-auto" @bind="FiltroVeterinario">
+        <option value="Todos">Todos</option>
+        @foreach (string nombre in Veterinarios) {
+            <option value="@nombre">@nombre</option>
+        }
+    </select>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
+<div class="agenda-scroll mb-3">
+    <div class="agenda-grid" style="@($"--cols:{VeterinariosVisibles.Count};--hora:{PxPorHora}px")">
+        <div class="agenda-cab" style="border-left: 0"></div>
+        @foreach (string veterinario in VeterinariosVisibles) {
+            int cantidad = Agenda.Count(i => i.NombreVeterinario == veterinario);
+            <div class="agenda-cab">
+                @veterinario
+                <small>@(cantidad == 0 ? "Sin servicios" : $"{cantidad} servicio{(cantidad == 1 ? "" : "s")}")</small>
+            </div>
+        }
+
+        <div class="agenda-horas" style="@($"height:{AlturaTotal}px")">
+            @for (int minuto = InicioMinutos; minuto < FinMinutos; minuto += 60) {
+                <div class="agenda-hora" style="@($"top:{(minuto - InicioMinutos) * PxPorHora / 60}px")">@Hora(minuto)</div>
+            }
+        </div>
+        @foreach (string veterinario in VeterinariosVisibles) {
+            <div class="agenda-col" style="@($"height:{AlturaTotal}px")">
+                @foreach (BloqueAgenda bloque in Bloques(veterinario)) {
+                    ItemAgendaViewModel item = bloque.Item;
+                    EstadoServicioAgenda estado = AgendaTexto.De(item, Atendidos);
+                    <button type="button" class="agenda-bloque @AgendaTexto.ClaseBloque(estado)" style="@EstiloBloque(bloque)"
+                            aria-label="@($"{item.NombreMascota}, {item.NombreServicio}, {item.FechaHora:HH:mm}, {AgendaTexto.Texto(estado)}")"
+                            @onclick="() => VerCita(item.IdCita)">
+                        <b>@item.NombreMascota · @item.NombreServicio@(item.EsEmergencia ? " · ¡Emergencia!" : "")</b>
+                        <span>@item.FechaHora.ToString("HH:mm") – @item.FechaHoraFin.ToString("HH:mm") · @AgendaTexto.Texto(estado)@(item.DuracionMinutos >= 45 ? $" · {item.NombreCliente}" : "")</span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="agenda-leyenda mb-3">
+    <span><i style="background: var(--pa-verde)"></i>Atendido</span>
+    <span><i style="background: var(--pa-salvia); border: 1px solid #bcd0b0"></i>Por atender</span>
+    <span><i style="background: #fdf0d2; border: 2px dashed #c9922e"></i>Por aprobar</span>
+</div>
+
+@if (Agenda.Count == 0) {
+    <div class="alert alert-info">No hay servicios programados para esta fecha.</div>
+}
+
+@* Detalle de la cita completa: un servicio puede ser solo una parte de una cita con varios servicios *@
+@if (CitaSeleccionada != null) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <DetalleCita Cita="CitaSeleccionada" Atendidos="Atendidos">
+                    @if (CitaSeleccionada.Estado == EstadoCita.PENDIENTE) {
+                        <button type="button" class="btn btn-primary btn-texto" @onclick="() => Aprobar(CitaSeleccionada)">
+                            <Icono Nombre="check" /><span>Aprobar</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-texto" @onclick="() => PedirRechazo(CitaSeleccionada)">
+                            <Icono Nombre="x" /><span>Rechazar</span>
+                        </button>
+                    }
+                    <button type="button" class="btn btn-outline-primary ms-auto" @onclick="() => CitaSeleccionada = null">Cerrar</button>
+                </DetalleCita>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+<ConfirmarDialogo Visible="CitaARechazar != null"
+                  Titulo="¿Rechazar la cita?"
+                  Mensaje="@($"{CitaARechazar?.NombreMascota} · {CitaARechazar?.TextoServicios}. El cliente verá la cita como rechazada.")"
+                  TextoConfirmar="Sí, rechazar"
+                  TextoCancelar="No, volver"
+                  IconoConfirmar="x"
+                  OnConfirmar="Rechazar" OnCancelar="CancelarRechazo" />
+
+@code {
+    // Un servicio dibujado en la columna de su veterinario; si dos se cruzan (emergencias, RN-CI-07) comparten el ancho
+    private record BloqueAgenda(ItemAgendaViewModel Item, int Carril, int Carriles);
+
+    private const int PxPorHora = 88;
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    private List<CitaViewModel> Citas { get; set; } = [];
+    private List<ItemAgendaViewModel> Agenda { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private List<string> Veterinarios { get; set; } = [];
+
+    private DateTime Fecha { get; set; } = DateTime.Today;
+    private string FiltroVeterinario { get; set; } = "Todos";
+    private CitaViewModel? CitaSeleccionada { get; set; }
+    private CitaViewModel? CitaARechazar { get; set; }
+    private string? MensajeExito { get; set; }
+
+    private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
+    private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
+
+    // La agenda muestra de 8:00 a 13:00 y se amplía si hay servicios fuera de ese rango
+    private int InicioMinutos => Math.Min(480, Agenda.Select(i => i.FechaHora.Hour * 60).DefaultIfEmpty(480).Min());
+    private int FinMinutos => Math.Max(780, Agenda.Select(i => (int)Math.Ceiling((i.FechaHoraFin.TimeOfDay.TotalMinutes) / 60) * 60).DefaultIfEmpty(780).Max());
+    private int AlturaTotal => (FinMinutos - InicioMinutos) * PxPorHora / 60;
+
+    // Al enlazar: GET /citas?fecha=AAAA-MM-DD (la duración viene en detalle.servicio.duracionEstimada)
+    protected override void OnInitialized() {
+        Citas = DatosEjemplo.Citas();
+        Atendidos = DatosEjemplo.DetallesAtendidos();
+        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
+        Recalcular();
+    }
+
+    private void Recalcular() {
+        Agenda = DatosEjemplo.AgendaDelDia(Fecha, Citas);
+    }
+
+    private void CambiarDia(int dias) {
+        Fecha = Fecha.AddDays(dias);
+        Recalcular();
+    }
+
+    private void IrAHoy() {
+        Fecha = DateTime.Today;
+        Recalcular();
+    }
+
+    private static string Hora(int minutos) {
+        return $"{minutos / 60:D2}:{minutos % 60:D2}";
+    }
+
+    // Reparte el ancho entre los servicios que se cruzan en el tiempo
+    private List<BloqueAgenda> Bloques(string veterinario) {
+        List<ItemAgendaViewModel> items = Agenda.Where(i => i.NombreVeterinario == veterinario).OrderBy(i => i.FechaHora).ToList();
+        List<BloqueAgenda> bloques = [];
+        List<ItemAgendaViewModel> grupo = [];
+        DateTime finGrupo = DateTime.MinValue;
+
+        foreach (ItemAgendaViewModel item in items) {
+            if (grupo.Count > 0 && item.FechaHora >= finGrupo) {
+                CerrarGrupo(grupo, bloques);
+                grupo = [];
+            }
+            if (grupo.Count == 0 || item.FechaHoraFin > finGrupo) {
+                finGrupo = item.FechaHoraFin;
+            }
+            grupo.Add(item);
+        }
+        if (grupo.Count > 0) {
+            CerrarGrupo(grupo, bloques);
+        }
+        return bloques;
+    }
+
+    // Cada servicio del grupo va en el primer carril libre
+    private static void CerrarGrupo(List<ItemAgendaViewModel> grupo, List<BloqueAgenda> bloques) {
+        List<DateTime> finDeCarril = [];
+        List<int> carrilDe = [];
+        foreach (ItemAgendaViewModel item in grupo) {
+            int carril = finDeCarril.FindIndex(fin => fin <= item.FechaHora);
+            if (carril < 0) {
+                finDeCarril.Add(item.FechaHoraFin);
+                carril = finDeCarril.Count - 1;
+            } else {
+                finDeCarril[carril] = item.FechaHoraFin;
+            }
+            carrilDe.Add(carril);
+        }
+        for (int i = 0; i < grupo.Count; i++) {
+            bloques.Add(new BloqueAgenda(grupo[i], carrilDe[i], finDeCarril.Count));
+        }
+    }
+
+    private string EstiloBloque(BloqueAgenda bloque) {
+        ItemAgendaViewModel item = bloque.Item;
+        double minutosDesdeInicio = item.FechaHora.TimeOfDay.TotalMinutes - InicioMinutos;
+        double arriba = minutosDesdeInicio * PxPorHora / 60 + 1;
+        double alto = Math.Max(item.DuracionMinutos * (double)PxPorHora / 60 - 3, 36);
+        double ancho = 100.0 / bloque.Carriles;
+        double izquierda = ancho * bloque.Carril;
+        return string.Create(CultureInfo.InvariantCulture,
+            $"top:{arriba:0.#}px;height:{alto:0.#}px;left:calc({izquierda:0.##}% + 4px);width:calc({ancho:0.##}% - 8px)");
+    }
+
+    private void VerCita(int idCita) {
+        CitaSeleccionada = Citas.FirstOrDefault(c => c.Id == idCita);
+    }
+
+    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
+    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
+    private void Aprobar(CitaViewModel cita) {
+        cita.Estado = EstadoCita.APROBADO;
+        cita.IdAdministrador = Sesion.IdPersona;
+        cita.NombreAdministrador = Sesion.NombreUsuario;
+        MensajeExito = $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\".";
+        CitaSeleccionada = null;
+        Recalcular();
+    }
+
+    // El cuadro de confirmación reemplaza al detalle para no apilar dos ventanas
+    private void PedirRechazo(CitaViewModel cita) {
+        CitaSeleccionada = null;
+        CitaARechazar = cita;
+    }
+
+    private void Rechazar() {
+        if (CitaARechazar == null) {
+            return;
+        }
+        CitaARechazar.Estado = EstadoCita.RECHAZADO;
+        CitaARechazar.IdAdministrador = Sesion.IdPersona;
+        CitaARechazar.NombreAdministrador = Sesion.NombreUsuario;
+        MensajeExito = $"Se rechazó la cita de {CitaARechazar.NombreMascota}.";
+        CitaARechazar = null;
+        Recalcular();
+    }
+
+    private void CancelarRechazo() {
+        CitaARechazar = null;
+    }
+}

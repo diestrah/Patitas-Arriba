@@ -1,0 +1,265 @@
+@inject SesionDemo Sesion;
+
+@using System.Globalization
+
+<section class="inicio-hero">
+    <div>
+        <span class="inicio-chip">@Saludo · @Fecha</span>
+        <h2>Bienvenido, @Sesion.Nombres</h2>
+        <p>@Resumen</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-warning btn-texto" href="citas/nueva"><Icono Nombre="plus" /><span>Nueva cita</span></a>
+            <a class="btn btn-secondary btn-texto" href="clientes/nuevo"><Icono Nombre="users" /><span>Nuevo cliente</span></a>
+            <a class="btn btn-secondary btn-texto" href="mascotas/nuevo"><Icono Nombre="paw" /><span>Nueva mascota</span></a>
+            <a class="btn btn-secondary btn-texto" href="agenda"><Icono Nombre="calendar" /><span>Agenda diaria</span></a>
+        </div>
+    </div>
+    <DibujoInicio />
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-verde" href="agenda">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">@CitasDeHoy</span>
+            <span class="indicador-texto">Citas de hoy</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-mostaza" href="citas">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@PorAprobar.Count</span>
+            <span class="indicador-texto">Citas por aprobar</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-terracota" href="articulos">
+            <span class="indicador-icono"><Icono Nombre="alert" /></span>
+            <span class="indicador-valor">@StockBajo.Count</span>
+            <span class="indicador-texto">Artículos con stock bajo</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-salvia" href="boletas">
+            <span class="indicador-icono"><Icono Nombre="wallet" /></span>
+            <span class="indicador-valor">S/ @CobradoHoy.ToString("N2")</span>
+            <span class="indicador-texto">Cobrado hoy</span>
+        </a>
+    </div>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7 d-flex flex-column gap-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Citas por aprobar</span>
+                <a class="small fw-bold" href="citas">Ver todas las citas</a>
+            </div>
+            <div class="card-body py-2">
+                @if (PorAprobar.Count == 0) {
+                    <p class="text-muted my-2">No hay citas por aprobar.</p>
+                }
+                @foreach (CitaViewModel cita in PorAprobar) {
+                    <div class="fila-pendiente">
+                        <div>
+                            <strong>@cita.NombreMascota</strong> · @cita.TextoServicios
+                            @if (cita.EsEmergencia) {
+                                <span class="badge text-bg-danger ms-1">Emergencia</span>
+                            }
+                            <div class="small text-muted">
+                                @TextoDia(cita.FechaHora) @cita.FechaHora?.ToString("HH:mm") · Dueño: @cita.NombreCliente · @string.Join(", ", cita.Detalles.Select(d => d.NombreVeterinario).Distinct())
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Aprobar(cita)">
+                                <Icono Nombre="check" /><span>Aprobar</span>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => CitaARechazar = cita">
+                                <Icono Nombre="x" /><span>Rechazar</span>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="fw-bold">Agenda de hoy</span>
+                <div class="d-flex align-items-center gap-3">
+                    <select class="form-select form-select-sm w-auto" aria-label="Filtrar por veterinario" @bind="FiltroVeterinario">
+                        <option value="Todos">Todos los veterinarios</option>
+                        @foreach (string nombre in Veterinarios) {
+                            <option value="@nombre">@nombre</option>
+                        }
+                    </select>
+                    <a class="small fw-bold" href="agenda">Ver agenda completa</a>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (AgendaFiltrada.Count == 0) {
+                    <p class="text-muted mb-0">No hay servicios para este filtro.</p>
+                } else {
+                    <ul class="lista-agenda">
+                        @foreach (ItemAgendaViewModel item in AgendaFiltrada) {
+                            EstadoServicioAgenda estado = AgendaTexto.De(item, Atendidos);
+                            <li>
+                                <span class="lista-hora">@item.FechaHora.ToString("HH:mm")</span>
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">
+                                        @item.NombreMascota · @item.NombreServicio
+                                        @if (item.EsEmergencia) {
+                                            <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                        }
+                                    </div>
+                                    <div class="small text-muted">@item.NombreCliente · @item.NombreVeterinario</div>
+                                </div>
+                                <span class="estado @AgendaTexto.ClaseEstado(estado)">@AgendaTexto.Texto(estado)</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5 d-flex flex-column gap-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Stock bajo</span>
+                <a class="small fw-bold" href="articulos">Ver inventario</a>
+            </div>
+            <div class="card-body d-flex flex-column gap-3">
+                @if (StockBajo.Count == 0) {
+                    <span class="text-muted">Todo el inventario está sobre el mínimo.</span>
+                }
+                @foreach (ArticuloViewModel articulo in StockBajo) {
+                    <div>
+                        <div class="d-flex justify-content-between align-items-center gap-2">
+                            <strong>@articulo.Nombre</strong>
+                            <span class="d-flex align-items-center gap-3">
+                                <a class="small fw-bold" href="@($"articulos/stock/{articulo.Id}")">Actualizar stock</a>
+                                <strong class="stock-bajo">@articulo.StockActual de @articulo.StockMinimo</strong>
+                            </span>
+                        </div>
+                        <div class="barra-progreso mt-1" role="img" aria-label="@($"{articulo.StockActual} de {articulo.StockMinimo}")">
+                            <i style="@($"width:{PorcentajeStock(articulo)}%;background:var(--pa-terracota)")"></i>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-bold">Cobrado hoy</div>
+            <div class="card-body d-flex flex-column gap-2">
+                <div class="fs-2 fw-bold">S/ @CobradoHoy.ToString("N2")</div>
+                <div class="small text-muted">@BoletasHoy boleta@(BoletasHoy == 1 ? "" : "s") emitida@(BoletasHoy == 1 ? "" : "s") hoy. Los servicios e insumos ya atendidos se cobran desde Nueva boleta, buscando al cliente por su DNI.</div>
+                <div>
+                    <a class="btn btn-primary btn-texto" href="boletas/nueva"><Icono Nombre="receipt" /><span>Nueva boleta</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ConfirmarDialogo Visible="CitaARechazar != null"
+                  Titulo="¿Rechazar la cita?"
+                  Mensaje="@($"{CitaARechazar?.NombreMascota} · {CitaARechazar?.TextoServicios}. El cliente verá la cita como rechazada.")"
+                  TextoConfirmar="Sí, rechazar"
+                  TextoCancelar="No, volver"
+                  IconoConfirmar="x"
+                  OnConfirmar="Rechazar" OnCancelar="CancelarRechazo" />
+
+@code {
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    private List<CitaViewModel> Citas { get; set; } = [];
+    private List<ArticuloViewModel> Articulos { get; set; } = [];
+    private List<string> Veterinarios { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private double CobradoHoy { get; set; }
+    private int BoletasHoy { get; set; }
+
+    private string FiltroVeterinario { get; set; } = "Todos";
+    private CitaViewModel? CitaARechazar { get; set; }
+    private string? MensajeExito { get; set; }
+
+    private string Fecha => DateTime.Today.ToString("dddd d 'de' MMMM", Peru);
+    private string Saludo => DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 19 ? "Buenas tardes" : "Buenas noches";
+
+    private List<CitaViewModel> PorAprobar => Citas.Where(c => c.Estado == EstadoCita.PENDIENTE).OrderBy(c => c.FechaHora).ToList();
+    private List<ArticuloViewModel> StockBajo => Articulos.Where(a => a.StockBajo).ToList();
+    private int CitasDeHoy => DatosEjemplo.AgendaDelDia(DateTime.Today, Citas).Select(i => i.IdCita).Distinct().Count();
+
+    private List<ItemAgendaViewModel> AgendaFiltrada => DatosEjemplo.AgendaDelDia(DateTime.Today, Citas)
+        .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
+        .ToList();
+
+    // Resumen en una frase: lo que el administrador debe atender primero
+    private string Resumen {
+        get {
+            int emergencias = PorAprobar.Count(c => c.EsEmergencia);
+            string citas = $"Hoy tiene {PorAprobar.Count} cita{(PorAprobar.Count == 1 ? "" : "s")} por aprobar";
+            if (emergencias > 0) {
+                citas += emergencias == 1 ? " (una es emergencia)" : $" ({emergencias} son emergencias)";
+            }
+            return $"{citas} y {StockBajo.Count} artículo{(StockBajo.Count == 1 ? "" : "s")} por reponer.";
+        }
+    }
+
+    // Al enlazar: GET /citas, GET /articulos, GET /boletas y GET /veterinarios
+    protected override void OnInitialized() {
+        Citas = DatosEjemplo.Citas();
+        Articulos = DatosEjemplo.Articulos();
+        Atendidos = DatosEjemplo.DetallesAtendidos();
+        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
+
+        // Lo cobrado hoy: solo boletas emitidas (las anuladas no cuentan)
+        List<BoletaViewModel> deHoy = DatosEjemplo.Boletas().Where(b => b.IsActivo && b.Fecha.Date == DateTime.Today).ToList();
+        BoletasHoy = deHoy.Count;
+        CobradoHoy = deHoy.Sum(b => b.Total);
+    }
+
+    private static int PorcentajeStock(ArticuloViewModel articulo) {
+        return articulo.StockMinimo == 0 ? 0 : Math.Min(100, (int)Math.Round(100.0 * articulo.StockActual / articulo.StockMinimo));
+    }
+
+    private static string TextoDia(DateTime? fecha) {
+        if (fecha == null) {
+            return "";
+        }
+        if (fecha.Value.Date == DateTime.Today) {
+            return "Hoy";
+        }
+        return fecha.Value.Date == DateTime.Today.AddDays(1) ? "Mañana" : fecha.Value.ToString("ddd d MMM", Peru);
+    }
+
+    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
+    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
+    private void Aprobar(CitaViewModel cita) {
+        cita.Estado = EstadoCita.APROBADO;
+        cita.IdAdministrador = Sesion.IdPersona;
+        cita.NombreAdministrador = Sesion.NombreUsuario;
+        MensajeExito = $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\" en la agenda.";
+    }
+
+    private void Rechazar() {
+        if (CitaARechazar == null) {
+            return;
+        }
+        CitaARechazar.Estado = EstadoCita.RECHAZADO;
+        CitaARechazar.IdAdministrador = Sesion.IdPersona;
+        CitaARechazar.NombreAdministrador = Sesion.NombreUsuario;
+        MensajeExito = $"Se rechazó la cita de {CitaARechazar.NombreMascota}.";
+        CitaARechazar = null;
+    }
+
+    private void CancelarRechazo() {
+        CitaARechazar = null;
+    }
+}

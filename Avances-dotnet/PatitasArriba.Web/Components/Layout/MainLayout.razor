@@ -26,7 +26,8 @@
                 <ul class="dropdown-menu">
                     @foreach (OpcionMenu opcion in grupo.Value) {
                         <li>
-                            <NavLink class="dropdown-item" href="@opcion.Href">
+                            @* "boletas" también coincide con "boletas/nueva": si el grupo tiene una opción hija, la ruta debe ser exacta *@
+                            <NavLink class="dropdown-item" href="@opcion.Href" Match="@(TieneOpcionHija(grupo.Value, opcion) ? NavLinkMatch.All : NavLinkMatch.Prefix)">
                                 <Icono Nombre="@opcion.Icono" /><span>@opcion.Texto</span>
                             </NavLink>
                         </li>
@@ -75,6 +76,11 @@
 </div>
 
 @code {
+    // Hay otra opción del mismo grupo cuya ruta empieza con la de esta (por ejemplo "boletas" y "boletas/nueva")
+    private static bool TieneOpcionHija(List<OpcionMenu> opciones, OpcionMenu opcion) {
+        return opciones.Any(o => o.Href.StartsWith(opcion.Href + "/"));
+    }
+
     private void CerrarSesion() {
         Sesion.CerrarSesion();
         Nav.NavigateTo("/login");

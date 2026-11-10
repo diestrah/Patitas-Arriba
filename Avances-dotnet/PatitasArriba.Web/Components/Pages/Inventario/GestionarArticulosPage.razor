@@ -4,68 +4,120 @@
 
 <PageTitle>Artículos</PageTitle>
 
-<div class="col-md-8">
-    <h3 class="mb-3">@(Id == null ? "Nuevo artículo" : "Editar artículo")</h3>
+<h3 class="mb-1">@(Id == null ? "Nuevo artículo" : "Editar artículo")</h3>
+<p class="text-muted mb-3">Todo artículo necesita nombre, precio mayor a 0 y al menos una categoría.</p>
 
-    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
-        <DataAnnotationsValidator />
+<EditForm Model="ViewModel" OnValidSubmit="PedirConfirmacion">
+    <DataAnnotationsValidator />
 
-        <div class="mb-3">
-            <label class="form-label">Nombre</label>
-            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
-            <ValidationMessage For="() => ViewModel.Nombre" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Descripción</label>
-            <InputTextArea tabindex="2" class="form-control" rows="2" @bind-Value="ViewModel.Descripcion" />
-            <ValidationMessage For="() => ViewModel.Descripcion" />
-        </div>
-        <div class="row">
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Precio (S/)</label>
-                <InputNumber tabindex="3" class="form-control" @bind-Value="ViewModel.PrecioBase" />
-                <ValidationMessage For="() => ViewModel.PrecioBase" />
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Stock actual</label>
-                <InputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.StockActual" disabled="@(Id != null)" />
-                @if (Id != null) {
-                    <div class="form-text">Use el botón "Stock" del listado para actualizarlo.</div>
-                }
-                <ValidationMessage For="() => ViewModel.StockActual" />
-            </div>
-            <div class="col-md-4 mb-3">
-                <label class="form-label">Stock mínimo</label>
-                <InputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.StockMinimo" />
-                <ValidationMessage For="() => ViewModel.StockMinimo" />
-            </div>
-        </div>
-
-        <h5 class="mt-2">Categorías</h5>
-        <div class="d-flex flex-wrap gap-3 mb-1">
-            @foreach (OpcionSeleccion categoria in ViewModel.Categorias) {
-                <div class="form-check">
-                    <InputCheckbox class="form-check-input" id="@($"categoria-{categoria.Id}")" @bind-Value="categoria.Seleccionado" />
-                    <label class="form-check-label" for="@($"categoria-{categoria.Id}")">@categoria.Texto</label>
+    <div class="row g-4">
+        <div class="col-lg-8 d-flex flex-column gap-3">
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">1</span>Datos del artículo</div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre</label>
+                        <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" @bind-Value:event="oninput" />
+                        <ValidationMessage For="() => ViewModel.Nombre" />
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label">Descripción</label>
+                        <PaInputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" @bind-Value:event="oninput" />
+                        <div class="form-text text-end">@(ViewModel.Descripcion?.Length ?? 0) / 200</div>
+                        <ValidationMessage For="() => ViewModel.Descripcion" />
+                    </div>
                 </div>
-            }
-        </div>
-        <div class="mb-3">
-            <ValidationMessage For="() => ViewModel.Categorias" />
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">2</span>Precio y stock</div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <label class="form-label">Precio (S/)</label>
+                            <PaInputNumber tabindex="3" class="form-control" @bind-Value="ViewModel.PrecioBase" @bind-Value:event="oninput" />
+                            <ValidationMessage For="() => ViewModel.PrecioBase" />
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <label class="form-label">Stock actual</label>
+                            <PaInputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.StockActual" @bind-Value:event="oninput" disabled="@(Id != null)" />
+                            @if (Id != null) {
+                                <div class="form-text">Use el − y + del listado para actualizarlo.</div>
+                            }
+                            <ValidationMessage For="() => ViewModel.StockActual" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Stock mínimo</label>
+                            <PaInputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.StockMinimo" @bind-Value:event="oninput" />
+                            <div class="form-text">Avisa cuando baje de este número.</div>
+                            <ValidationMessage For="() => ViewModel.StockMinimo" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">3</span>Categorías <span class="text-muted fw-normal ms-2 small">(elija una o más)</span></div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-3">
+                        @foreach (OpcionSeleccion categoria in ViewModel.Categorias) {
+                            <div class="form-check">
+                                <InputCheckbox class="form-check-input" id="@($"categoria-{categoria.Id}")" @bind-Value="categoria.Seleccionado" />
+                                <label class="form-check-label" for="@($"categoria-{categoria.Id}")">@categoria.Texto</label>
+                            </div>
+                        }
+                    </div>
+                    <ValidationMessage For="() => ViewModel.Categorias" />
+                </div>
+            </div>
         </div>
 
-        <div class="d-flex gap-2">
-            <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
-            <a tabindex="8" class="btn btn-outline-primary" href="articulos">Cancelar</a>
+        <div class="col-lg-4">
+            <div class="card sticky-lateral">
+                <div class="card-header fw-bold">Vista previa</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <div>
+                        <strong class="fs-5">@(string.IsNullOrWhiteSpace(ViewModel.Nombre) ? "Nombre del artículo" : ViewModel.Nombre)</strong>
+                        <div class="small text-muted">@(string.IsNullOrWhiteSpace(ViewModel.Descripcion) ? "Sin descripción" : ViewModel.Descripcion)</div>
+                    </div>
+                    <div>
+                        @if (!ViewModel.Categorias.Any(c => c.Seleccionado)) {
+                            <span class="small text-muted">Sin categorías</span>
+                        }
+                        @foreach (OpcionSeleccion categoria in ViewModel.Categorias.Where(c => c.Seleccionado)) {
+                            <span class="chip-cat">@categoria.Texto</span>
+                        }
+                    </div>
+                    <div class="d-flex justify-content-between"><span class="text-muted fw-bold">Precio</span><strong>@(ViewModel.PrecioBase > 0 ? $"S/ {ViewModel.PrecioBase:N2}" : "—")</strong></div>
+                    <div class="d-flex justify-content-between"><span class="text-muted fw-bold">Stock</span><strong>@ViewModel.StockActual <span class="text-muted fw-normal">(mín. @ViewModel.StockMinimo)</span></strong></div>
+                    <div>
+                        @if (ViewModel.StockBajo) {
+                            <span class="estado estado-rechazado">Stock bajo</span>
+                        } else {
+                            <span class="estado estado-pendiente">Normal</span>
+                        }
+                    </div>
+                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto justify-content-center mt-2"><Icono Nombre="save" /><span>Guardar artículo</span></button>
+                    <a tabindex="8" class="btn btn-outline-primary" href="articulos">Cancelar</a>
+                </div>
+            </div>
         </div>
-    </EditForm>
-</div>
+    </div>
+</EditForm>
+
+<ConfirmarDialogo Visible="Confirmando"
+                  Titulo="@(Id == null ? $"¿Guardar el artículo {ViewModel.Nombre.Trim()}?" : $"¿Guardar los cambios de {ViewModel.Nombre.Trim()}?")"
+                  Mensaje="@ResumenGuardado()"
+                  TextoConfirmar="Sí, guardar" TextoCancelar="Volver"
+                  IconoConfirmar="save" ClaseConfirmar="btn-primary"
+                  OnConfirmar="Guardar" OnCancelar="CancelarConfirmacion" />
 
 @code {
     [Parameter]
     public int? Id { get; set; }
 
     private ArticuloViewModel ViewModel { get; set; } = new();
+    private bool Confirmando { get; set; }
 
     protected override void OnParametersSet() {
         if (Id == null) {
@@ -78,6 +130,20 @@
             return;
         }
         ViewModel = articulo;
+    }
+
+    // Antes de guardar se muestra lo que se va a registrar
+    private void PedirConfirmacion() {
+        Confirmando = true;
+    }
+
+    private void CancelarConfirmacion() {
+        Confirmando = false;
+    }
+
+    private string ResumenGuardado() {
+        string categorias = string.Join(", ", ViewModel.Categorias.Where(c => c.Seleccionado).Select(c => c.Texto));
+        return $"Precio S/ {ViewModel.PrecioBase:N2}, stock {ViewModel.StockActual} (mínimo {ViewModel.StockMinimo}) y categorías: {categorias}.";
     }
 
     // Sin backend: solo regresa al listado. Al enlazar: POST /articulos o PUT /articulos/{Id}

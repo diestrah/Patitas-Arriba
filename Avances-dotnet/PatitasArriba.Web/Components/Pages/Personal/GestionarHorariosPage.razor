@@ -13,20 +13,20 @@
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label class="form-label">Día</label>
-                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.DiaSemana">
+                <PaInputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.DiaSemana">
                     @foreach (DiaSemana dia in Dias) {
                         <option value="@dia">@TextoEnum.De(dia)</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de inicio</label>
-                <InputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
+                <PaInputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
                 <ValidationMessage For="() => ViewModel.HoraInicio" />
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de fin</label>
-                <InputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
+                <PaInputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
                 <ValidationMessage For="() => ViewModel.HoraFin" />
             </div>
         </div>

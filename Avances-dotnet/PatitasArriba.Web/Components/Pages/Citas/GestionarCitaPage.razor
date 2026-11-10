@@ -17,30 +17,30 @@
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Cliente</label>
-                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente" @bind-Value:after="CambiarCliente" disabled="@(Id != null)">
+                <PaInputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente" @bind-Value:after="CambiarCliente" disabled="@(Id != null)">
                     <option value="0">Seleccione el cliente</option>
                     @foreach (ClienteViewModel cliente in Clientes) {
                         <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
                 <ValidationMessage For="() => ViewModel.IdCliente" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Mascota</label>
                 @* Solo las mascotas del cliente elegido. La mascota de una cita no cambia (RN-CI-13) *@
-                <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.IdMascota" disabled="@(Id != null)">
+                <PaInputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.IdMascota" disabled="@(Id != null)">
                     <option value="0">Seleccione la mascota</option>
                     @foreach (MascotaViewModel mascota in MascotasDelClienteElegido) {
                         <option value="@mascota.Id">@mascota.Nombre</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
                 <ValidationMessage For="() => ViewModel.IdMascota" />
             </div>
         </div>
         <div class="row align-items-end">
             <div class="col-md-5 mb-3">
                 <label class="form-label">Fecha y hora</label>
-                <InputDate tabindex="3" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+                <PaInputDate tabindex="3" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
                 <ValidationMessage For="() => ViewModel.FechaHora" />
             </div>
             <div class="col-md-4 mb-3">

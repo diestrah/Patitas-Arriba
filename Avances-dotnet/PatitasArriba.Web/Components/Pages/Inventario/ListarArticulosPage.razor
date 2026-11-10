@@ -10,19 +10,29 @@
     <h3 class="mb-3">Inventario de artículos</h3>
     @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
     @if (Sesion.EsAdministrador) {
-        <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoArticulo()">
+        <button tabindex="6" class="btn btn-warning btn-texto" @onclick="() => NuevoArticulo()">
             <Icono Nombre="plus" /><span>Nuevo artículo</span>
         </button>
     }
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">Nombre:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Buscar artículo..." aria-label="Buscar artículo" @bind="Filtro" />
+    <label class="text-nowrap" for="filtro-categoria">Categoría:</label>
+    <select id="filtro-categoria" tabindex="2" class="form-select w-auto" @bind="CategoriaFiltro">
+        <option value="">Todas</option>
+        @foreach (CategoriaViewModel categoria in Categorias) {
+            <option value="@categoria.Nombre">@categoria.Nombre</option>
+        }
+    </select>
+    <div class="form-check mb-0 text-nowrap">
+        <input id="filtro-bajo" tabindex="3" type="checkbox" class="form-check-input" @bind="SoloStockBajo" />
+        <label class="form-check-label" for="filtro-bajo">Solo stock bajo</label>
+    </div>
+    <button tabindex="4" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
-    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <button tabindex="5" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
 @if (MensajeExito != null) {
@@ -34,27 +44,57 @@
 }
 else {
     <QuickGrid Items="Articulos" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
-        <PropertyColumn Title="Nombre" Property="a => a.Nombre" Sortable="true" />
-        <PropertyColumn Title="Categorías" Property="a => a.NombresCategorias" />
+        <TemplateColumn Title="Artículo" SortBy="GridSort<ArticuloViewModel>.ByAscending(a => a.Nombre)">
+            @context.Nombre
+            <span class="info-articulo" tabindex="0" title="@(string.IsNullOrWhiteSpace(context.Descripcion) ? "Sin descripción." : context.Descripcion)" aria-label="@($"Descripción de {context.Nombre}")">i</span>
+        </TemplateColumn>
+        <TemplateColumn Title="Categorías">
+            @foreach (OpcionSeleccion categoria in context.Categorias.Where(c => c.Seleccionado)) {
+                <span class="chip-cat">@categoria.Texto</span>
+            }
+        </TemplateColumn>
         <PropertyColumn Title="Precio (S/)" Property="a => a.PrecioBase" Format="N2"
                         Sortable="true" Align="Align.Right" />
-        @* El stock bajo se marca con color, no con otro botón *@
-        <TemplateColumn Title="Stock" Align="Align.Right">
-            <span class="@(context.StockBajo ? "stock-bajo" : "")" title="@(context.StockBajo ? "Por debajo del stock mínimo" : "")">@context.StockActual</span>
+        <TemplateColumn Title="Stock">
+            @if (Sesion.EsAdministrador) {
+                bool cambiado = HayCambio(context);
+                <div class="d-flex align-items-center gap-1">
+                    <span class="stock-stepper @(cambiado ? "cambiado" : "")">
+                        <button type="button" aria-label="@($"Restar uno al stock de {context.Nombre}")" @onclick="() => Sumar(context, -1)">−</button>
+                        <input type="number" min="0" value="@StockMostrado(context)" aria-label="@($"Stock de {context.Nombre}")"
+                               @onchange="e => Escribir(context, e)" />
+                        <button type="button" aria-label="@($"Sumar uno al stock de {context.Nombre}")" @onclick="() => Sumar(context, 1)">+</button>
+                    </span>
+                    @if (cambiado) {
+                        <button type="button" class="btn btn-primary btn-icono" title="Guardar" aria-label="Guardar stock" @onclick="() => PedirActualizarStock(context)">
+                            <Icono Nombre="check" />
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-icono" title="Descartar" aria-label="Descartar cambio" @onclick="() => DescartarStock(context)">
+                            <Icono Nombre="x" />
+                        </button>
+                    }
+                </div>
+                <div class="small text-muted">@(cambiado ? $"Antes: {context.StockActual} · " : "")mín. @context.StockMinimo</div>
+            } else {
+                @context.StockActual
+                <div class="small text-muted">mín. @context.StockMinimo</div>
+            }
         </TemplateColumn>
-        <PropertyColumn Title="Stock mín." Property="a => a.StockMinimo" Align="Align.Right" />
+        @* El stock bajo se marca con color, no con otro botón *@
+        <TemplateColumn Title="Estado">
+            @if (context.StockBajo) {
+                <span class="estado estado-rechazado">Stock bajo</span>
+            } else {
+                <span class="estado estado-pendiente">Normal</span>
+            }
+        </TemplateColumn>
         @if (Sesion.EsAdministrador) {
             <TemplateColumn Title="Acciones">
-                @* Orden: editar, acción del negocio (stock), eliminar *@
+                @* El stock se cambia en la propia fila (− y +); aquí solo se edita o se elimina *@
                 <div class="acciones-fija">
                     <span class="slot-icono">
                         <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarArticulo(context.Id)">
                             <Icono Nombre="edit" />
-                        </button>
-                    </span>
-                    <span class="slot-texto">
-                        <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => ActualizarStock(context.Id)">
-                            <Icono Nombre="box" /><span>Stock</span>
                         </button>
                     </span>
                     <span class="slot-icono">
@@ -69,33 +109,70 @@ else {
     <Paginador State="Paginacion" />
 }
 
+@if (Sesion.EsAdministrador) {
+    <div class="alert alert-info mt-3 small">
+        Cambie el stock con − y +, o escriba el número. Aparecen ✓ y ✕ solo en la fila que cambió; al guardar se pide confirmación.
+        Un artículo usado en atenciones, recetas o boletas no se puede eliminar (RN-AR-05): el sistema lo avisa al intentarlo.
+    </div>
+}
+
 <ConfirmarDialogo Visible="ArticuloAEliminar != null"
                   Titulo="¿Eliminar el artículo?"
-                  Mensaje="@($"“{ArticuloAEliminar?.Nombre}” dejará de aparecer en el inventario. No se puede si se usó en atenciones, recetas o boletas.")"
+                  Mensaje="@MensajeEliminar()"
                   OnConfirmar="EliminarArticulo" OnCancelar="CancelarEliminacion" />
+
+<ConfirmarDialogo Visible="ArticuloAActualizar != null"
+                  Titulo="@($"¿Actualizar el stock de {ArticuloAActualizar?.Nombre}?")"
+                  Mensaje="@MensajeStock()"
+                  TextoConfirmar="Sí, actualizar" TextoCancelar="Volver"
+                  IconoConfirmar="save" ClaseConfirmar="btn-primary"
+                  OnConfirmar="ActualizarStock" OnCancelar="CancelarActualizacion" />
 
 @code {
     private List<ArticuloViewModel> Todos { get; set; } = [];
+    private List<CategoriaViewModel> Categorias { get; set; } = [];
     private IQueryable<ArticuloViewModel> Articulos { get; set; } = Enumerable.Empty<ArticuloViewModel>().AsQueryable();
     private ArticuloViewModel? ArticuloAEliminar { get; set; }
+    private ArticuloViewModel? ArticuloAActualizar { get; set; }
     private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
+    private string CategoriaFiltro { get; set; } = string.Empty;
+    private bool SoloStockBajo { get; set; }
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+
+    // Cambios de stock aún sin guardar: id del artículo -> nuevo valor
+    private Dictionary<int, int> StockPendiente { get; } = [];
+
+    // Filtros ya aplicados (se aplican al presionar Filtrar)
+    private string FiltroAplicado { get; set; } = string.Empty;
+    private string CategoriaAplicada { get; set; } = string.Empty;
+    private bool SoloBajoAplicado { get; set; }
 
     protected override void OnInitialized() {
         Todos = DatosEjemplo.Articulos();
-        Filtrar();
+        Categorias = DatosEjemplo.Categorias();
+        Mostrar();
+    }
+
+    private void Mostrar() {
+        Articulos = Todos
+            .Where(a => a.Nombre.Contains(FiltroAplicado, StringComparison.OrdinalIgnoreCase))
+            .Where(a => CategoriaAplicada == "" || a.Categorias.Any(c => c.Seleccionado && c.Texto == CategoriaAplicada))
+            .Where(a => !SoloBajoAplicado || a.StockBajo)
+            .AsQueryable();
     }
 
     private void Filtrar() {
-        string texto = Filtro.Trim();
-        Articulos = Todos
-            .Where(a => a.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase))
-            .AsQueryable();
+        FiltroAplicado = Filtro.Trim();
+        CategoriaAplicada = CategoriaFiltro;
+        SoloBajoAplicado = SoloStockBajo;
+        Mostrar();
     }
 
     private void LimpiarFiltro() {
         Filtro = string.Empty;
+        CategoriaFiltro = string.Empty;
+        SoloStockBajo = false;
         Filtrar();
     }
 
@@ -107,16 +184,85 @@ else {
         Nav.NavigateTo($"/articulos/editar/{id}");
     }
 
-    private void ActualizarStock(int id) {
-        Nav.NavigateTo($"/articulos/stock/{id}");
+    // ---------------------------------------------------------------- Stock con − y +
+    private int StockMostrado(ArticuloViewModel articulo) {
+        return StockPendiente.TryGetValue(articulo.Id, out int nuevo) ? nuevo : articulo.StockActual;
     }
 
+    private bool HayCambio(ArticuloViewModel articulo) {
+        return StockPendiente.ContainsKey(articulo.Id) && StockPendiente[articulo.Id] != articulo.StockActual;
+    }
+
+    private void Sumar(ArticuloViewModel articulo, int cantidad) {
+        FijarPendiente(articulo, StockMostrado(articulo) + cantidad);
+    }
+
+    // RN-AR-03: el stock no puede ser negativo ni decimal
+    private void Escribir(ArticuloViewModel articulo, ChangeEventArgs e) {
+        int valor = 0;
+        if (double.TryParse(e.Value?.ToString(), out double escrito) && escrito > 0) {
+            valor = (int)Math.Floor(escrito);
+        }
+        FijarPendiente(articulo, valor);
+    }
+
+    private void FijarPendiente(ArticuloViewModel articulo, int valor) {
+        StockPendiente[articulo.Id] = Math.Max(0, valor);
+        Mostrar();
+    }
+
+    private void DescartarStock(ArticuloViewModel articulo) {
+        StockPendiente.Remove(articulo.Id);
+        Mostrar();
+    }
+
+    private void PedirActualizarStock(ArticuloViewModel articulo) {
+        ArticuloAActualizar = articulo;
+    }
+
+    private void CancelarActualizacion() {
+        ArticuloAActualizar = null;
+    }
+
+    private string MensajeStock() {
+        if (ArticuloAActualizar == null) {
+            return "";
+        }
+        return $"El stock pasará de {ArticuloAActualizar.StockActual} a {StockMostrado(ArticuloAActualizar)} unidades.";
+    }
+
+    // Sin backend se cambia en la lista. El backend no tiene un endpoint solo para el stock:
+    // al enlazar se envía PUT /articulos/{id} con el artículo completo y su nuevo stock (RN-AR-04).
+    private void ActualizarStock() {
+        if (ArticuloAActualizar == null) {
+            return;
+        }
+        ArticuloAActualizar.StockActual = StockMostrado(ArticuloAActualizar);
+        StockPendiente.Remove(ArticuloAActualizar.Id);
+        MensajeExito = $"El stock de “{ArticuloAActualizar.Nombre}” quedó en {ArticuloAActualizar.StockActual}.";
+        ArticuloAActualizar = null;
+        Mostrar();
+    }
+
+    // ---------------------------------------------------------------- Eliminar
     private void PedirEliminar(ArticuloViewModel articulo) {
         ArticuloAEliminar = articulo;
     }
 
     private void CancelarEliminacion() {
         ArticuloAEliminar = null;
+    }
+
+    // Que el artículo esté en uso no depende del stock sino de su historial (RN-AR-05): lo decide el backend
+    private string MensajeEliminar() {
+        if (ArticuloAEliminar == null) {
+            return "";
+        }
+        string texto = $"“{ArticuloAEliminar.Nombre}” dejará de aparecer en el inventario. No se puede si se usó en atenciones, recetas o boletas.";
+        if (ArticuloAEliminar.StockActual > 0) {
+            texto += $" Todavía tiene {ArticuloAEliminar.StockActual} unidades en stock.";
+        }
+        return texto;
     }
 
     // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /articulos/{id};
@@ -126,8 +272,9 @@ else {
             return;
         }
         Todos.Remove(ArticuloAEliminar);
+        StockPendiente.Remove(ArticuloAEliminar.Id);
         MensajeExito = $"Se eliminó el artículo “{ArticuloAEliminar.Nombre}”.";
         ArticuloAEliminar = null;
-        Filtrar();
+        Mostrar();
     }
 }

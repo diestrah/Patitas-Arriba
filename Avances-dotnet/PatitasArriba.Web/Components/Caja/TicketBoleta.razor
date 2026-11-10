@@ -1,0 +1,51 @@
+@* Boleta con aspecto de ticket. Se usa en el detalle del listado y en la vista previa de Nueva y Modificar boleta *@
+<div class="ticket">
+    <div class="ticket-titulo">PATITAS ARRIBA</div>
+    <div class="ticket-centro">BOLETA DE VENTA<br /><strong>@Boleta.SerieCorrelativo</strong></div>
+    @if (!Boleta.IsActivo) {
+        <div class="ticket-anulada">ANULADA</div>
+    }
+    <hr />
+    <div>
+        Fecha: @Boleta.Fecha.ToString("dd/MM/yyyy HH:mm")<br />
+        Cliente: @(Boleta.IdCliente == 0 ? "—" : Boleta.NombreCliente)<br />
+        DNI: @(Boleta.IdCliente == 0 ? "—" : Boleta.DniCliente)
+    </div>
+    <hr />
+    @if (Boleta.Lineas.Count == 0) {
+        <div class="ticket-vacio">Sin líneas todavía</div>
+    } else {
+        @foreach (LineaBoletaViewModel linea in Boleta.Lineas) {
+            <div class="ticket-fila">
+                <span>@linea.Descripcion@(linea.Cantidad > 1 ? $" ×{linea.Cantidad}" : "")</span>
+                <strong>@Dinero(linea.SubTotal)</strong>
+            </div>
+        }
+        <hr />
+        @if (Servicios > 0) {
+            <div class="ticket-fila"><span>Servicios</span><span>@Dinero(Servicios)</span></div>
+        }
+        @if (Insumos > 0) {
+            <div class="ticket-fila"><span>Insumos</span><span>@Dinero(Insumos)</span></div>
+        }
+        @if (Caja > 0) {
+            <div class="ticket-fila"><span>Venta en caja</span><span>@Dinero(Caja)</span></div>
+        }
+    }
+    <div class="ticket-fila ticket-total"><span>TOTAL</span><span>@Dinero(Boleta.Total)</span></div>
+    <div>Pago: @TextoEnum.De(Boleta.MetodoPago)</div>
+    <div class="ticket-centro mt-1">¡Gracias por cuidar a sus patitas!</div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public BoletaViewModel Boleta { get; set; } = default!;
+
+    private double Servicios => Boleta.Lineas.Where(l => l.Tipo == "Servicio").Sum(l => l.SubTotal);
+    private double Insumos => Boleta.Lineas.Where(l => l.Tipo == "Insumo").Sum(l => l.SubTotal);
+    private double Caja => Boleta.Lineas.Where(l => l.Tipo == "Artículo").Sum(l => l.SubTotal);
+
+    private static string Dinero(double monto) {
+        return $"S/ {monto:N2}";
+    }
+}
