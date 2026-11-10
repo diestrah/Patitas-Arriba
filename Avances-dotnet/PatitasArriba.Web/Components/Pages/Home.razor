@@ -1,21 +1,13 @@
 @page "/"
 @inject SesionDemo Sesion;
+@inject NavigationManager Nav;
 
 @using System.Globalization
 
 <PageTitle>Inicio</PageTitle>
 
-@if (Sesion.Rol == null) {
-    <section class="inicio-hero">
-        <div>
-            <span class="inicio-chip">Clínica y estética veterinaria</span>
-            <h2>Bienvenido a Patitas Arriba</h2>
-            <p>Citas, atenciones, recetas, inventario y caja de la clínica en un solo lugar.</p>
-            <a class="btn btn-warning btn-texto" href="login"><Icono Nombre="log-in" /><span>Iniciar sesión</span></a>
-        </div>
-        <DibujoInicio />
-    </section>
-} else {
+@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized) *@
+@if (Sesion.Rol != null) {
     <section class="inicio-hero">
         <div>
             <span class="inicio-chip">@Saludo · @Fecha</span>
@@ -101,6 +93,7 @@
     // Mientras no se enlaza con el backend, el resumen se arma con los datos de ejemplo
     protected override void OnInitialized() {
         if (Sesion.Rol == null) {
+            Nav.NavigateTo("login", replace: true);
             return;
         }
         Accesos = Permisos.MenuDelRol(Sesion.Rol).SelectMany(g => g.Value).ToList();

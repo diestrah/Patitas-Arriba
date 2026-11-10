@@ -117,7 +117,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         }
     }
 
-    private void validar(Veterinario vet) throws BLException {
+    void validar(Veterinario vet) throws BLException {
         if (vet == null) {
             throw new ValidacionException("El veterinario no puede ser nulo");
         }
@@ -159,7 +159,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     }
 
     // dni, telefono y numero_colegiatura son UNIQUE en la base
-    private void validarUnicos(Veterinario vet) throws BLException {
+    void validarUnicos(Veterinario vet) throws BLException {
         try {
             Veterinario porDni;
             try {

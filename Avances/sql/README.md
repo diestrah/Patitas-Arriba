@@ -21,3 +21,9 @@
 
 ## Sobre los procedures
 - los archivos .sql de los procedures deben llamarse procedimientos-nombre_tabla.sql 
+
+## Registro con verificación de correo y recuperación de contraseña
+- Tablas nuevas: `registro_pendiente` y `token_recuperacion` (ya están en `patitasarriba-mysql.sql`).
+- Procedures nuevos: `procedures-registro_pendiente.sql` y `procedures-token_recuperacion.sql`.
+- `actualizacion-acceso.sql` junta tablas y procedures **solo para una base ya instalada**: ejecutarlo una vez. Se genera a partir de los tres archivos anteriores; si estos cambian hay que volver a generarlo.
+- Solo agrega: no modifica ninguna tabla ni procedure existente.

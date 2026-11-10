@@ -1,0 +1,35 @@
+@page "/olvide-contrasena"
+@layout LayoutVacio
+
+<PageTitle>Olvidé mi contraseña · Patitas Arriba</PageTitle>
+
+<AccesoMarco Titulo="¿Olvidaste tu contraseña?" Subtitulo="Ingresa tu correo y te enviaremos un enlace para elegir una nueva.">
+    @if (Enviado) {
+        @* El mensaje es el mismo exista o no el correo (RN-AC-04): no se revela qué cuentas hay *@
+        <div class="aviso-ok">
+            Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.
+            Es válido por 30 minutos y solo se puede usar una vez.
+        </div>
+        <div class="aviso-demo">
+            Modo demostración: no se envió ningún correo.
+            <a href="restablecer-contrasena?token=demo">Abrir el enlace del correo</a>
+        </div>
+    } else {
+        <EditForm Model="ViewModel" OnValidSubmit="Enviar">
+            <DataAnnotationsValidator />
+            <CampoAcceso Id="correo" Etiqueta="Correo electrónico" Icono="mail" Placeholder="nombre@correo.com" TabIndex="1"
+                         Autocompletar="email" ModoEntrada="email" @bind-Value="ViewModel.Correo" />
+            <button class="login-boton" type="submit" tabindex="2">Enviar enlace</button>
+        </EditForm>
+    }
+</AccesoMarco>
+
+@code {
+    private OlvideContrasenaViewModel ViewModel { get; set; } = new();
+    private bool Enviado { get; set; }
+
+    // Al enlazar: POST /acceso/recuperacion con { correo }; el backend responde siempre igual
+    private void Enviar() {
+        Enviado = true;
+    }
+}

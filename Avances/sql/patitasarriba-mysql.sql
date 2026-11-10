@@ -534,6 +534,51 @@ CREATE TABLE IF NOT EXISTS `patitasarriba`.`articulo_categoria` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `patitasarriba`.`registro_pendiente`
+-- Datos de un cliente que se registro y aun no verifica su correo (tabla de paso)
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `patitasarriba`.`registro_pendiente` (
+  `id_registro_pendiente` INT NOT NULL AUTO_INCREMENT,
+  `dni` VARCHAR(8) NOT NULL,
+  `nombres` VARCHAR(50) NOT NULL,
+  `apellido_paterno` VARCHAR(45) NOT NULL,
+  `apellido_materno` VARCHAR(45) NOT NULL,
+  `telefono` VARCHAR(9) NOT NULL,
+  `correo` VARCHAR(100) NOT NULL,
+  `nombre_usuario` VARCHAR(45) NOT NULL,
+  `password` VARCHAR(255) NOT NULL,
+  `token_hash` VARCHAR(64) NOT NULL,
+  `fecha_creacion` DATETIME NOT NULL,
+  `fecha_vencimiento` DATETIME NOT NULL,
+  PRIMARY KEY (`id_registro_pendiente`),
+  UNIQUE INDEX `token_hash_UNIQUE` (`token_hash` ASC) VISIBLE,
+  INDEX `registro_pendiente_correo_idx` (`correo` ASC) VISIBLE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `patitasarriba`.`token_recuperacion`
+-- Codigo de un solo uso con vencimiento para restablecer la contrasena de una cuenta
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `patitasarriba`.`token_recuperacion` (
+  `id_token_recuperacion` INT NOT NULL AUTO_INCREMENT,
+  `id_cuenta` INT NOT NULL,
+  `token_hash` VARCHAR(64) NOT NULL,
+  `fecha_creacion` DATETIME NOT NULL,
+  `fecha_vencimiento` DATETIME NOT NULL,
+  `usado` TINYINT(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id_token_recuperacion`),
+  UNIQUE INDEX `token_hash_UNIQUE` (`token_hash` ASC) VISIBLE,
+  INDEX `fk_token_recuperacion_cuenta1_idx` (`id_cuenta` ASC) VISIBLE,
+  CONSTRAINT `fk_token_recuperacion_cuenta1`
+    FOREIGN KEY (`id_cuenta`)
+    REFERENCES `patitasarriba`.`cuenta` (`id_cuenta`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

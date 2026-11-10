@@ -21,6 +21,8 @@ TRUNCATE TABLE mascota;
 TRUNCATE TABLE cliente;
 TRUNCATE TABLE veterinario;
 TRUNCATE TABLE administrador;
+TRUNCATE TABLE token_recuperacion;
+TRUNCATE TABLE registro_pendiente;
 TRUNCATE TABLE cuenta;
 TRUNCATE TABLE horario;
 TRUNCATE TABLE diagnostico;

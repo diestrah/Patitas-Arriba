@@ -1,0 +1,44 @@
+@page "/restablecer-contrasena"
+@layout LayoutVacio
+
+<PageTitle>Restablecer contraseña · Patitas Arriba</PageTitle>
+
+@* Es la página a la que lleva el enlace del correo de recuperación (y el de activación de una cuenta que creó un
+   administrador): /restablecer-contrasena?token=... *@
+<AccesoMarco Titulo="@Titulo" Subtitulo="@Subtitulo">
+    @if (Listo) {
+        <div class="aviso-ok">Tu contraseña se actualizó. Ya puedes iniciar sesión.</div>
+        <a class="login-boton" href="login">Iniciar sesión</a>
+    } else if (!TokenValido) {
+        <div class="login-error">El enlace no es válido o ya venció.</div>
+        <a class="login-boton" href="olvide-contrasena">Pedir un enlace nuevo</a>
+    } else {
+        <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+            <DataAnnotationsValidator />
+            <CampoAcceso Id="clave" Etiqueta="Contraseña nueva" Icono="lock" Tipo="password" Placeholder="Al menos 8 caracteres" TabIndex="1"
+                         Autocompletar="new-password" @bind-Value="ViewModel.Password" />
+            <CampoAcceso Id="confirmar" Etiqueta="Confirmar contraseña" Icono="lock" Tipo="password" Placeholder="Repite tu contraseña" TabIndex="2"
+                         Autocompletar="new-password" @bind-Value="ViewModel.ConfirmarPassword" />
+            <button class="login-boton" type="submit" tabindex="3">Guardar contraseña</button>
+        </EditForm>
+    }
+</AccesoMarco>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    private RestablecerContrasenaViewModel ViewModel { get; set; } = new();
+    private bool Listo { get; set; }
+
+    // Sin backend: cualquier token sirve salvo "invalido". Al enlazar, el backend responde si el enlace no sirve
+    private bool TokenValido => !string.IsNullOrWhiteSpace(Token) && Token != "invalido";
+
+    private string Titulo => Listo ? "¡Contraseña actualizada!" : TokenValido ? "Elige tu contraseña" : "El enlace no es válido";
+    private string? Subtitulo => !Listo && TokenValido ? "Escribe una contraseña nueva de al menos 8 caracteres." : null;
+
+    // Al enlazar: POST /acceso/recuperacion/restablecer con { token, password }
+    private void Guardar() {
+        Listo = true;
+    }
+}

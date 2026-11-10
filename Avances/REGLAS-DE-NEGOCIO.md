@@ -62,10 +62,24 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-CU-01 | Toda cuenta requiere nombre de usuario, contraseña y un correo con formato válido (`usuario@dominio.ext`). |
 | RN-CU-02 | El nombre de usuario y el correo son únicos, aunque la cuenta esté dada de baja. **[BD]** |
 | RN-CU-03 | La contraseña nunca se guarda en texto plano: se almacena su hash SHA-256, y nunca se devuelve en las consultas. Al modificar una cuenta, una contraseña vacía conserva la actual y la contraseña solo se vuelve a cifrar si cambió. La fecha de creación la fija el sistema. |
-| RN-CU-04 | Para iniciar sesión se requieren usuario y contraseña. Solo ingresan cuentas activas de una persona activa. Al ingresar, el sistema devuelve la persona dueña de la cuenta, cuyo tipo es su rol: cliente, veterinario o administrador. |
-| RN-CU-05 | Ante un acceso fallido el sistema responde siempre "Usuario o contraseña incorrectos", sin indicar cuál de los dos falló. |
+| RN-CU-04 | Para iniciar sesión se requieren el **correo** y la contraseña. Solo ingresan cuentas activas de una persona activa. Al ingresar, el sistema devuelve la persona dueña de la cuenta, cuyo tipo es su rol: cliente, veterinario o administrador. |
+| RN-CU-05 | Ante un acceso fallido el sistema responde siempre "Correo o contraseña incorrectos", sin indicar cuál de los dos falló. |
 | RN-CU-06 | No se puede dar de baja una cuenta que use un cliente, veterinario o administrador activo. Al dar de baja a la persona, su cuenta se da de baja con ella (RN-PE-05). |
 | RN-CU-07 | **[Rol]** Cerrar sesión y restringir los módulos según el rol lo hacen el frontend y la capa REST. Solo el administrador gestiona las cuentas. |
+
+### 4.1 Registro de clientes y recuperación de contraseña (RF01, RF02, RF04, RF05)
+
+| Código | Regla |
+|---|---|
+| RN-AC-01 | Un cliente puede **registrarse solo** con DNI (8 dígitos), nombres y apellidos (**solo letras**, espacios, apóstrofes o guiones), teléfono (9 dígitos), correo y una contraseña de **al menos 8 caracteres**. Se aplican las mismas reglas y únicos que al registrar un cliente (DNI, teléfono, correo y usuario no se repiten, aunque estén dados de baja). |
+| RN-AC-02 | El registro **no crea la cuenta** hasta verificar el correo: se guarda la solicitud (con la contraseña ya cifrada) y se envía un enlace que **vale 24 horas**. Un nuevo intento con el mismo correo reemplaza al anterior. **[BD]** |
+| RN-AC-03 | Al abrir el enlace se crean la **cuenta y el cliente en una sola transacción** y se borra la solicitud. Los únicos se vuelven a comprobar, porque pudieron ocuparse mientras tanto. El enlace sirve una sola vez. |
+| RN-AC-04 | **Olvido de contraseña:** si el correo pertenece a una cuenta activa de una persona activa, se envía un enlace de **30 minutos y un solo uso**. Pedir uno nuevo anula los anteriores. La respuesta es la misma exista o no el correo, para no revelar qué cuentas hay. |
+| RN-AC-05 | Con el enlace se fija una contraseña nueva (mínimo 8 caracteres). Al cambiarla, todos los enlaces pendientes de esa cuenta dejan de servir. |
+| RN-AC-06 | Los enlaces llevan un token aleatorio de 64 caracteres; en la base solo se guarda su **hash**, nunca el token. **[BD]** |
+| RN-AC-07 | **[Rol]** El administrador registra clientes, veterinarios y otros administradores indicando el **correo**: la persona y su cuenta se crean **en una sola transacción** (RN-GE-03). La cuenta nace con una clave aleatoria que nadie conoce y la persona recibe un correo (enlace de **48 horas**) para elegir su contraseña: el administrador nunca la conoce. |
+| RN-AC-08 | El nombre de usuario se arma con la parte del correo antes de la `@` (con un número si ya está ocupado). Se sigue guardando porque es único en la base, pero ya no se usa para ingresar (RN-CU-04). |
+| RN-AC-09 | Los correos se envían por SMTP con las variables de entorno `PATITAS_SMTP_HOST`, `PATITAS_SMTP_PUERTO` (465 por defecto), `PATITAS_SMTP_USUARIO`, `PATITAS_SMTP_CLAVE` y `PATITAS_SMTP_REMITENTE`, y los enlaces usan `PATITAS_URL_FRONT` (`http://localhost:5118` por defecto). **Las credenciales no van en el código ni en el repositorio.** Sin configuración, los correos se muestran en la consola del servidor. |
 
 ---
 
@@ -103,7 +117,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 |---|---|
 | RN-AD-01 | El administrador es quien aprueba o rechaza las citas (RN-CI-09). |
 | RN-AD-02 | Siempre debe existir al menos un administrador activo: no se puede dar de baja al último. |
-| RN-AD-03 | El primer administrador lo registra la clínica al instalar el sistema (script `sql/datos-iniciales.sql`); los demás usuarios los crea un administrador. |
+| RN-AD-03 | El primer administrador lo registra la clínica al instalar el sistema (script `sql/datos-iniciales.sql`); los demás administradores y los veterinarios los crea un administrador (RN-AC-07); los clientes pueden registrarse solos (RN-AC-01). |
 | RN-AD-04 | **[Rol]** Solo el administrador gestiona el personal (veterinarios y administradores). |
 
 ---
@@ -304,7 +318,7 @@ La capa de negocio distingue el tipo de error y la capa REST lo traduce a un có
 | Excepción de la capa de negocio | Significado | HTTP |
 |---|---|---|
 | `ValidacionException` | Se incumple una regla de este documento | 400 |
-| `CredencialesInvalidasException` | Usuario o contraseña incorrectos (RN-CU-05) | 401 |
+| `CredencialesInvalidasException` | Correo o contraseña incorrectos (RN-CU-05) | 401 |
 | `NoEncontradoException` | El registro no existe o está dado de baja | 404 |
 | `BLException` | Error técnico (base de datos) | 500 |
 
@@ -312,7 +326,12 @@ Consultas de los requisitos:
 
 | Requisito | Endpoint |
 |---|---|
-| RF01 | `POST /login` → cuenta, persona y `rol` (CLIENTE, VETERINARIO o ADMINISTRADOR) |
+| RF01 | `POST /login` con `{ "correo", "password" }` → cuenta, persona y `rol` (CLIENTE, VETERINARIO o ADMINISTRADOR) |
+| RF01, RF02 | `POST /acceso/registro` con `{ dni, nombres, apellidoPaterno, apellidoMaterno, telefono, correo, password }` → 202; envía el correo (RN-AC-02) |
+| RF01, RF02 | `POST /acceso/registro/confirmar` con `{ token }` → 201; crea cuenta y cliente (RN-AC-03) |
+| RF01 | `POST /acceso/recuperacion` con `{ correo }` → 202 siempre igual (RN-AC-04) |
+| RF01 | `POST /acceso/recuperacion/restablecer` con `{ token, password }` → 200 (RN-AC-05) |
+| RF02, RF04, RF05 | `POST /clientes/con-cuenta`, `POST /veterinarios/con-cuenta`, `POST /administradores/con-cuenta`: igual que el `POST` de cada uno, pero sin `cuenta.id`; solo `cuenta.correo` (RN-AC-07) |
 | RF03 | `GET /mascotas?cliente={id}` |
 | RF10 | `GET /citas?cliente={id}` |
 | RF11, RF13 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
@@ -325,5 +344,5 @@ Consultas de los requisitos:
 | Requisito | Dónde se resuelve |
 |---|---|
 | RF01 (cerrar sesión y restringir módulos por rol) | Frontend, con el `rol` que devuelve `POST /login` (RN-CU-04). |
-| RF12 (recordatorios por correo 24 h antes) | No implementado. Requiere un proceso programado y un servicio de correo; puede usar las citas de un día (RN-CI-14). |
+| RF12 (recordatorios por correo 24 h antes) | No implementado. El servicio de correo ya existe (`CorreoService`, RN-AC-09); falta el proceso programado, que puede usar las citas de un día (RN-CI-14). |
 | RF13, RF16, RF17, RF18 (reportes e impresión) | Frontend, con las consultas de §15. |
