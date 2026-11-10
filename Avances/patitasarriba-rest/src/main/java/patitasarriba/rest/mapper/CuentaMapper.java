@@ -4,8 +4,6 @@ import patitasarriba.bl.ValidacionException;
 import patitasarriba.modelo.usuario.Cuenta;
 import patitasarriba.rest.dto.CuentaDTO;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -40,13 +38,12 @@ public final class CuentaMapper {
         try {
             cuenta.setId(dto.getId());
             cuenta.setActivo(dto.isActivo());
-            cuenta.setPassword(dto.getPassword());
+            if (dto.getPassword() != null && !dto.getPassword().isBlank()) {
+                cuenta.setPassword(dto.getPassword());
+            }
             cuenta.setCorreo(dto.getCorreo());
-            cuenta.setFechaCreacion(dto.getFechaCreacion() != null
-                    ? LocalDate.parse(dto.getFechaCreacion())
-                    : LocalDate.now());
             cuenta.setNombreUsuario(dto.getNombreUsuario());
-        } catch (IllegalArgumentException | DateTimeParseException e) {
+        } catch (IllegalArgumentException e) {
             throw new ValidacionException("Datos de la cuenta invalidos: " + e.getMessage());
         }
         return cuenta;

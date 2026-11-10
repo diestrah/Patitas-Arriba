@@ -52,10 +52,10 @@ public final class DetalleCitaMapper {
         if (dto.getVeterinario() == null) {
             throw new ValidacionException("Cada servicio de la cita debe tener un veterinario");
         }
-        // ServicioBLImpl.findById todavia no lanza NoEncontradoException (ver detalle en el
-        // resumen de la implementacion): devuelve null, asi que el chequeo se hace a mano aqui.
-        Servicio servicio = servicioBL.findById(dto.getServicio().getId());
-        if (servicio == null) {
+        Servicio servicio;
+        try {
+            servicio = servicioBL.findById(dto.getServicio().getId());
+        } catch (NoEncontradoException e) {
             throw new ValidacionException("No existe el servicio con id " + dto.getServicio().getId());
         }
         Veterinario veterinario;

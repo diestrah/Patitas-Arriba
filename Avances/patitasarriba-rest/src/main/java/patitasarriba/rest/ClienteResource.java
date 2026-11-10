@@ -14,6 +14,7 @@ import patitasarriba.rest.dto.ClienteDTO;
 import patitasarriba.rest.mapper.ClienteMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/clientes")
@@ -39,7 +40,7 @@ public class ClienteResource {
                             .entity(Map.of("error", "No existe un cliente con el DNI " + dni))
                             .build();
                 }
-                return Response.ok(ClienteMapper.toDTO(cliente)).build();
+                return Response.ok(List.of(ClienteMapper.toDTO(cliente))).build();
             }
             return Response.ok(ClienteMapper.toDTOs(clienteBL.findAll())).build();
         } catch (BLException ex) {

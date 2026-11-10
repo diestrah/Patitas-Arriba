@@ -14,6 +14,7 @@ import patitasarriba.rest.dto.DiagnosticoDTO;
 import patitasarriba.rest.mapper.DiagnosticoMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/diagnosticos")
@@ -39,7 +40,7 @@ public class DiagnosticoResource {
                             .entity(Map.of("error", "No existe un diagnostico con el nombre de enfermedad " + nombreEnfermedad))
                             .build();
                 }
-                return Response.ok(DiagnosticoMapper.toDTO(diagnostico)).build();
+                return Response.ok(List.of(DiagnosticoMapper.toDTO(diagnostico))).build();
             }
             return Response.ok(DiagnosticoMapper.toDTOs(diagnosticoBL.findAll())).build();
         } catch (ValidacionException ex) {

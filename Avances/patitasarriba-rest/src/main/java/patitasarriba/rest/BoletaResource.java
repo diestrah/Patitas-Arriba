@@ -97,6 +97,9 @@ public class BoletaResource {
         try {
             boletaBL.delete(id);
             return Response.noContent().build();
+        } catch (NoEncontradoException ex) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();

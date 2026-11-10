@@ -5,6 +5,7 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ServicioBL;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.impl.producto.ServicioBLImpl;
@@ -13,6 +14,7 @@ import patitasarriba.rest.dto.ServicioDTO;
 import patitasarriba.rest.mapper.ServicioMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/servicios")
@@ -38,7 +40,7 @@ public class ServicioResource {
                             .entity(Map.of("error", "No existe un servicio con el nombre " + nombre))
                             .build();
                 }
-                return Response.ok(ServicioMapper.toDTO(servicio)).build();
+                return Response.ok(List.of(ServicioMapper.toDTO(servicio))).build();
             }
             return Response.ok(ServicioMapper.toDTOs(servicioBL.findAll())).build();
         } catch (ValidacionException ex) {
@@ -50,19 +52,14 @@ public class ServicioResource {
         }
     }
 
-    // ServicioBLImpl.findById todavia no sigue el patron null -> NoEncontradoException que usan
-    // las demas entidades (ver detalle en el resumen de la implementacion): el chequeo de null
-    // se hace aqui mismo, a mano, mientras eso no se homologue en la capa de negocio.
     @GET
     @Path("/{id}")
     public Response findById(@PathParam("id") int id) {
         try {
-            Servicio servicio = servicioBL.findById(id);
-            if (servicio == null) {
-                return Response.status(Response.Status.NOT_FOUND)
-                        .entity(Map.of("error", "No existe un servicio con id " + id)).build();
-            }
-            return Response.ok(ServicioMapper.toDTO(servicio)).build();
+            return Response.ok(ServicioMapper.toDTO(servicioBL.findById(id))).build();
+        } catch (NoEncontradoException ex) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();

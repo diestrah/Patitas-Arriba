@@ -14,6 +14,7 @@ import patitasarriba.rest.dto.CuentaDTO;
 import patitasarriba.rest.mapper.CuentaMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/cuentas")
@@ -39,7 +40,7 @@ public class CuentaResource {
                             .entity(Map.of("error", "No existe una cuenta con el nombre de usuario " + nombreUsuario))
                             .build();
                 }
-                return Response.ok(CuentaMapper.toDTO(cuenta)).build();
+                return Response.ok(List.of(CuentaMapper.toDTO(cuenta))).build();
             }
             return Response.ok(CuentaMapper.toDTOs(cuentaBL.findAll())).build();
         } catch (BLException ex) {

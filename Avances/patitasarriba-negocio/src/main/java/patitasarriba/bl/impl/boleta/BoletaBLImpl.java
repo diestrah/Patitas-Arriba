@@ -4,6 +4,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.BoletaBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
@@ -86,6 +87,7 @@ public class BoletaBLImpl implements BoletaBL {
     @Override
     public void update(Boleta boleta) throws BLException {
         validarYCalcular(boleta);
+        validarExiste(boleta.getId());
         validarNoRepetidos(boleta);
         validarDuenio(boleta);
         TransactionsManager.iniciar();
@@ -111,6 +113,7 @@ public class BoletaBLImpl implements BoletaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         TransactionsManager.iniciar();
         try {
             boletaDAO.delete(id);
@@ -131,10 +134,10 @@ public class BoletaBLImpl implements BoletaBL {
 
         for (DetalleBoleta detalle : boleta.getDetalles()) {
             if (detalle == null) {
-                throw new BLException("La boleta no puede contener detalles nulos");
+                throw new ValidacionException("La boleta no puede contener detalles nulos");
             }
             if (detalle.getCantidad() < 1) {
-                throw new BLException("La cantidad debe ser al menos 1");
+                throw new ValidacionException("La cantidad debe ser al menos 1");
             }
 
             double subTotalSeguro;
@@ -148,14 +151,14 @@ public class BoletaBLImpl implements BoletaBL {
                     //refactorizado para no tener una sábana de código
                     subTotalSeguro = calcularSubtotalServicio(detalleServicio);
                 } else {
-                    throw new BLException("Tipo de detalle de boleta no reconocido por el sistema");
+                    throw new ValidacionException("Tipo de detalle de boleta no reconocido por el sistema");
                 }
             } catch (SQLException e) {
                 throw new BLException("Error técnico al consultar el catálogo de productos", e);
             }
 
             if (subTotalSeguro <= 0) {
-                throw new BLException("El subtotal de cada detalle debe ser mayor a 0");
+                throw new ValidacionException("El subtotal de cada detalle debe ser mayor a 0");
             }
             detalle.setPrecioUnitario(subTotalSeguro / detalle.getCantidad());
             // Actualización segura del subtotal
@@ -169,38 +172,38 @@ public class BoletaBLImpl implements BoletaBL {
     // Valida los datos propios de la boleta (cliente, metodo de pago, fecha, serie), sin mirar los detalles
     private void validarDatosBasicos(Boleta boleta) throws BLException {
         if (boleta == null) {
-            throw new BLException("La boleta no puede ser nula");
+            throw new ValidacionException("La boleta no puede ser nula");
         }
         if (boleta.getCliente() == null) {
-            throw new BLException("La boleta debe tener un cliente asociado");
+            throw new ValidacionException("La boleta debe tener un cliente asociado");
         }
         if (boleta.getDetalles().isEmpty()) {
-            throw new BLException("La boleta debe tener al menos un detalle");
+            throw new ValidacionException("La boleta debe tener al menos un detalle");
         }
         if (boleta.getMetodoPago() == null) {
-            throw new BLException("La boleta debe tener un método de pago");
+            throw new ValidacionException("La boleta debe tener un método de pago");
         }
         if (boleta.getFecha() == null) {
-            throw new BLException("La boleta debe tener una fecha");
+            throw new ValidacionException("La boleta debe tener una fecha");
         }
         if (boleta.getSerieCorrelativo() == null || boleta.getSerieCorrelativo().isBlank()) {
-            throw new BLException("La boleta debe tener serie y correlativo");
+            throw new ValidacionException("La boleta debe tener serie y correlativo");
         }
         if (!boleta.getSerieCorrelativo().matches("[A-Z]\\d{3}-\\d{6}")) {
-            throw new BLException("El número de boleta debe tener el formato B001-000123");
+            throw new ValidacionException("El número de boleta debe tener el formato B001-000123");
         }
     }
 
     // Valida un detalle de articulo (venta en caja o cobro de un insumo) y devuelve su subtotal
     private double calcularSubtotalArticulo(Boleta boleta, DetalleBoletaArticulo detalleArticulo) throws BLException, SQLException {
         if (detalleArticulo.getArticulo() == null) {
-            throw new BLException("Cada detalle de articulo debe tener un articulo");
+            throw new ValidacionException("Cada detalle de articulo debe tener un articulo");
         }
 
         Articulo artReal = articuloDAO.findById(detalleArticulo.getArticulo().getId());
 
         if (artReal == null || !artReal.isActivo()) {
-            throw new BLException("El artículo no existe o está inactivo en el catálogo");
+            throw new ValidacionException("El artículo no existe o está inactivo en el catálogo");
         }
 
         if (detalleArticulo.getInsumoUtilizado() == null) {
@@ -216,7 +219,7 @@ public class BoletaBLImpl implements BoletaBL {
             }
             int disponible = artReal.getStockActual() + cantidadYaVendida(boleta.getId(), artReal.getId());
             if (pedido > disponible) {
-                throw new BLException("Stock insuficiente para el artículo: " + artReal.getNombre()
+                throw new ValidacionException("Stock insuficiente para el artículo: " + artReal.getNombre()
                         + " (Stock disponible: " + disponible + ")");
             }
         } else {
@@ -230,16 +233,16 @@ public class BoletaBLImpl implements BoletaBL {
     // Valida un detalle de servicio (cobro de un servicio de una cita) y devuelve su subtotal
     private double calcularSubtotalServicio(DetalleBoletaServicio detalleServicio) throws BLException, SQLException {
         if (detalleServicio.getDetalleCita() == null || detalleServicio.getDetalleCita().getServicio() == null) {
-            throw new BLException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
+            throw new ValidacionException("Cada detalle de servicio debe estar asociado a un servicio de una cita");
         }
         if (detalleServicio.getCantidad() != 1) {
-            throw new BLException("Cada servicio de la cita se cobra una sola vez (cantidad 1)");
+            throw new ValidacionException("Cada servicio de la cita se cobra una sola vez (cantidad 1)");
         }
 
         Servicio servReal = servicioDAO.findById(detalleServicio.getDetalleCita().getServicio().getId());
 
         if (servReal == null || !servReal.isActivo()) {
-            throw new BLException("El servicio no existe o está inactivo en el catálogo");
+            throw new ValidacionException("El servicio no existe o está inactivo en el catálogo");
         }
         return servReal.getPrecioBase() * detalleServicio.getCantidad();
     }
@@ -248,7 +251,7 @@ public class BoletaBLImpl implements BoletaBL {
     private void validarInsumo(DetalleBoletaArticulo linea) throws BLException, SQLException {
         Atencion atencion = atencionDAO.findById(linea.getInsumoUtilizado().getAtencion().getId());
         if (atencion == null) {
-            throw new BLException("La atención del insumo no existe o fue anulada");
+            throw new ValidacionException("La atención del insumo no existe o fue anulada");
         }
         InsumoUtilizado real = null;
         for (InsumoUtilizado i : atencion.getInsumosUtilizados()) {
@@ -258,16 +261,16 @@ public class BoletaBLImpl implements BoletaBL {
             }
         }
         if (real == null) {
-            throw new BLException("El insumo no existe o fue quitado de la atención");
+            throw new ValidacionException("El insumo no existe o fue quitado de la atención");
         }
         if (!real.isEsCobrable()) {
-            throw new BLException("El insumo " + real.getArticulo().getNombre() + " no es cobrable");
+            throw new ValidacionException("El insumo " + real.getArticulo().getNombre() + " no es cobrable");
         }
         if (linea.getArticulo().getId() != real.getArticulo().getId()) {
-            throw new BLException("El artículo de la línea no coincide con el del insumo");
+            throw new ValidacionException("El artículo de la línea no coincide con el del insumo");
         }
         if (linea.getCantidad() > real.getCantidadUtilizada()) {
-            throw new BLException("No se puede cobrar más de lo usado en la atención ("
+            throw new ValidacionException("No se puede cobrar más de lo usado en la atención ("
                     + real.getCantidadUtilizada() + ")");
         }
     }
@@ -312,19 +315,19 @@ public class BoletaBLImpl implements BoletaBL {
         try {
             int otra = boletaDAO.boletaConSerie(boleta.getSerieCorrelativo());
             if (otra != 0 && otra != boleta.getId()) {
-                throw new BLException("Ya existe una boleta con el número " + boleta.getSerieCorrelativo());
+                throw new ValidacionException("Ya existe una boleta con el número " + boleta.getSerieCorrelativo());
             }
             for (DetalleBoleta detalle : boleta.getDetalles()) {
                 if (detalle instanceof DetalleBoletaServicio s) {
                     otra = boletaDAO.boletaConServicio(s.getDetalleCita().getId());
                     if (otra != 0 && otra != boleta.getId()) {
-                        throw new BLException("El servicio " + s.getDetalleCita().getServicio().getNombre()
+                        throw new ValidacionException("El servicio " + s.getDetalleCita().getServicio().getNombre()
                                 + " ya fue facturado (la boleta pudo haberse anulado)");
                     }
                 } else if (detalle instanceof DetalleBoletaArticulo a && a.getInsumoUtilizado() != null) {
                     otra = boletaDAO.boletaConInsumo(a.getInsumoUtilizado().getId());
                     if (otra != 0 && otra != boleta.getId()) {
-                        throw new BLException("El insumo " + a.getArticulo().getNombre()
+                        throw new ValidacionException("El insumo " + a.getArticulo().getNombre()
                                 + " ya fue cobrado (la boleta pudo haberse anulado)");
                     }
                 }
@@ -341,19 +344,29 @@ public class BoletaBLImpl implements BoletaBL {
                 Cita cita = null;
                 if (d instanceof DetalleBoletaServicio s) {
                     DetalleCita dc = detalleCitaDAO.buscarDetallePorId(s.getDetalleCita().getId());
-                    if (dc == null) throw new BLException("El servicio de la cita no existe o fue anulado");
+                    if (dc == null) throw new ValidacionException("El servicio de la cita no existe o fue anulado");
                     cita = dc.getCita();
                 } else if (d instanceof DetalleBoletaArticulo a && a.getInsumoUtilizado() != null) {
                     Atencion at = atencionDAO.findById(a.getInsumoUtilizado().getAtencion().getId());
-                    if (at == null) throw new BLException("La atención del insumo no existe o fue anulada");
+                    if (at == null) throw new ValidacionException("La atención del insumo no existe o fue anulada");
                     cita = at.getDetalleCita().getCita();
                 }
                 if (cita != null && cita.getMascota().getCliente().getId() != boleta.getCliente().getId()) {
-                    throw new BLException("La boleta debe emitirse al dueño de la mascota " + cita.getMascota().getNombre());
+                    throw new ValidacionException("La boleta debe emitirse al dueño de la mascota " + cita.getMascota().getNombre());
                 }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el dueño de la mascota", e);
+        }
+    }
+
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (boletaDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe una boleta con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia de la boleta", e);
         }
     }
 }

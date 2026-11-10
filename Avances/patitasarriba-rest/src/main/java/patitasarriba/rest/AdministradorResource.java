@@ -14,6 +14,7 @@ import patitasarriba.rest.dto.AdministradorDTO;
 import patitasarriba.rest.mapper.AdministradorMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/administradores")
@@ -39,7 +40,7 @@ public class AdministradorResource {
                             .entity(Map.of("error", "No existe un administrador con el DNI " + dni))
                             .build();
                 }
-                return Response.ok(AdministradorMapper.toDTO(administrador)).build();
+                return Response.ok(List.of(AdministradorMapper.toDTO(administrador))).build();
             }
             return Response.ok(AdministradorMapper.toDTOs(administradorBL.findAll())).build();
         } catch (BLException ex) {

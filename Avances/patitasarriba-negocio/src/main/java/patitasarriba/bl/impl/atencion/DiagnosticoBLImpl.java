@@ -36,7 +36,7 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
         try {
             return diagnosticoDAO.findAll();
         } catch (SQLException e) {
-            throw new BLException("No se pudo listar los diagnosticos");
+            throw new BLException("No se pudo listar los diagnosticos", e);
         }
     }
 
@@ -82,11 +82,12 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
 
     @Override
     public void delete(Integer integer) throws BLException {
+        validarExiste(integer);
         try {
             for (Atencion atencion : atencionDAO.findAll()) {
                 for (AtencionDiagnostico ad : atencion.getDiagnosticos()) {
                     if (ad.getDiagnostico().getId() == integer) {
-                        throw new BLException("No se puede eliminar: el diagnostico está asignado a la atención "
+                        throw new ValidacionException("No se puede eliminar: el diagnostico está asignado a la atención "
                                 + atencion.getId());
                     }
                 }
@@ -98,18 +99,18 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
     }
     private void validarNombreEnfermedad(Diagnostico diagnostico) throws BLException {
         if (diagnostico == null) {
-            throw new BLException("El diagnostico no puede ser nulo");
+            throw new ValidacionException("El diagnostico no puede ser nulo");
         }
         if (diagnostico.getNombreEnfermedad() == null
                 || diagnostico.getNombreEnfermedad().isBlank()) {
-            throw new BLException("El nombre de la enfermedad no puede ser nulo o vacío");
+            throw new ValidacionException("El nombre de la enfermedad no puede ser nulo o vacío");
         }
     }
 
     private void validarExiste(int id) throws BLException {
         try {
             if (diagnosticoDAO.findById(id) == null) {
-                throw new BLException("No existe un diagnostico con id " + id);
+                throw new NoEncontradoException("No existe un diagnostico con id " + id);
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia del diagnostico", e);
@@ -122,7 +123,7 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
         try {
             Diagnostico existente = diagnosticoDAO.findByNombreEnfermedad(diagnostico.getNombreEnfermedad().trim());
             if (existente != null && existente.getId() != diagnostico.getId()) {
-                throw new BLException("Ya existe un diagnostico" + (existente.isActivo() ? "" : " dado de baja")
+                throw new ValidacionException("Ya existe un diagnostico" + (existente.isActivo() ? "" : " dado de baja")
                         + " llamado '" + diagnostico.getNombreEnfermedad() + "'");
             }
         } catch (SQLException e) {

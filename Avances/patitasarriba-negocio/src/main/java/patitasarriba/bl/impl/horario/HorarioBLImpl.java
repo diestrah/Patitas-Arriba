@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.horario;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.HorarioBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.AdministradorDAO;
@@ -58,6 +59,7 @@ public class HorarioBLImpl implements HorarioBL {
     @Override
     public void update(Horario horario) throws BLException {
         validar(horario);
+        validarExiste(horario.getId());
         try{
             horarioDAO.update(horario);
         } catch (SQLException e) {
@@ -67,6 +69,7 @@ public class HorarioBLImpl implements HorarioBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        validarExiste(id);
         validarSinAsignaciones(id);
         try{
             horarioDAO.delete(id);
@@ -77,15 +80,15 @@ public class HorarioBLImpl implements HorarioBL {
 
     private void validar(Horario horario) throws BLException {
         if (horario == null) {
-            throw new BLException("El horario no puede ser nulo");
+            throw new ValidacionException("El horario no puede ser nulo");
         }
         if (horario.getDiaSemana() == null
                 || horario.getHoraInicio() == null
                 || horario.getHoraFin() == null) {
-            throw new BLException("El horario debe tener día y horas definidas");
+            throw new ValidacionException("El horario debe tener día y horas definidas");
         }
         if (!horario.getHoraInicio().isBefore(horario.getHoraFin())) {
-            throw new BLException("La hora de inicio debe ser anterior a la hora de fin");
+            throw new ValidacionException("La hora de inicio debe ser anterior a la hora de fin");
         }
     }
 
@@ -94,7 +97,7 @@ public class HorarioBLImpl implements HorarioBL {
             for (Veterinario v : veterinarioDAO.findAll()) {
                 for (Horario h : v.getHorarios()) {
                     if (h.getId() == idHorario) {
-                        throw new BLException("No se puede eliminar el horario: está asignado al veterinario "
+                        throw new ValidacionException("No se puede eliminar el horario: está asignado al veterinario "
                                 + v.getNombres() + " " + v.getApellidoPaterno());
                     }
                 }
@@ -102,13 +105,23 @@ public class HorarioBLImpl implements HorarioBL {
             for (Administrador a : administradorDAO.findAll()) {
                 for (Horario h : a.getHorarios()) {
                     if (h.getId() == idHorario) {
-                        throw new BLException("No se puede eliminar el horario: está asignado al administrador "
+                        throw new ValidacionException("No se puede eliminar el horario: está asignado al administrador "
                                 + a.getNombres() + " " + a.getApellidoPaterno());
                     }
                 }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las asignaciones del horario", e);
+        }
+    }
+
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (horarioDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe un horario con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia del horario", e);
         }
     }
 }

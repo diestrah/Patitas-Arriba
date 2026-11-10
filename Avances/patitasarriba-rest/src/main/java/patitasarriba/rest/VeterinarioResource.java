@@ -14,6 +14,7 @@ import patitasarriba.rest.dto.VeterinarioDTO;
 import patitasarriba.rest.mapper.VeterinarioMapper;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Map;
 
 @Path("/veterinarios")
@@ -39,7 +40,7 @@ public class VeterinarioResource {
                             .entity(Map.of("error", "No existe un veterinario con el DNI " + dni))
                             .build();
                 }
-                return Response.ok(VeterinarioMapper.toDTO(veterinario)).build();
+                return Response.ok(List.of(VeterinarioMapper.toDTO(veterinario))).build();
             }
             return Response.ok(VeterinarioMapper.toDTOs(veterinarioBL.findAll())).build();
         } catch (BLException ex) {

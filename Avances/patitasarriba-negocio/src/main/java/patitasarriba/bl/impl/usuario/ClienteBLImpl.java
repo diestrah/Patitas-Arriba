@@ -81,6 +81,7 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public void update(Cliente cliente) throws BLException {
         validar(cliente);
+        validarExiste(cliente.getId());
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
         TransactionsManager.iniciar();
@@ -95,7 +96,8 @@ public class ClienteBLImpl implements ClienteBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        if (id == null) throw new BLException("El id del cliente no puede ser nulo");
+        if (id == null) throw new ValidacionException("El id del cliente no puede ser nulo");
+        validarExiste(id);
         validarSinHistorial(id);
         TransactionsManager.iniciar();
         try {
@@ -113,13 +115,13 @@ public class ClienteBLImpl implements ClienteBL {
         try {
             for (Cita cita : citaDAO.findAll()) {
                 if (cita.getMascota().getCliente().getId() == idCliente) {
-                    throw new BLException("No se puede eliminar el cliente: su mascota "
+                    throw new ValidacionException("No se puede eliminar el cliente: su mascota "
                             + cita.getMascota().getNombre() + " tiene citas registradas");
                 }
             }
             for (Boleta boleta : boletaDAO.findAll()) {
                 if (boleta.getCliente().getId() == idCliente) {
-                    throw new BLException("No se puede eliminar el cliente: tiene la boleta "
+                    throw new ValidacionException("No se puede eliminar el cliente: tiene la boleta "
                             + boleta.getSerieCorrelativo());
                 }
             }
@@ -130,24 +132,24 @@ public class ClienteBLImpl implements ClienteBL {
 
     private void validar(Cliente cliente) throws BLException {
         if (cliente == null) {
-            throw new BLException("El cliente no puede ser nulo");
+            throw new ValidacionException("El cliente no puede ser nulo");
         }
         if (cliente.getDni() == null || !cliente.getDni().matches("\\d{8}")) {
-            throw new BLException("El DNI debe contener exactamente 8 dígitos numéricos");
+            throw new ValidacionException("El DNI debe contener exactamente 8 dígitos numéricos");
         }
         if (cliente.getNombres() == null || cliente.getNombres().trim().isEmpty()) {
-            throw new BLException("El nombre del cliente es obligatorio");
+            throw new ValidacionException("El nombre del cliente es obligatorio");
         }
         if (cliente.getApellidoPaterno() == null || cliente.getApellidoPaterno().trim().isEmpty()) {
-            throw new BLException("El apellido paterno es obligatorio");
+            throw new ValidacionException("El apellido paterno es obligatorio");
         }
     }
 
     private void validarCuentaActiva(Cliente cliente) throws BLException {
-        if (cliente.getCuenta() == null) throw new BLException("El cliente debe tener una cuenta");
+        if (cliente.getCuenta() == null) throw new ValidacionException("El cliente debe tener una cuenta");
         try {
             if (cuentaDAO.findById(cliente.getCuenta().getId()) == null) {
-                throw new BLException("La cuenta no existe o está dada de baja");
+                throw new ValidacionException("La cuenta no existe o está dada de baja");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta del cliente", e);
@@ -162,14 +164,14 @@ public class ClienteBLImpl implements ClienteBL {
             } catch (IllegalArgumentException e) {
                 // El DAO falla al leer un cliente dado de baja cuya cuenta tambien se dio de baja:
                 // igual significa que el DNI ya existe
-                throw new BLException("Ya existe un cliente dado de baja con el DNI " + cliente.getDni());
+                throw new ValidacionException("Ya existe un cliente dado de baja con el DNI " + cliente.getDni());
             }
             if (porDni != null && porDni.getId() != cliente.getId()) {
-                throw new BLException("Ya existe un cliente con el DNI " + cliente.getDni());
+                throw new ValidacionException("Ya existe un cliente con el DNI " + cliente.getDni());
             }
             for (Cliente otro : clienteDAO.findAll()) {
                 if (otro.getId() != cliente.getId() && otro.getTelefono().equals(cliente.getTelefono())) {
-                    throw new BLException("Ya existe un cliente con el teléfono " + cliente.getTelefono());
+                    throw new ValidacionException("Ya existe un cliente con el teléfono " + cliente.getTelefono());
                 }
             }
         } catch (SQLException e) {
@@ -177,4 +179,13 @@ public class ClienteBLImpl implements ClienteBL {
         }
     }
 
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (clienteDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe un cliente con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia del cliente", e);
+        }
+    }
 }
