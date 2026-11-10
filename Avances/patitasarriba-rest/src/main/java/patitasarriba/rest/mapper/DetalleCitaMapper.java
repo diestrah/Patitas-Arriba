@@ -16,7 +16,7 @@ import patitasarriba.rest.dto.DetalleCitaDTO;
 import java.util.ArrayList;
 import java.util.List;
 
-// DetalleCita no es un recurso propio: viaja embebido dentro de CitaDTO (ver REST_SERVICIOS.md §5.12).
+// DetalleCita no es un recurso propio: viaja embebido dentro de CitaDTO.
 public final class DetalleCitaMapper {
     private static final ServicioBL servicioBL = new ServicioBLImpl();
     private static final VeterinarioBL veterinarioBL = new VeterinarioBLImpl();

@@ -14,6 +14,8 @@ import patitasarriba.rest.dto.CitaDTO;
 import patitasarriba.rest.mapper.CitaMapper;
 
 import java.net.URI;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 
 @Path("/citas")
@@ -29,10 +31,29 @@ public class CitaResource {
         citaBL = new CitaBLImpl();
     }
 
+    // RF10: GET /citas?cliente={id} lista las citas de las mascotas de un cliente.
+    // RF11, RF13: GET /citas?fecha=AAAA-MM-DD[&veterinario={id}] es la agenda de un dia.
     @GET
-    public Response findAll() {
+    public Response findAll(@QueryParam("cliente") Integer idCliente,
+                            @QueryParam("fecha") String fecha,
+                            @QueryParam("veterinario") Integer idVeterinario) {
         try {
+            if (idCliente != null) {
+                return Response.ok(CitaMapper.toDTOs(citaBL.findByCliente(idCliente))).build();
+            }
+            if (fecha != null && !fecha.isEmpty()) {
+                LocalDate dia;
+                try {
+                    dia = LocalDate.parse(fecha);
+                } catch (DateTimeParseException e) {
+                    throw new ValidacionException("La fecha debe tener el formato AAAA-MM-DD");
+                }
+                return Response.ok(CitaMapper.toDTOs(citaBL.findByFecha(dia, idVeterinario))).build();
+            }
             return Response.ok(CitaMapper.toDTOs(citaBL.findAll())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();
@@ -71,7 +92,7 @@ public class CitaResource {
 
     // Un mismo PUT cubre reprogramar, aprobar/rechazar y completar: se manda el CitaDTO completo
     // con el estado deseado y CitaBLImpl.validarCambioDeEstado decide si la transicion es valida
-    // (ver REST_SERVICIOS.md §5.12) - no hay sub-rutas especiales para cada accion.
+    // - no hay sub-rutas especiales para cada accion.
     @PUT
     @Path("/{id}")
     public Response update(@PathParam("id") int id, CitaDTO citaDTO) {
@@ -102,6 +123,9 @@ public class CitaResource {
             return Response.noContent().build();
         } catch (NoEncontradoException ex) {
             return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

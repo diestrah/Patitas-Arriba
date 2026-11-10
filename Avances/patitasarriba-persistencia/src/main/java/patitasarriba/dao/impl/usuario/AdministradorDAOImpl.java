@@ -80,6 +80,29 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
     }
 
     @Override
+    public Administrador findByCuenta(Integer idCuenta) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (idCuenta == null) {
+                throw new IllegalArgumentException("El id de la cuenta no puede ser nulo");
+            }
+
+            String sql = "{call buscar_administrador_por_cuenta(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id_cuenta", idCuenta);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Administrador()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     public void insert(Administrador administrador) throws SQLException {
         boolean propia = !TransactionsManager.activa();
         if (propia) TransactionsManager.iniciar();

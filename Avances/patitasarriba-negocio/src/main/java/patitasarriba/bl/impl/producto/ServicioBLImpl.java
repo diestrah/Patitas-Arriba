@@ -22,7 +22,10 @@ public class ServicioBLImpl implements ServicioBL {
             throw new ValidacionException("El nombre no es valido");
         }
         try {
-            return servicioDAO.findByName(name);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Servicio encontrado = servicioDAO.findByName(name);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
@@ -69,6 +72,9 @@ public class ServicioBLImpl implements ServicioBL {
         validar(entidad);
         validarExiste(entidad.getId());
         validarNombreUnico(entidad);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        entidad.setActivo(true);
         try {
             servicioDAO.update(entidad);
         } catch (SQLException e) {

@@ -80,6 +80,29 @@ public class VeterinarioDAOImpl extends RegistroDAOImpl<Veterinario> implements 
     }
 
     @Override
+    public Veterinario findByCuenta(Integer idCuenta) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (idCuenta == null) {
+                throw new IllegalArgumentException("El id de la cuenta no puede ser nulo");
+            }
+
+            String sql = "{call buscar_veterinario_por_cuenta(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setInt("p_id_cuenta", idCuenta);
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Veterinario()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     public void insert(Veterinario veterinario) throws SQLException {
         boolean propia = !TransactionsManager.activa();
         if (propia) TransactionsManager.iniciar();

@@ -29,10 +29,17 @@ public class MascotaResource {
         mascotaBL = new MascotaBLImpl();
     }
 
+    // RF03: GET /mascotas?cliente={id} lista las mascotas activas de un cliente
     @GET
-    public Response findAll() {
+    public Response findAll(@QueryParam("cliente") Integer idCliente) {
         try {
+            if (idCliente != null) {
+                return Response.ok(MascotaMapper.toDTOs(mascotaBL.findByCliente(idCliente))).build();
+            }
             return Response.ok(MascotaMapper.toDTOs(mascotaBL.findAll())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();
@@ -99,6 +106,9 @@ public class MascotaResource {
             return Response.noContent().build();
         } catch (NoEncontradoException ex) {
             return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

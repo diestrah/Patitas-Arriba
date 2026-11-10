@@ -54,7 +54,13 @@ public class ClienteBLImpl implements ClienteBL {
         }
 
         try {
-            return clienteDAO.findByDni(dni);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Cliente encontrado = clienteDAO.findByDni(dni);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
+        } catch (IllegalArgumentException e) {
+            // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja
+            return null;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el cliente por DNI", e);
         }
@@ -65,8 +71,8 @@ public class ClienteBLImpl implements ClienteBL {
         validar(cliente);
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
-        // activo es el borrado logico: todo registro nuevo se crea activo,
-        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
         cliente.setActivo(true);
         TransactionsManager.iniciar();
         try {
@@ -81,9 +87,12 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public void update(Cliente cliente) throws BLException {
         validar(cliente);
-        validarExiste(cliente.getId());
+        findById(cliente.getId());
         validarCuentaActiva (cliente);
         validarUnicos(cliente);
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
+        cliente.setActivo(true);
         TransactionsManager.iniciar();
         try {
             clienteDAO.update(cliente);
@@ -97,12 +106,14 @@ public class ClienteBLImpl implements ClienteBL {
     @Override
     public void delete(Integer id) throws BLException {
         if (id == null) throw new ValidacionException("El id del cliente no puede ser nulo");
-        validarExiste(id);
+        Cliente cliente = findById(id);
         validarSinHistorial(id);
         TransactionsManager.iniciar();
         try {
             mascotaDAO.eliminarPorCliente(id);
             clienteDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(cliente.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
@@ -179,13 +190,4 @@ public class ClienteBLImpl implements ClienteBL {
         }
     }
 
-    private void validarExiste(int id) throws BLException {
-        try {
-            if (clienteDAO.findById(id) == null) {
-                throw new NoEncontradoException("No existe un cliente con id " + id);
-            }
-        } catch (SQLException e) {
-            throw new BLException("No se pudo verificar la existencia del cliente", e);
-        }
-    }
 }

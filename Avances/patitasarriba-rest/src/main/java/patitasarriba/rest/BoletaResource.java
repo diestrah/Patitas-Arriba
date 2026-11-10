@@ -100,6 +100,9 @@ public class BoletaResource {
         } catch (NoEncontradoException ex) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();

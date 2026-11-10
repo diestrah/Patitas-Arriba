@@ -29,10 +29,17 @@ public class RecetaResource {
         recetaBL = new RecetaBLImpl();
     }
 
+    // RF16, RF17: GET /recetas?atencion={id} lista las recetas emitidas en una atencion
     @GET
-    public Response findAll() {
+    public Response findAll(@QueryParam("atencion") Integer idAtencion) {
         try {
+            if (idAtencion != null) {
+                return Response.ok(RecetaMapper.toDTOs(recetaBL.findByAtencion(idAtencion))).build();
+            }
             return Response.ok(RecetaMapper.toDTOs(recetaBL.findAll())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();
@@ -99,6 +106,9 @@ public class RecetaResource {
             return Response.noContent().build();
         } catch (NoEncontradoException ex) {
             return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

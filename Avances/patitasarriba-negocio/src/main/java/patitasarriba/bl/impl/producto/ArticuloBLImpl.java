@@ -73,6 +73,9 @@ public class ArticuloBLImpl implements ArticuloBL {
         validarExiste(articulo.getId());
         validarPrecio(articulo);
         validarCategoriaExiste(articulo);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        articulo.setActivo(true);
         try {
             articuloDAO.update(articulo);
         } catch (SQLException e) {

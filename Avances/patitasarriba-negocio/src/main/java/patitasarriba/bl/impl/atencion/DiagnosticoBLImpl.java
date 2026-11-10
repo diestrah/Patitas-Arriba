@@ -25,7 +25,10 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
             throw new ValidacionException("El nombre de la enfermedad no puede ser nulo o vacío");
         }
         try {
-            return diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Diagnostico encontrado = diagnosticoDAO.findByNombreEnfermedad(nombreEnfermedad);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el diagnostico", e);
         }
@@ -72,6 +75,9 @@ public class DiagnosticoBLImpl implements DiagnosticoBL {
         validarNombreEnfermedad(entidad);
         validarExiste(entidad.getId());
         validarNombreUnico(entidad);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        entidad.setActivo(true);
         try {
             diagnosticoDAO.update(entidad);
         } catch (SQLException e) {

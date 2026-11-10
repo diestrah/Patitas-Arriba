@@ -4,14 +4,20 @@ import patitasarriba.bl.BLException;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.CitaBL;
 import patitasarriba.bl.NoEncontradoException;
+import patitasarriba.dao.AdministradorDAO;
 import patitasarriba.dao.AtencionDAO;
+import patitasarriba.dao.BoletaDAO;
 import patitasarriba.dao.CitaDAO;
 import patitasarriba.dao.MascotaDAO;
+import patitasarriba.dao.ServicioDAO;
 import patitasarriba.dao.VeterinarioDAO;
 import patitasarriba.dao.impl.atencion.AtencionDAOImpl;
+import patitasarriba.dao.impl.boleta.BoletaDAOImpl;
 import patitasarriba.dao.impl.cita.CitaDAOImpl;
 import patitasarriba.dao.impl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.impl.mascota.MascotaDAOImpl;
+import patitasarriba.dao.impl.producto.ServicioDAOImpl;
+import patitasarriba.dao.impl.usuario.AdministradorDAOImpl;
 import patitasarriba.dao.impl.usuario.VeterinarioDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
@@ -19,19 +25,34 @@ import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.cita.EstadoCita;
 import patitasarriba.modelo.horario.DiaSemana;
+import patitasarriba.modelo.horario.Horario;
+import patitasarriba.modelo.producto.Servicio;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.SQLException;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 public class CitaBLImpl implements CitaBL {
     private final CitaDAO citaDAO = new CitaDAOImpl();
     private final MascotaDAO mascotaDAO = new MascotaDAOImpl();
     private final VeterinarioDAO veterinarioDAO = new VeterinarioDAOImpl();
+    private final AdministradorDAO administradorDAO = new AdministradorDAOImpl();
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
+    private final ServicioDAO servicioDAO = new ServicioDAOImpl();
+    private final BoletaDAO boletaDAO = new BoletaDAOImpl();
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
+
+    private static final int DURACION_POR_DEFECTO_MIN = 30;
+
+    private static final int MARGEN_EMERGENCIA_HORAS = 1;
 
     @Override
     public List<Cita> findAll() throws BLException {
@@ -72,17 +93,39 @@ public class CitaBLImpl implements CitaBL {
     }
 
     @Override
+    public List<Cita> findByCliente(Integer idCliente) throws BLException {
+        if (idCliente == null) throw new ValidacionException("El id del cliente no puede ser nulo");
+        List<Cita> citas = new ArrayList<>();
+        for (Cita cita : findAll()) {
+            if (cita.getMascota().getCliente().getId() == idCliente) citas.add(cita);
+        }
+        citas.sort(Comparator.comparing(Cita::getFechaHora));
+        return citas;
+    }
+
+    @Override
+    public List<Cita> findByFecha(LocalDate fecha, Integer idVeterinario) throws BLException {
+        if (fecha == null) throw new ValidacionException("La fecha no puede ser nula");
+        List<Cita> citas = new ArrayList<>();
+        for (Cita cita : findAll()) {
+            if (!cita.getFechaHora().toLocalDate().equals(fecha)) continue;
+            if (idVeterinario != null && cita.getDetalles().stream()
+                    .noneMatch(d -> d.getVeterinario().getId() == idVeterinario)) continue;
+            citas.add(cita);
+        }
+        citas.sort(Comparator.comparing(Cita::getFechaHora));
+        return citas;
+    }
+
+    @Override
     public void insert(Cita cita) throws BLException {
         validar(cita);
-        validarFechaFutura(cita);
         validarEstadoInicial(cita);
         validarMascotaExiste(cita);
-        validarDisponibilidad(cita);
+        validarServiciosActivos(cita);
+        validarAgenda(cita, true);
+        marcarActiva(cita);
 
-        // activo es el borrado logico: todo registro nuevo se crea activo,
-        // aunque el cliente mande "activo": false (para desactivar esta el delete)
-        cita.setActivo(true);
-        cita.getDetalles().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             citaDAO.insert(cita);
@@ -97,12 +140,19 @@ public class CitaBLImpl implements CitaBL {
     public void update(Cita cita) throws BLException {
         validar(cita);
         Cita actual = obtenerExistente(cita.getId());
-        validarCambioDeEstado(actual, cita);
-        // La fecha futura solo se exige al reprogramar: completar una cita cuya hora ya paso es valido
-        if (!actual.getFechaHora().equals(cita.getFechaHora())) {
-            validarFechaFutura(cita);
-            validarDisponibilidad(cita);
+        if (actual.isEsEmergencia() != cita.isEsEmergencia()) {
+            throw new ValidacionException("No se puede cambiar si una cita es de emergencia");
         }
+        validarCambioDeEstado(actual, cita);
+        validarCambiosPermitidos(actual, cita);
+        validarServiciosActivos(cita);
+        // La fecha solo se exige al reprogramar (completar una cita cuya hora ya paso es valido);
+        // el horario y el solapamiento, al reprogramar o al cambiar servicios o veterinarios
+        boolean reprogramada = !actual.getFechaHora().equals(cita.getFechaHora());
+        if (reprogramada || cambiaronAsignaciones(actual, cita)) {
+            validarAgenda(cita, reprogramada);
+        }
+        marcarActiva(cita);
 
         TransactionsManager.iniciar();
         try {
@@ -116,8 +166,9 @@ public class CitaBLImpl implements CitaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        validarExiste(id);
-        validarSinAtenciones(obtenerExistente(id));
+        Cita actual = obtenerExistente(id);
+        validarSinAtenciones(actual);
+        validarSinFacturar(actual);
         TransactionsManager.iniciar();
         try {
             citaDAO.delete(id);
@@ -128,11 +179,51 @@ public class CitaBLImpl implements CitaBL {
         }
     }
 
+    // activo es el borrado logico: registrar o modificar siempre deja la cita y sus servicios
+    // activos, aunque el cliente mande "activo": false (para dar de baja esta el delete; un
+    // servicio que ya no viene en la lista lo desactiva el DAO)
+    private void marcarActiva(Cita cita) {
+        cita.setActivo(true);
+        cita.getDetalles().forEach(d -> d.setActivo(true));
+    }
+
+    // Fecha, veterinarios, horario y solapamiento
+    private void validarAgenda(Cita cita, boolean exigirFecha) throws BLException {
+        if (exigirFecha) validarFecha(cita);
+        validarVeterinariosActivos(cita);
+        // Las emergencias se atienden con quien este disponible: no exigen horario ni revisan cruces
+        if (!cita.isEsEmergencia()) {
+            validarDisponibilidad(cita);
+            validarSinSolapamiento(cita);
+        }
+    }
+
     // Solo al crear o reprogramar: no se aplica al actualizar el estado de una cita existente
-    private void validarFechaFutura(Cita cita) throws BLException {
-        if (cita.getFechaHora().isBefore(LocalDateTime.now())) {
+    private void validarFecha(Cita cita) throws BLException {
+        LocalDateTime ahora = LocalDateTime.now();
+        if (cita.isEsEmergencia()) {
+            // La emergencia se registra al llegar el paciente, con hasta 1 hora de margen
+            if (cita.getFechaHora().isBefore(ahora.minusHours(MARGEN_EMERGENCIA_HORAS))) {
+                throw new ValidacionException("Una cita de emergencia no puede registrarse con más de "
+                        + MARGEN_EMERGENCIA_HORAS + " hora de antigüedad");
+            }
+        } else if (cita.getFechaHora().isBefore(ahora)) {
             throw new ValidacionException("La fecha y hora de la cita no puede ser en el pasado");
         }
+    }
+
+    // Detecta si se agregaron, quitaron o cambiaron servicios o veterinarios respecto a lo guardado.
+    // Se comparan listas ordenadas (no conjuntos) porque una cita puede incluir varias veces el mismo
+    // servicio del catalogo, incluso con el mismo veterinario
+    private boolean cambiaronAsignaciones(Cita actual, Cita nueva) {
+        return !asignaciones(actual).equals(asignaciones(nueva));
+    }
+
+    private List<String> asignaciones(Cita cita) {
+        List<String> lista = new ArrayList<>();
+        for (DetalleCita d : cita.getDetalles()) lista.add(d.getServicio().getId() + "-" + d.getVeterinario().getId());
+        Collections.sort(lista);
+        return lista;
     }
 
     private void validar(Cita cita) throws BLException {
@@ -174,26 +265,140 @@ public class CitaBLImpl implements CitaBL {
         }
     }
 
-    // El veterinario de cada servicio debe existir y atender ese dia y a esa hora
-    private void validarDisponibilidad(Cita cita) throws BLException {
-        DiaSemana dia = DiaSemana.values()[cita.getFechaHora().getDayOfWeek().getValue() - 1];
-        LocalTime hora = cita.getFechaHora().toLocalTime();
+    // Los servicios de la cita deben existir y estar activos en el catalogo
+    private void validarServiciosActivos(Cita cita) throws BLException {
         try {
             for (DetalleCita detalle : cita.getDetalles()) {
-                Veterinario veterinario = veterinarioDAO.findById(detalle.getVeterinario().getId());
-                if (veterinario == null) {
-                    throw new ValidacionException("El veterinario asignado no existe");
+                if (servicioDAO.findById(detalle.getServicio().getId()) == null) {
+                    throw new ValidacionException("El servicio " + detalle.getServicio().getId() + " no existe o está dado de baja");
                 }
-                boolean atiende = veterinario.getHorarios().stream().anyMatch(h ->
-                        h.getDiaSemana() == dia
-                                && !hora.isBefore(h.getHoraInicio())
-                                && hora.isBefore(h.getHoraFin()));
-                if (!atiende) {
-                    throw new ValidacionException("El veterinario no atiende en ese horario");
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los servicios de la cita", e);
+        }
+    }
+
+    // El veterinario de cada servicio debe existir y estar activo
+    private void validarVeterinariosActivos(Cita cita) throws BLException {
+        try {
+            for (DetalleCita detalle : cita.getDetalles()) {
+                if (veterinarioDAO.findById(detalle.getVeterinario().getId()) == null) {
+                    throw new ValidacionException("El veterinario " + detalle.getVeterinario().getId()
+                            + " no existe o está dado de baja");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los veterinarios de la cita", e);
+        }
+    }
+
+    // Cada veterinario debe atender ese dia durante todo el tiempo de sus servicios
+    // (desde la hora de la cita hasta que termina el ultimo, segun su duracion estimada)
+    private void validarDisponibilidad(Cita cita) throws BLException {
+        LocalDateTime inicio = cita.getFechaHora();
+        try {
+            for (Map.Entry<Integer, Integer> bloque : minutosPorVeterinario(cita).entrySet()) {
+                Veterinario veterinario = veterinarioDAO.findById(bloque.getKey());
+                if (!cubre(veterinario.getHorarios(), inicio, bloque.getValue())) {
+                    throw new ValidacionException("El veterinario " + veterinario.getNombres() + " " + veterinario.getApellidoPaterno()
+                            + " no atiende de " + inicio.toLocalTime() + " a "
+                            + inicio.plusMinutes(bloque.getValue()).toLocalTime() + " ese día");
                 }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la disponibilidad del veterinario", e);
+        }
+    }
+
+    // Un veterinario no puede tener servicios que se crucen en citas PENDIENTE o APROBADO
+    private void validarSinSolapamiento(Cita cita) throws BLException {
+        try {
+            Map<Integer, Integer> propios = minutosPorVeterinario(cita);
+            LocalDateTime inicio = cita.getFechaHora();
+            for (Cita otra : citaDAO.findAll()) {
+                if (otra.getId() == cita.getId()) continue;
+                if (otra.getEstado() != EstadoCita.PENDIENTE && otra.getEstado() != EstadoCita.APROBADO) continue;
+                Map<Integer, Integer> ajenos = minutosPorVeterinario(otra);
+                for (Map.Entry<Integer, Integer> bloque : propios.entrySet()) {
+                    Integer minutosOtra = ajenos.get(bloque.getKey());
+                    if (minutosOtra == null) continue;
+                    LocalDateTime fin = inicio.plusMinutes(bloque.getValue());
+                    LocalDateTime otraInicio = otra.getFechaHora();
+                    LocalDateTime otraFin = otraInicio.plusMinutes(minutosOtra);
+                    if (inicio.isBefore(otraFin) && otraInicio.isBefore(fin)) {
+                        throw new ValidacionException("El veterinario ya tiene la cita " + otra.getId() + " de "
+                                + otraInicio.toLocalTime() + " a " + otraFin.toLocalTime() + " ese día");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la agenda del veterinario", e);
+        }
+    }
+
+    // La mascota no cambia, y un DetalleCita con atencion (activa o anulada) o ya cobrado
+    // se conserva con el mismo servicio y veterinario. Los demas pueden quitarse o cambiarse
+    private void validarCambiosPermitidos(Cita actual, Cita nueva) throws BLException {
+        if (actual.getMascota().getId() != nueva.getMascota().getId()) {
+            throw new ValidacionException("No se puede cambiar la mascota de una cita");
+        }
+        try {
+            for (DetalleCita anterior : actual.getDetalles()) {
+                boolean atendido = atencionDAO.findByDetalleCita(anterior.getId()) != null;
+                boolean cobrado = boletaDAO.boletaConServicio(anterior.getId()) != 0;
+                if (!atendido && !cobrado) continue;
+                DetalleCita nuevo = nueva.getDetalles().stream()
+                        .filter(d -> d.getId() == anterior.getId()).findFirst().orElse(null);
+                if (nuevo == null
+                        || nuevo.getServicio().getId() != anterior.getServicio().getId()
+                        || nuevo.getVeterinario().getId() != anterior.getVeterinario().getId()) {
+                    throw new ValidacionException("El servicio " + anterior.getServicio().getNombre() + " ya fue "
+                            + (atendido ? "atendido" : "cobrado") + ": no se puede quitar ni cambiar su servicio o veterinario");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los servicios atendidos o cobrados de la cita", e);
+        }
+    }
+
+    // Minutos que cada veterinario ocupa en la cita: sus servicios van uno tras otro desde la hora
+    // de la cita, cada uno con su duracion estimada (30 min si el servicio no la tiene)
+    private Map<Integer, Integer> minutosPorVeterinario(Cita cita) throws SQLException {
+        Map<Integer, Integer> minutos = new LinkedHashMap<>();
+        for (DetalleCita detalle : cita.getDetalles()) {
+            Servicio servicio = servicioDAO.findById(detalle.getServicio().getId());
+            Integer duracion = servicio == null ? null : servicio.getDuracionEstimada();
+            minutos.merge(detalle.getVeterinario().getId(),
+                    duracion == null ? DURACION_POR_DEFECTO_MIN : duracion, Integer::sum);
+        }
+        return minutos;
+    }
+
+    // true si algun horario cubre todo el tramo [inicio, inicio + minutos] en el mismo dia
+    private boolean cubre(List<Horario> horarios, LocalDateTime inicio, int minutos) {
+        DiaSemana dia = DiaSemana.values()[inicio.getDayOfWeek().getValue() - 1];
+        LocalDateTime fin = inicio.plusMinutes(minutos);
+        boolean terminaAMedianoche = fin.toLocalTime().equals(LocalTime.MIDNIGHT);
+        if (!terminaAMedianoche && !fin.toLocalDate().equals(inicio.toLocalDate())) return false;
+        LocalTime horaInicio = inicio.toLocalTime();
+        LocalTime horaFin = terminaAMedianoche ? LocalTime.MAX : fin.toLocalTime();
+        return horarios.stream().anyMatch(h ->
+                h.getDiaSemana() == dia
+                        && !horaInicio.isBefore(h.getHoraInicio())
+                        && !horaFin.isAfter(h.getHoraFin()));
+    }
+
+    // No se elimina una cita con algun servicio ya facturado (la boleta quedaria colgando)
+    private void validarSinFacturar(Cita cita) throws BLException {
+        try {
+            for (DetalleCita detalle : cita.getDetalles()) {
+                if (boletaDAO.boletaConServicio(detalle.getId()) != 0) {
+                    throw new ValidacionException("No se puede eliminar la cita: el servicio "
+                            + detalle.getServicio().getNombre() + " ya fue facturado");
+                }
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la facturación de la cita", e);
         }
     }
 
@@ -210,17 +415,13 @@ public class CitaBLImpl implements CitaBL {
         }
     }
 
-    private void validarExiste(int id) throws BLException {
-        obtenerExistente(id);
-    }
-
     private void validarSinAtenciones(Cita cita) throws BLException {
         try {
             for (Atencion atencion : atencionDAO.findAll()) {
                 for (DetalleCita detalle : cita.getDetalles()) {
                     if (atencion.getDetalleCita().getId() == detalle.getId()) {
                         throw new ValidacionException("La cita tiene el servicio " + detalle.getServicio().getNombre()
-                                + " ya atendido: no se puede eliminar ni cancelar");
+                                + " ya atendido: no se puede eliminar, cancelar ni rechazar");
                     }
                 }
             }
@@ -246,7 +447,18 @@ public class CitaBLImpl implements CitaBL {
         if ((a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO) && nueva.getAdministrador() == null) {
             throw new ValidacionException("Debe indicarse el administrador que aprueba o rechaza la cita");
         }
-        if (a == EstadoCita.CANCELADO) {
+        // Quien aprueba o rechaza debe existir y estar activo (solo se revisa al tomar la decision)
+        if (a != de && (a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO)) {
+            try {
+                if (administradorDAO.findById(nueva.getAdministrador().getId()) == null) {
+                    throw new ValidacionException("El administrador que aprueba o rechaza no existe o está dado de baja");
+                }
+            } catch (SQLException e) {
+                throw new BLException("No se pudo verificar el administrador", e);
+            }
+        }
+        // RECHAZADO tambien: una emergencia PENDIENTE puede tener atenciones antes de aprobarse
+        if (a == EstadoCita.CANCELADO || a == EstadoCita.RECHAZADO) {
             validarSinAtenciones(actual);
         }
         if (a == EstadoCita.COMPLETADO) {
@@ -254,22 +466,22 @@ public class CitaBLImpl implements CitaBL {
         }
     }
 
-    // Una cita solo se completa cuando cada uno de sus servicios ya tiene su atencion
+    // Una cita solo se completa cuando cada uno de sus servicios ya tiene su atencion. Un servicio
+    // cuya atencion se anulo no bloquea la cita (se considera no realizado), pero al menos un
+    // servicio debe tener una atencion activa: si todas se anularon, la cita se cancela
     private void validarTodosAtendidos(Cita cita) throws BLException {
         try {
-            List<Atencion> atenciones = atencionDAO.findAll();
+            int activas = 0;
             for (DetalleCita detalle : cita.getDetalles()) {
-                boolean atendido = false;
-                for (Atencion atencion : atenciones) {
-                    if (atencion.getDetalleCita().getId() == detalle.getId()) {
-                        atendido = true;
-                        break;
-                    }
-                }
-                if (!atendido) {
+                Atencion atencion = atencionDAO.findByDetalleCita(detalle.getId());
+                if (atencion == null) {
                     throw new ValidacionException("No se puede completar la cita: el servicio "
                             + detalle.getServicio().getNombre() + " aún no fue atendido");
                 }
+                if (atencion.isActivo()) activas++;
+            }
+            if (activas == 0) {
+                throw new ValidacionException("No se puede completar la cita: todas sus atenciones fueron anuladas");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las atenciones de la cita", e);

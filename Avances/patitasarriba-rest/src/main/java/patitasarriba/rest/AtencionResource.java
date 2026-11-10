@@ -29,10 +29,17 @@ public class AtencionResource {
         atencionBL = new AtencionBLImpl();
     }
 
+    // RF16: GET /atenciones?mascota={id} es el historial clinico de una mascota (orden cronologico)
     @GET
-    public Response findAll() {
+    public Response findAll(@QueryParam("mascota") Integer idMascota) {
         try {
+            if (idMascota != null) {
+                return Response.ok(AtencionMapper.toDTOs(atencionBL.findByMascota(idMascota))).build();
+            }
             return Response.ok(AtencionMapper.toDTOs(atencionBL.findAll())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();
@@ -99,6 +106,9 @@ public class AtencionResource {
             return Response.noContent().build();
         } catch (NoEncontradoException ex) {
             return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)

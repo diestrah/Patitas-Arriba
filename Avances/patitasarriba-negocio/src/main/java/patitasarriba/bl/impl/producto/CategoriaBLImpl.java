@@ -58,6 +58,9 @@ public class CategoriaBLImpl implements CategoriaBL {
         validar(categoria);
         validarExiste(categoria.getId());
         validarNombreUnico(categoria);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        categoria.setActivo(true);
         try {
             categoriaDAO.update(categoria);
         } catch (SQLException e) {

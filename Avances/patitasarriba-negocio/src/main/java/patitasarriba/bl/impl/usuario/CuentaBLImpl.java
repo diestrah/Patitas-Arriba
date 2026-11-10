@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.CredencialesInvalidasException;
 import patitasarriba.bl.CuentaBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
@@ -17,6 +18,7 @@ import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.modelo.usuario.Cliente;
 import patitasarriba.modelo.usuario.Cuenta;
+import patitasarriba.modelo.usuario.Persona;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.SQLException;
@@ -57,7 +59,10 @@ public class CuentaBLImpl implements CuentaBL {
         }
 
         try {
-            return cuentaDAO.findByNombreUsuario(nombreUsuario);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Cuenta encontrado = cuentaDAO.findByNombreUsuario(nombreUsuario);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
         } catch (SQLException e) {
             throw new BLException("Error al buscar la cuenta por nombre de usuario", e);
         }
@@ -65,12 +70,9 @@ public class CuentaBLImpl implements CuentaBL {
 
 
 
-    // Las unicas BLException que quedan en este metodo (ambas "Usuario o contraseña incorrectos")
-    // son, a proposito, indistinguibles entre si: no hay que decirle al que llama si fallo el
-    // usuario o la contraseña (evita que alguien use el login para adivinar que usuarios existen).
-    // AuthResource se apoya en eso para mapear cualquier BLException de este metodo a 401.
+    // RF01: el mensaje de error es el mismo si falla el usuario o la contrasena
     @Override
-    public Cuenta login(String nombreUsuario, String passwordPlana) throws BLException {
+    public Persona login(String nombreUsuario, String passwordPlana) throws BLException {
         if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
                 passwordPlana == null || passwordPlana.trim().isEmpty()) {
             throw new ValidacionException("Debe ingresar el usuario y la contraseña");
@@ -78,15 +80,26 @@ public class CuentaBLImpl implements CuentaBL {
 
         Cuenta cuenta = findByNombreUsuario(nombreUsuario);
         if (cuenta == null || !cuenta.isActivo()) {
-            throw new BLException("Usuario o contraseña incorrectos");
+            throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
         }
 
         String hashIngresado = HashUtil.generarHashSHA256(passwordPlana);
         if (!cuenta.getPassword().equals(hashIngresado)) {
-            throw new BLException("Usuario o contraseña incorrectos");
+            throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
         }
 
-        return cuenta;
+        // El rol lo da el tipo de persona duena de la cuenta
+        try {
+            Persona persona = clienteDAO.findByCuenta(cuenta.getId());
+            if (persona == null) persona = veterinarioDAO.findByCuenta(cuenta.getId());
+            if (persona == null) persona = administradorDAO.findByCuenta(cuenta.getId());
+            if (persona == null || !persona.isActivo()) {
+                throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
+            }
+            return persona;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo iniciar sesión", e);
+        }
     }
 
     @Override
@@ -100,9 +113,10 @@ public class CuentaBLImpl implements CuentaBL {
         cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
         cuenta.setFechaCreacion(LocalDate.now());
 
-        // activo es el borrado logico: todo registro nuevo se crea activo,
-        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        // activo es el borrado logico: registrar o modificar siempre deja la cuenta activa,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
         cuenta.setActivo(true);
+
         TransactionsManager.iniciar();
         try {
             cuentaDAO.insert(cuenta);
@@ -128,6 +142,7 @@ public class CuentaBLImpl implements CuentaBL {
                 cuenta.setPassword(HashUtil.generarHashSHA256(cuenta.getPassword()));
             }
             cuenta.setFechaCreacion(actual.getFechaCreacion());
+            cuenta.setActivo(true);
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta", e);
         }
@@ -143,7 +158,7 @@ public class CuentaBLImpl implements CuentaBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        validarExiste(id);
+        findById(id);
         validarSinPersonaActiva(id);
         TransactionsManager.iniciar();
         try {
@@ -200,16 +215,6 @@ public class CuentaBLImpl implements CuentaBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el usuario o el correo", e);
-        }
-    }
-
-    private void validarExiste(int id) throws BLException {
-        try {
-            if (cuentaDAO.findById(id) == null) {
-                throw new NoEncontradoException("No existe una cuenta con id " + id);
-            }
-        } catch (SQLException e) {
-            throw new BLException("No se pudo verificar la existencia de la cuenta", e);
         }
     }
 }

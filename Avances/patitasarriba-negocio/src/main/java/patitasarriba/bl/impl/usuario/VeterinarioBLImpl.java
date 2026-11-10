@@ -51,7 +51,13 @@ public class VeterinarioBLImpl implements VeterinarioBL {
             throw new ValidacionException("El dni debe ser valido");
         }
         try {
-            return veterinarioDAO.findByDni(dni);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Veterinario encontrado = veterinarioDAO.findByDni(dni);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
+        } catch (IllegalArgumentException e) {
+            // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja
+            return null;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el veterinario por DNI", e);
         }
@@ -62,8 +68,8 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         validar(vet);
         validarCuentaActiva (vet);
         validarUnicos(vet);
-        // activo es el borrado logico: todo registro nuevo se crea activo,
-        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
         vet.setActivo(true);
         TransactionsManager.iniciar();
         try {
@@ -78,9 +84,12 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     @Override
     public void update(Veterinario vet) throws BLException {
         validar(vet);
-        validarExiste(vet.getId());
+        findById(vet.getId());
         validarCuentaActiva (vet);
         validarUnicos(vet);
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
+        vet.setActivo(true);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.update(vet);
@@ -93,11 +102,14 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        validarExiste(id);
+        if (id == null) throw new ValidacionException("El id del veterinario no puede ser nulo");
+        Veterinario vet = findById(id);
         validarSinCitas (id);
         TransactionsManager.iniciar();
         try {
             veterinarioDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(vet.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
@@ -173,13 +185,4 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         }
     }
 
-    private void validarExiste(int id) throws BLException {
-        try {
-            if (veterinarioDAO.findById(id) == null) {
-                throw new NoEncontradoException("No existe un veterinario con id " + id);
-            }
-        } catch (SQLException e) {
-            throw new BLException("No se pudo verificar la existencia del veterinario", e);
-        }
-    }
 }

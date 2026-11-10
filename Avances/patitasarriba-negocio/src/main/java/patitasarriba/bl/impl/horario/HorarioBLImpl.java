@@ -60,6 +60,9 @@ public class HorarioBLImpl implements HorarioBL {
     public void update(Horario horario) throws BLException {
         validar(horario);
         validarExiste(horario.getId());
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        horario.setActivo(true);
         try{
             horarioDAO.update(horario);
         } catch (SQLException e) {

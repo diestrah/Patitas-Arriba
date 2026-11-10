@@ -6,11 +6,15 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.CredencialesInvalidasException;
 import patitasarriba.bl.CuentaBL;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.impl.usuario.CuentaBLImpl;
-import patitasarriba.modelo.usuario.Cuenta;
+import patitasarriba.modelo.usuario.Administrador;
+import patitasarriba.modelo.usuario.Cliente;
+import patitasarriba.modelo.usuario.Persona;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Path("/login")
@@ -23,23 +27,39 @@ public class AuthResource {
         cuentaBL = new CuentaBLImpl();
     }
 
+    // RF01: devuelve la cuenta y la persona duena de ella, con su rol (CLIENTE, VETERINARIO o
+    // ADMINISTRADOR), para que el frontend restrinja los modulos segun el rol
     @POST
     public Response login(Map<String, String> credenciales) {
         try {
             String nombreUsuario = credenciales.get("nombreUsuario");
             String password = credenciales.get("password");
-            Cuenta cuenta = cuentaBL.login(nombreUsuario, password);
-            return Response.ok(Map.of("id", cuenta.getId(), "nombreUsuario", cuenta.getNombreUsuario()))
-                    .build();
+            Persona persona = cuentaBL.login(nombreUsuario, password);
+
+            Map<String, Object> sesion = new LinkedHashMap<>();
+            sesion.put("id", persona.getCuenta().getId());
+            sesion.put("nombreUsuario", persona.getCuenta().getNombreUsuario());
+            sesion.put("rol", rol(persona));
+            sesion.put("idPersona", persona.getId());
+            sesion.put("nombres", persona.getNombres());
+            sesion.put("apellidoPaterno", persona.getApellidoPaterno());
+            return Response.ok(sesion).build();
         } catch (ValidacionException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
-        } catch (BLException ex) {
-            // Las unicas BLException que puede lanzar login() son "Usuario o contraseña
-            // incorrectos" (ver el comentario en CuentaBLImpl.login): por eso aqui, y solo aqui,
-            // se mapea BLException a 401 en vez del generico 500.
+        } catch (CredencialesInvalidasException ex) {
+            // Siempre el mismo mensaje: no revela si fallo el usuario o la contrasena
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("error", ex.getMessage())).build();
+        } catch (BLException ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", ex.getMessage())).build();
         }
+    }
+
+    private static String rol(Persona persona) {
+        if (persona instanceof Cliente) return "CLIENTE";
+        if (persona instanceof Administrador) return "ADMINISTRADOR";
+        return "VETERINARIO";
     }
 }

@@ -43,7 +43,13 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public Administrador findByDni(String dni) throws BLException {
         try {
-            return administradorDAO.findByDni(dni);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Administrador encontrado = administradorDAO.findByDni(dni);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
+        } catch (IllegalArgumentException e) {
+            // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja
+            return null;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el administrador por DNI", e);
         }
@@ -54,8 +60,8 @@ public class AdministradorBLImpl implements AdministradorBL {
         validar(admin);
         validarCuentaActiva (admin);
         validarUnicos(admin);
-        // activo es el borrado logico: todo registro nuevo se crea activo,
-        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
         admin.setActivo(true);
         TransactionsManager.iniciar();
         try {
@@ -70,9 +76,12 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public void update(Administrador admin) throws BLException {
         validar(admin);
-        validarExiste(admin.getId());
+        findById(admin.getId());
         validarCuentaActiva(admin);
         validarUnicos(admin);
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
+        admin.setActivo(true);
         TransactionsManager.iniciar();
         try {
             administradorDAO.update(admin);
@@ -85,14 +94,21 @@ public class AdministradorBLImpl implements AdministradorBL {
 
     @Override
     public void delete(Integer id) throws BLException {
-        validarExiste(id);
-        TransactionsManager.iniciar();
+        Administrador admin = findById(id);
+        // Para que no nos quedemos en 0 administradores. Se valida antes de abrir la transaccion:
+        // dentro del try, la BLException no la captura el catch y la transaccion quedaba abierta
         try {
-            //para que no nos quedemos en 0 administradores
             if (administradorDAO.findAll().size() <= 1) {
                 throw new ValidacionException("No se puede eliminar al único administrador activo");
             }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar los administradores activos", e);
+        }
+        TransactionsManager.iniciar();
+        try {
             administradorDAO.delete(id);
+            // La cuenta se da de baja con la persona, asi ya no puede iniciar sesion
+            cuentaDAO.delete(admin.getCuenta().getId());
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
@@ -143,16 +159,6 @@ public class AdministradorBLImpl implements AdministradorBL {
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del administrador", e);
-        }
-    }
-
-    private void validarExiste(int id) throws BLException {
-        try {
-            if (administradorDAO.findById(id) == null) {
-                throw new NoEncontradoException("No existe un administrador con id " + id);
-            }
-        } catch (SQLException e) {
-            throw new BLException("No se pudo verificar la existencia del administrador", e);
         }
     }
 }

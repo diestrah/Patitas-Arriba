@@ -17,6 +17,7 @@ import patitasarriba.modelo.receta.Receta;
 import patitasarriba.modelo.receta.DetalleReceta;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class RecetaBLImpl implements RecetaBL {
@@ -46,6 +47,16 @@ public class RecetaBLImpl implements RecetaBL {
     }
 
     @Override
+    public List<Receta> findByAtencion(Integer idAtencion) throws BLException {
+        if (idAtencion == null) throw new ValidacionException("El id de la atención no puede ser nulo");
+        List<Receta> recetas = new ArrayList<>();
+        for (Receta receta : findAll()) {
+            if (receta.getAtencion().getId() == idAtencion) recetas.add(receta);
+        }
+        return recetas;
+    }
+
+    @Override
     public void insert(Receta entidad) throws BLException {
         validar(entidad);
         validarExistentes(entidad);
@@ -71,6 +82,10 @@ public class RecetaBLImpl implements RecetaBL {
         validarExiste(entidad.getId());
         validarExistentes(entidad);
         validarServicioMedico (entidad);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        entidad.setActivo(true);
+        entidad.getDetalles().forEach(d -> d.setActivo(true));
 
         TransactionsManager.iniciar();
         try {

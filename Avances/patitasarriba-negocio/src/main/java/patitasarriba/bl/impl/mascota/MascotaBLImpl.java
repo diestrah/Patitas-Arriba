@@ -45,6 +45,16 @@ public class MascotaBLImpl implements MascotaBL {
     }
 
     @Override
+    public List<Mascota> findByCliente(Integer idCliente) throws BLException {
+        if (idCliente == null) throw new ValidacionException("El id del cliente no puede ser nulo");
+        try {
+            return mascotaDAO.listarPorCliente(idCliente);
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar las mascotas del cliente", e);
+        }
+    }
+
+    @Override
     public void insert(Mascota mascota) throws BLException {
         validar(mascota);
         validarClienteActivo(mascota);
@@ -63,6 +73,9 @@ public class MascotaBLImpl implements MascotaBL {
         validar(mascota);
         validarExiste(mascota.getId());
         validarClienteActivo(mascota);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        mascota.setActivo(true);
         try{
             mascotaDAO.update(mascota);
         } catch (SQLException e) {
