@@ -130,8 +130,8 @@ public class CitaBLImpl implements CitaBL {
         try {
             citaDAO.insert(cita);
             TransactionsManager.commit();
-        } catch (SQLException | RuntimeException e)  {
-            TransactionsManager.rollback();
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo registrar la cita", e);
         }
     }
@@ -158,8 +158,8 @@ public class CitaBLImpl implements CitaBL {
         try {
             citaDAO.update(cita);
             TransactionsManager.commit();
-        } catch (SQLException | RuntimeException e)  {
-            TransactionsManager.rollback();
+        } catch (SQLException | RuntimeException e) {
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo actualizar la cita", e);
         }
     }
@@ -174,7 +174,7 @@ public class CitaBLImpl implements CitaBL {
             citaDAO.delete(id);
             TransactionsManager.commit();
         } catch (SQLException | RuntimeException e) {
-            TransactionsManager.rollback();
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo eliminar la cita", e);
         }
     }

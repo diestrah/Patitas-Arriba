@@ -1,5 +1,6 @@
 package patitasarriba.rest;
 
+import jakarta.ws.rs.ProcessingException;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
@@ -16,13 +17,21 @@ public class ErrorInesperadoMapper implements ExceptionMapper<RuntimeException> 
 
     @Override
     public Response toResponse(RuntimeException ex) {
+        if (ex instanceof ProcessingException) {
+            return error(Response.Status.BAD_REQUEST.getStatusCode(),
+                    "El cuerpo de la solicitud no es un JSON valido");
+        }
         if (ex instanceof WebApplicationException web) {
-            return web.getResponse();
+            return error(web.getResponse().getStatus(), ex.getMessage());
         }
         String mensaje = ex.getMessage() == null ? ex.getClass().getSimpleName() : ex.getMessage();
-        return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+        return error(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode(), "Error inesperado: " + mensaje);
+    }
+
+    private Response error(int status, String mensaje) {
+        return Response.status(status)
                 .type(MediaType.APPLICATION_JSON)
-                .entity(Map.of("error", "Error inesperado: " + mensaje))
+                .entity(Map.of("error", mensaje == null ? "Error en la solicitud" : mensaje))
                 .build();
     }
 }
