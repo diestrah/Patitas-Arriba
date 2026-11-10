@@ -1,0 +1,5206 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Patitas Arriba API",
+    "version": "1.0.0",
+    "description": "Contrato de la capa REST de Patitas Arriba (clinica veterinaria).\n\nConvenciones:\n- JSON en request y response. Fechas `AAAA-MM-DD`, fecha-hora `AAAA-MM-DDTHH:mm:ss`, horas `HH:mm`.\n- Las relaciones se envian por id, por ejemplo `\"mascota\": {\"id\": 1}`; en las respuestas llegan completas.\n- `activo` es el borrado logico: los listados y busquedas solo devuelven registros activos.\n- Todo error responde `{\"error\": \"mensaje\"}`: 400 datos invalidos o regla de negocio, 401 login fallido, 404 no existe, 415 falta Content-Type, 500 error de base de datos.\n- Las reglas de negocio completas estan en REGLAS-DE-NEGOCIO.md.\n"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080/patitasarriba-rest-1.0-SNAPSHOT/api/v1",
+      "description": "GlassFish local"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Autenticacion"
+    },
+    {
+      "name": "Cuentas"
+    },
+    {
+      "name": "Clientes"
+    },
+    {
+      "name": "Administradores"
+    },
+    {
+      "name": "Veterinarios"
+    },
+    {
+      "name": "Horarios"
+    },
+    {
+      "name": "Mascotas"
+    },
+    {
+      "name": "Categorias"
+    },
+    {
+      "name": "Articulos"
+    },
+    {
+      "name": "Servicios"
+    },
+    {
+      "name": "Diagnosticos"
+    },
+    {
+      "name": "Citas"
+    },
+    {
+      "name": "Atenciones"
+    },
+    {
+      "name": "Recetas"
+    },
+    {
+      "name": "Boletas"
+    }
+  ],
+  "paths": {
+    "/login": {
+      "post": {
+        "tags": [
+          "Autenticacion"
+        ],
+        "summary": "Iniciar sesion",
+        "operationId": "login",
+        "description": "La cuenta debe estar activa y pertenecer a una persona activa. Usuarios de prueba (password Patitas123): rosa.admin (ADMINISTRADOR), ana.torres (CLIENTE), dra.lucia (VETERINARIO)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credenciales correctas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Sesion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el usuario o la contrasena",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Usuario o contrasena incorrectos (mismo mensaje en ambos casos)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cuentas": {
+      "get": {
+        "tags": [
+          "Cuentas"
+        ],
+        "summary": "Listar cuentas",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarCuentas",
+        "parameters": [
+          {
+            "name": "nombreUsuario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Busca la cuenta por usuario",
+            "example": "ana.torres"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cuenta"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Cuentas"
+        ],
+        "summary": "Crear cuenta",
+        "operationId": "crearCuenta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cuenta"
+              },
+              "example": {
+                "nombreUsuario": "ana.torres",
+                "correo": "ana.torres@correo.pe",
+                "password": "Patitas123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cuenta"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/cuentas/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Cuentas"
+        ],
+        "summary": "Buscar cuenta por id",
+        "operationId": "buscarCuenta",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cuenta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Cuentas"
+        ],
+        "summary": "Actualizar cuenta",
+        "operationId": "actualizarCuenta",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cuenta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cuenta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Cuentas"
+        ],
+        "summary": "Eliminar cuenta (borrado logico)",
+        "operationId": "eliminarCuenta",
+        "description": "No se puede si la usa una persona activa. Al eliminar una persona su cuenta se da de baja sola",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes": {
+      "get": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Listar clientes",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarClientes",
+        "parameters": [
+          {
+            "name": "dni",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{8}$",
+              "example": "70123456"
+            },
+            "description": "Busca el cliente por DNI",
+            "example": "70123456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cliente"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Crear cliente",
+        "operationId": "crearCliente",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cliente"
+              },
+              "example": {
+                "cuenta": {
+                  "id": 1
+                },
+                "dni": "70123456",
+                "nombres": "Ana Maria",
+                "apellidoPaterno": "Torres",
+                "apellidoMaterno": "Lopez",
+                "telefono": "987654321"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/clientes/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Buscar cliente por id",
+        "operationId": "buscarCliente",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Actualizar cliente",
+        "operationId": "actualizarCliente",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cliente"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Eliminar cliente (borrado logico)",
+        "operationId": "eliminarCliente",
+        "description": "No se puede si sus mascotas tienen citas. Da de baja tambien su cuenta",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/administradores": {
+      "get": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Listar administradores",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarAdministradores",
+        "parameters": [
+          {
+            "name": "dni",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{8}$",
+              "example": "70123456"
+            },
+            "description": "Busca por DNI",
+            "example": "41235678"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Administrador"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Crear administrador",
+        "operationId": "crearAdministrador",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Administrador"
+              },
+              "example": {
+                "cuenta": {
+                  "id": 1
+                },
+                "dni": "70123456",
+                "nombres": "Ana Maria",
+                "apellidoPaterno": "Torres",
+                "apellidoMaterno": "Lopez",
+                "telefono": "987654321",
+                "horarios": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Administrador"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/administradores/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Buscar administrador por id",
+        "operationId": "buscarAdministrador",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Administrador"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Actualizar administrador",
+        "operationId": "actualizarAdministrador",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Administrador"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Administrador"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Eliminar administrador (borrado logico)",
+        "operationId": "eliminarAdministrador",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veterinarios": {
+      "get": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Listar veterinarios",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarVeterinarios",
+        "parameters": [
+          {
+            "name": "dni",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{8}$",
+              "example": "70123456"
+            },
+            "description": "Busca por DNI",
+            "example": "40123456"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Veterinario"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Crear veterinario",
+        "operationId": "crearVeterinario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Veterinario"
+              },
+              "example": {
+                "cuenta": {
+                  "id": 1
+                },
+                "dni": "70123456",
+                "nombres": "Ana Maria",
+                "apellidoPaterno": "Torres",
+                "apellidoMaterno": "Lopez",
+                "telefono": "987654321",
+                "numeroColegiatura": "CMVP-1234",
+                "horarios": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veterinario"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veterinarios/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Buscar veterinario por id",
+        "operationId": "buscarVeterinario",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veterinario"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Actualizar veterinario",
+        "operationId": "actualizarVeterinario",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Veterinario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veterinario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Eliminar veterinario (borrado logico)",
+        "operationId": "eliminarVeterinario",
+        "description": "No se puede si esta asignado a citas pendientes o aprobadas",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/horarios": {
+      "get": {
+        "tags": [
+          "Horarios"
+        ],
+        "summary": "Listar horarios",
+        "description": "Lista los registros activos",
+        "operationId": "listarHorarios",
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Horario"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Horarios"
+        ],
+        "summary": "Crear horario",
+        "operationId": "crearHorario",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Horario"
+              },
+              "example": {
+                "diaSemana": "LUNES",
+                "horaInicio": "09:00",
+                "horaFin": "13:00"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Horario"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/horarios/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Horarios"
+        ],
+        "summary": "Buscar horario por id",
+        "operationId": "buscarHorario",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Horario"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Horarios"
+        ],
+        "summary": "Actualizar horario",
+        "operationId": "actualizarHorario",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Horario"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Horario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Horarios"
+        ],
+        "summary": "Eliminar horario (borrado logico)",
+        "operationId": "eliminarHorario",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mascotas": {
+      "get": {
+        "tags": [
+          "Mascotas"
+        ],
+        "summary": "Listar mascotas",
+        "description": "Lista los registros activos",
+        "operationId": "listarMascotas",
+        "parameters": [
+          {
+            "name": "cliente",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Mascotas de un cliente",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Mascota"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Mascotas"
+        ],
+        "summary": "Crear mascota",
+        "operationId": "crearMascota",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Mascota"
+              },
+              "example": {
+                "cliente": {
+                  "id": 1
+                },
+                "nombre": "Bobby",
+                "sexo": "MACHO",
+                "peso": 8.5,
+                "fechaNacimiento": "2023-04-10",
+                "raza": "Mestizo",
+                "tipoMascota": "PERRO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mascota"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/mascotas/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Mascotas"
+        ],
+        "summary": "Buscar mascota por id",
+        "operationId": "buscarMascota",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mascota"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Mascotas"
+        ],
+        "summary": "Actualizar mascota",
+        "operationId": "actualizarMascota",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Mascota"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mascota"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Mascotas"
+        ],
+        "summary": "Eliminar mascota (borrado logico)",
+        "operationId": "eliminarMascota",
+        "description": "No se puede si tiene citas registradas",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias": {
+      "get": {
+        "tags": [
+          "Categorias"
+        ],
+        "summary": "Listar categorias",
+        "description": "Lista los registros activos",
+        "operationId": "listarCategorias",
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Categoria"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Categorias"
+        ],
+        "summary": "Crear categoria",
+        "operationId": "crearCategoria",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Categoria"
+              },
+              "example": {
+                "nombre": "Alimentos",
+                "descripcion": "Alimento seco y humedo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Categorias"
+        ],
+        "summary": "Buscar categoria por id",
+        "operationId": "buscarCategoria",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Categorias"
+        ],
+        "summary": "Actualizar categoria",
+        "operationId": "actualizarCategoria",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Categoria"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Categorias"
+        ],
+        "summary": "Eliminar categoria (borrado logico)",
+        "operationId": "eliminarCategoria",
+        "description": "No se puede si tiene articulos asignados",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articulos": {
+      "get": {
+        "tags": [
+          "Articulos"
+        ],
+        "summary": "Listar articulos",
+        "description": "Lista los registros activos",
+        "operationId": "listarArticulos",
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Articulo"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Articulos"
+        ],
+        "summary": "Crear articulo",
+        "operationId": "crearArticulo",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Articulo"
+              },
+              "example": {
+                "nombre": "Antipulgas",
+                "descripcion": "Pipeta para perros",
+                "precioBase": 10.0,
+                "stockActual": 50,
+                "stockMinimo": 5,
+                "categorias": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Articulo"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/articulos/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Articulos"
+        ],
+        "summary": "Buscar articulo por id",
+        "operationId": "buscarArticulo",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Articulo"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Articulos"
+        ],
+        "summary": "Actualizar articulo",
+        "operationId": "actualizarArticulo",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Articulo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Articulo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Articulos"
+        ],
+        "summary": "Eliminar articulo (borrado logico)",
+        "operationId": "eliminarArticulo",
+        "description": "No se puede si se uso en atenciones",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servicios": {
+      "get": {
+        "tags": [
+          "Servicios"
+        ],
+        "summary": "Listar servicios",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarServicios",
+        "parameters": [
+          {
+            "name": "nombre",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Busca el servicio por nombre exacto",
+            "example": "Consulta general"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Servicio"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Servicios"
+        ],
+        "summary": "Crear servicio",
+        "operationId": "crearServicio",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Servicio"
+              },
+              "example": {
+                "nombre": "Consulta general",
+                "descripcion": "Evaluacion clinica completa",
+                "precioBase": 25.0,
+                "tipo": "CONSULTA_MEDICA",
+                "duracionEstimada": 30
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Servicio"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/servicios/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Servicios"
+        ],
+        "summary": "Buscar servicio por id",
+        "operationId": "buscarServicio",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Servicio"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Servicios"
+        ],
+        "summary": "Actualizar servicio",
+        "operationId": "actualizarServicio",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Servicio"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Servicio"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Servicios"
+        ],
+        "summary": "Eliminar servicio (borrado logico)",
+        "operationId": "eliminarServicio",
+        "description": "No se puede si tiene citas",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diagnosticos": {
+      "get": {
+        "tags": [
+          "Diagnosticos"
+        ],
+        "summary": "Listar diagnosticos",
+        "description": "Lista los registros activos. Con el filtro devuelve una lista de un solo elemento",
+        "operationId": "listarDiagnosticos",
+        "parameters": [
+          {
+            "name": "nombreEnfermedad",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Busca por nombre exacto",
+            "example": "Otitis"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Diagnostico"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Con el filtro: no existe ningun registro con ese valor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Diagnosticos"
+        ],
+        "summary": "Crear diagnostico",
+        "operationId": "crearDiagnostico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Diagnostico"
+              },
+              "example": {
+                "nombreEnfermedad": "Otitis",
+                "descripcion": "Inflamacion del oido"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diagnostico"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/diagnosticos/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Diagnosticos"
+        ],
+        "summary": "Buscar diagnostico por id",
+        "operationId": "buscarDiagnostico",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diagnostico"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Diagnosticos"
+        ],
+        "summary": "Actualizar diagnostico",
+        "operationId": "actualizarDiagnostico",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Diagnostico"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diagnostico"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Diagnosticos"
+        ],
+        "summary": "Eliminar diagnostico (borrado logico)",
+        "operationId": "eliminarDiagnostico",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/citas": {
+      "get": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Listar citas",
+        "description": "Lista los registros activos",
+        "operationId": "listarCitas",
+        "parameters": [
+          {
+            "name": "cliente",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "RF10: citas de las mascotas de un cliente, ordenadas por fecha. Tiene prioridad sobre fecha",
+            "example": 1
+          },
+          {
+            "name": "fecha",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            },
+            "description": "RF11: citas de un dia (AAAA-MM-DD), ordenadas por hora. Si el formato es invalido: 400",
+            "example": "2026-11-20"
+          },
+          {
+            "name": "veterinario",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "RF13: junto con fecha, solo las citas con algun servicio de ese veterinario (su agenda)",
+            "example": 3
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Cita"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Crear cita",
+        "operationId": "crearCita",
+        "description": "Valida horario del veterinario y cruces (salvo emergencia)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cita"
+              },
+              "example": {
+                "fechaHora": "2026-11-23T10:00:00",
+                "estado": "PENDIENTE",
+                "mascota": {
+                  "id": 1
+                },
+                "administrador": {
+                  "id": 1
+                },
+                "detalles": [
+                  {
+                    "servicio": {
+                      "id": 1
+                    },
+                    "veterinario": {
+                      "id": 1
+                    },
+                    "observaciones": "Tos seca hace 3 dias"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cita"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/citas/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Buscar cita por id",
+        "operationId": "buscarCita",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cita"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Actualizar cita",
+        "operationId": "actualizarCita",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo. Cambios de estado permitidos: PENDIENTE -> APROBADO, RECHAZADO (ambos con administrador) o CANCELADO; APROBADO -> COMPLETADO (todos los servicios con atencion) o CANCELADO. Una cita CANCELADO, RECHAZADO o COMPLETADO ya no se modifica",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Cita"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cita"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Citas"
+        ],
+        "summary": "Eliminar cita (borrado logico)",
+        "operationId": "eliminarCita",
+        "description": "No se puede si algun servicio ya fue facturado o atendido",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/atenciones": {
+      "get": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Listar atenciones",
+        "description": "Lista los registros activos",
+        "operationId": "listarAtenciones",
+        "parameters": [
+          {
+            "name": "mascota",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Historial de atenciones de una mascota",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Atencion"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Crear atencion",
+        "operationId": "crearAtencion",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Atencion"
+              },
+              "example": {
+                "detalleCita": {
+                  "id": 1
+                },
+                "fechaHora": "2026-11-10T10:05:00",
+                "motivoConsulta": "Control",
+                "observaciones": "Sin novedad",
+                "insumosUtilizados": [
+                  {
+                    "articulo": {
+                      "id": 1
+                    },
+                    "cantidadUtilizada": 1,
+                    "esCobrable": true
+                  }
+                ],
+                "diagnosticos": [
+                  {
+                    "diagnostico": {
+                      "id": 1
+                    },
+                    "nivelGravedad": "LEVE",
+                    "detalleDiagnostico": "Leve, tratar con gotas"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Atencion"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/atenciones/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Buscar atencion por id",
+        "operationId": "buscarAtencion",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Atencion"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Actualizar atencion",
+        "operationId": "actualizarAtencion",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Atencion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Atencion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Eliminar atencion (borrado logico)",
+        "operationId": "eliminarAtencion",
+        "description": "Anula la atencion y devuelve los insumos al stock. No se puede si tiene recetas o insumos cobrados",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recetas": {
+      "get": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Listar recetas",
+        "description": "Lista los registros activos",
+        "operationId": "listarRecetas",
+        "parameters": [
+          {
+            "name": "atencion",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Recetas de una atencion",
+            "example": 1
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Receta"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Crear receta",
+        "operationId": "crearReceta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Receta"
+              },
+              "example": {
+                "atencion": {
+                  "id": 1
+                },
+                "fechaEmision": "2026-11-10",
+                "indicacionesGenerales": "Reposo",
+                "detalles": [
+                  {
+                    "articulo": {
+                      "id": 1
+                    },
+                    "dosis": "1 tableta",
+                    "frecuencia": "Cada 12 horas",
+                    "duracionDias": 5,
+                    "cantidadTotal": 10
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recetas/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Buscar receta por id",
+        "operationId": "buscarReceta",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Actualizar receta",
+        "operationId": "actualizarReceta",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Receta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Eliminar receta (borrado logico)",
+        "operationId": "eliminarReceta",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boletas": {
+      "get": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Listar boletas",
+        "description": "Lista los registros activos",
+        "operationId": "listarBoletas",
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Boleta"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Crear boleta",
+        "operationId": "crearBoleta",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Boleta"
+              },
+              "example": {
+                "cliente": {
+                  "id": 1
+                },
+                "serieCorrelativo": "B001-000123",
+                "fecha": "2026-11-10T11:00:00",
+                "metodoPago": "EFECTIVO",
+                "detallesArticulo": [
+                  {
+                    "articulo": {
+                      "id": 1
+                    },
+                    "cantidad": 2,
+                    "insumoUtilizado": {
+                      "id": 1,
+                      "idAtencion": 1
+                    }
+                  }
+                ],
+                "detallesServicio": [
+                  {
+                    "cantidad": 1,
+                    "detalleCita": {
+                      "id": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Boleta"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/boletas/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "integer"
+          },
+          "example": 1
+        }
+      ],
+      "get": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Buscar boleta por id",
+        "operationId": "buscarBoleta",
+        "responses": {
+          "200": {
+            "description": "Encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Boleta"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Actualizar boleta",
+        "operationId": "actualizarBoleta",
+        "description": "El id del body debe ser igual al de la ruta (si no: 400). Se envia el objeto completo.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Boleta"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Boleta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Eliminar boleta (borrado logico)",
+        "operationId": "eliminarBoleta",
+        "description": "Anula la boleta y devuelve al stock lo vendido en caja (los insumos no)",
+        "responses": {
+          "204": {
+            "description": "Eliminado (activo = false)"
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "description": "Todas las respuestas de error tienen este formato",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "No existe un servicio con id 99999"
+          }
+        }
+      },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "nombreUsuario",
+          "password"
+        ],
+        "properties": {
+          "nombreUsuario": {
+            "type": "string",
+            "example": "rosa.admin"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "example": "Patitas123"
+          }
+        }
+      },
+      "Sesion": {
+        "type": "object",
+        "description": "Respuesta del login: la cuenta, la persona duena y su rol (RF01)",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Id de la cuenta",
+            "example": 1
+          },
+          "nombreUsuario": {
+            "type": "string",
+            "example": "rosa.admin"
+          },
+          "rol": {
+            "type": "string",
+            "enum": [
+              "CLIENTE",
+              "VETERINARIO",
+              "ADMINISTRADOR"
+            ],
+            "example": "ADMINISTRADOR"
+          },
+          "idPersona": {
+            "type": "integer",
+            "description": "Id del cliente, veterinario o administrador",
+            "example": 1
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Rosa Elena"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Gutierrez"
+          }
+        }
+      },
+      "Cuenta": {
+        "type": "object",
+        "required": [
+          "nombreUsuario",
+          "correo"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "nombreUsuario": {
+            "type": "string",
+            "description": "Unico",
+            "example": "ana.torres"
+          },
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "description": "Unico",
+            "example": "ana.torres@correo.pe"
+          },
+          "fechaCreacion": {
+            "type": "string",
+            "format": "date",
+            "description": "La pone la BL al crear",
+            "example": "2026-11-10",
+            "readOnly": true
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "writeOnly": true,
+            "description": "Obligatoria al crear. En PUT es opcional: si no se envia, se conserva la actual. Nunca se devuelve",
+            "example": "Patitas123"
+          }
+        }
+      },
+      "Horario": {
+        "type": "object",
+        "required": [
+          "diaSemana",
+          "horaInicio",
+          "horaFin"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "diaSemana": {
+            "$ref": "#/components/schemas/DiaSemana"
+          },
+          "horaInicio": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "example": "09:00"
+          },
+          "horaFin": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "example": "13:00"
+          }
+        }
+      },
+      "Cliente": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cuenta": {
+            "type": "object",
+            "description": "Cuenta ya creada (POST /cuentas). En las respuestas llega la cuenta completa",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          }
+        }
+      },
+      "Administrador": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cuenta": {
+            "type": "object",
+            "description": "Cuenta ya creada (POST /cuentas). En las respuestas llega la cuenta completa",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          },
+          "horarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Horario existente",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "Veterinario": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno",
+          "numeroColegiatura"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cuenta": {
+            "type": "object",
+            "description": "Cuenta ya creada (POST /cuentas). En las respuestas llega la cuenta completa",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          },
+          "numeroColegiatura": {
+            "type": "string",
+            "example": "CMVP-1234"
+          },
+          "horarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Horario existente",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "Mascota": {
+        "type": "object",
+        "required": [
+          "cliente",
+          "nombre",
+          "sexo",
+          "peso",
+          "tipoMascota"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cliente": {
+            "type": "object",
+            "description": "Duenio de la mascota",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Bobby"
+          },
+          "sexo": {
+            "$ref": "#/components/schemas/SexoMascota"
+          },
+          "peso": {
+            "type": "number",
+            "format": "double",
+            "example": 8.5,
+            "description": "Mayor a 0"
+          },
+          "fechaNacimiento": {
+            "type": "string",
+            "format": "date",
+            "example": "2023-04-10"
+          },
+          "raza": {
+            "type": "string",
+            "example": "Mestizo"
+          },
+          "tipoMascota": {
+            "$ref": "#/components/schemas/TipoMascota"
+          }
+        }
+      },
+      "Categoria": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "descripcion"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Unico",
+            "example": "Alimentos"
+          },
+          "descripcion": {
+            "type": "string",
+            "example": "Alimento seco y humedo"
+          }
+        }
+      },
+      "Articulo": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "precioBase",
+          "categorias"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Antipulgas"
+          },
+          "descripcion": {
+            "type": "string",
+            "example": "Pipeta para perros"
+          },
+          "precioBase": {
+            "type": "number",
+            "format": "double",
+            "example": 10.0
+          },
+          "stockActual": {
+            "type": "integer",
+            "example": 50
+          },
+          "stockMinimo": {
+            "type": "integer",
+            "example": 5
+          },
+          "categorias": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Categoria existente",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "Servicio": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "descripcion",
+          "tipo",
+          "precioBase"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Unico",
+            "example": "Consulta general"
+          },
+          "descripcion": {
+            "type": "string",
+            "example": "Evaluacion clinica completa"
+          },
+          "precioBase": {
+            "type": "number",
+            "format": "double",
+            "example": 25.0,
+            "exclusiveMinimum": true,
+            "minimum": 0
+          },
+          "tipo": {
+            "$ref": "#/components/schemas/TipoServicio"
+          },
+          "duracionEstimada": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Minutos (30 si es null)",
+            "example": 30
+          }
+        }
+      },
+      "Diagnostico": {
+        "type": "object",
+        "required": [
+          "nombreEnfermedad"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "nombreEnfermedad": {
+            "type": "string",
+            "description": "Unico",
+            "example": "Otitis"
+          },
+          "descripcion": {
+            "type": "string",
+            "example": "Inflamacion del oido"
+          }
+        }
+      },
+      "DetalleCita": {
+        "type": "object",
+        "description": "Un servicio de la cita con el veterinario que lo realiza",
+        "required": [
+          "servicio",
+          "veterinario"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "idCita": {
+            "type": "integer",
+            "example": 1,
+            "readOnly": true
+          },
+          "servicio": {
+            "type": "object",
+            "description": "Servicio existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "veterinario": {
+            "type": "object",
+            "description": "Veterinario existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "observaciones": {
+            "type": "string",
+            "example": "Tos seca hace 3 dias"
+          }
+        }
+      },
+      "Cita": {
+        "type": "object",
+        "required": [
+          "fechaHora",
+          "estado",
+          "mascota",
+          "detalles"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "fechaHora": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-23T10:00:00",
+            "description": "Futura; si es emergencia, hasta 1 hora atras"
+          },
+          "estado": {
+            "$ref": "#/components/schemas/EstadoCita"
+          },
+          "mascota": {
+            "type": "object",
+            "description": "Mascota existente (no puede cambiar)",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "administrador": {
+            "type": "object",
+            "description": "Obligatorio para pasar a APROBADO o RECHAZADO",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            },
+            "nullable": true
+          },
+          "esEmergencia": {
+            "type": "boolean",
+            "default": false,
+            "description": "No se puede cambiar despues de crear"
+          },
+          "detalles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetalleCita"
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "InsumoUtilizado": {
+        "type": "object",
+        "required": [
+          "articulo",
+          "cantidadUtilizada"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "articulo": {
+            "type": "object",
+            "description": "Articulo existente (descuenta stock)",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "cantidadUtilizada": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          },
+          "esCobrable": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "AtencionDiagnostico": {
+        "type": "object",
+        "required": [
+          "diagnostico",
+          "nivelGravedad"
+        ],
+        "properties": {
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "diagnostico": {
+            "type": "object",
+            "description": "Diagnostico existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "nivelGravedad": {
+            "$ref": "#/components/schemas/NivelGravedad"
+          },
+          "detalleDiagnostico": {
+            "type": "string",
+            "example": "Leve, tratar con gotas"
+          }
+        }
+      },
+      "Atencion": {
+        "type": "object",
+        "required": [
+          "detalleCita",
+          "fechaHora"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "detalleCita": {
+            "type": "object",
+            "description": "DetalleCita de una cita APROBADO (o PENDIENTE si es emergencia). Maximo una atencion por detalle",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "fechaHora": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-10T10:05:00",
+            "description": "Desde la hora de la cita y no futura"
+          },
+          "motivoConsulta": {
+            "type": "string",
+            "example": "Control",
+            "description": "Obligatorio en servicios medicos"
+          },
+          "observaciones": {
+            "type": "string",
+            "example": "Sin novedad"
+          },
+          "insumosUtilizados": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InsumoUtilizado"
+            }
+          },
+          "diagnosticos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AtencionDiagnostico"
+            }
+          }
+        }
+      },
+      "DetalleReceta": {
+        "type": "object",
+        "required": [
+          "articulo",
+          "dosis",
+          "frecuencia",
+          "duracionDias",
+          "cantidadTotal"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "articulo": {
+            "type": "object",
+            "description": "Articulo existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "dosis": {
+            "type": "string",
+            "example": "1 tableta"
+          },
+          "frecuencia": {
+            "type": "string",
+            "example": "Cada 12 horas"
+          },
+          "duracionDias": {
+            "type": "integer",
+            "example": 5
+          },
+          "cantidadTotal": {
+            "type": "integer",
+            "example": 10
+          }
+        }
+      },
+      "Receta": {
+        "type": "object",
+        "required": [
+          "atencion",
+          "fechaEmision",
+          "indicacionesGenerales",
+          "detalles"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "atencion": {
+            "type": "object",
+            "description": "Atencion existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "fechaEmision": {
+            "type": "string",
+            "format": "date",
+            "example": "2026-11-10"
+          },
+          "indicacionesGenerales": {
+            "type": "string",
+            "example": "Reposo"
+          },
+          "detalles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetalleReceta"
+            },
+            "minItems": 1
+          }
+        }
+      },
+      "DetalleBoletaArticulo": {
+        "type": "object",
+        "required": [
+          "articulo",
+          "cantidad"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "articulo": {
+            "type": "object",
+            "description": "Articulo existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "cantidad": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 2
+          },
+          "precioUnitario": {
+            "type": "number",
+            "format": "double",
+            "description": "Lo calcula la BL",
+            "example": 10.0,
+            "readOnly": true
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "double",
+            "description": "Lo calcula la BL",
+            "example": 20.0,
+            "readOnly": true
+          },
+          "insumoUtilizado": {
+            "type": "object",
+            "description": "Solo si se cobra un insumo de una atencion (debe ser cobrable y del mismo articulo). Sin esto es una venta en caja",
+            "required": [
+              "id",
+              "idAtencion"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              },
+              "idAtencion": {
+                "type": "integer",
+                "example": 1
+              }
+            },
+            "nullable": true
+          }
+        }
+      },
+      "DetalleBoletaServicio": {
+        "type": "object",
+        "required": [
+          "detalleCita"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cantidad": {
+            "type": "integer",
+            "example": 1
+          },
+          "precioUnitario": {
+            "type": "number",
+            "format": "double",
+            "example": 25.0,
+            "readOnly": true
+          },
+          "subtotal": {
+            "type": "number",
+            "format": "double",
+            "example": 25.0,
+            "readOnly": true
+          },
+          "detalleCita": {
+            "type": "object",
+            "description": "DetalleCita con atencion registrada. Cada uno se cobra una sola vez",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          }
+        }
+      },
+      "Boleta": {
+        "type": "object",
+        "description": "Debe tener al menos un detalle (de articulo o de servicio)",
+        "required": [
+          "cliente",
+          "serieCorrelativo",
+          "fecha",
+          "metodoPago"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Generado por la BD",
+            "example": 1,
+            "readOnly": true
+          },
+          "activo": {
+            "type": "boolean",
+            "default": true,
+            "description": "Borrado logico. Al crear siempre queda en true; para desactivar se usa DELETE"
+          },
+          "cliente": {
+            "type": "object",
+            "description": "Cliente existente",
+            "required": [
+              "id"
+            ],
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 1
+              }
+            }
+          },
+          "serieCorrelativo": {
+            "type": "string",
+            "pattern": "^[A-Z]\\d{3}-\\d{6}$",
+            "description": "Unico, incluso frente a boletas anuladas",
+            "example": "B001-000123"
+          },
+          "fecha": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-11-10T11:00:00"
+          },
+          "total": {
+            "type": "number",
+            "format": "double",
+            "description": "Lo calcula la BL",
+            "example": 96.0,
+            "readOnly": true
+          },
+          "metodoPago": {
+            "$ref": "#/components/schemas/MetodoPago"
+          },
+          "detallesArticulo": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetalleBoletaArticulo"
+            }
+          },
+          "detallesServicio": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DetalleBoletaServicio"
+            }
+          }
+        }
+      },
+      "EstadoCita": {
+        "type": "string",
+        "enum": [
+          "PENDIENTE",
+          "APROBADO",
+          "RECHAZADO",
+          "CANCELADO",
+          "COMPLETADO"
+        ]
+      },
+      "DiaSemana": {
+        "type": "string",
+        "enum": [
+          "LUNES",
+          "MARTES",
+          "MIERCOLES",
+          "JUEVES",
+          "VIERNES",
+          "SABADO",
+          "DOMINGO"
+        ]
+      },
+      "MetodoPago": {
+        "type": "string",
+        "enum": [
+          "EFECTIVO",
+          "TARJETA_DE_CREDITO",
+          "TARJETA_DE_DEBITO",
+          "YAPE"
+        ]
+      },
+      "NivelGravedad": {
+        "type": "string",
+        "enum": [
+          "LEVE",
+          "MODERADO",
+          "GRAVE",
+          "CRITICO"
+        ]
+      },
+      "SexoMascota": {
+        "type": "string",
+        "enum": [
+          "MACHO",
+          "HEMBRA"
+        ]
+      },
+      "TipoMascota": {
+        "type": "string",
+        "enum": [
+          "PERRO",
+          "GATO"
+        ]
+      },
+      "TipoServicio": {
+        "type": "string",
+        "enum": [
+          "CONSULTA_MEDICA",
+          "OPERACION",
+          "VACUNACION",
+          "ESTETICA",
+          "EMERGENCIA"
+        ]
+      }
+    }
+  }
+}
