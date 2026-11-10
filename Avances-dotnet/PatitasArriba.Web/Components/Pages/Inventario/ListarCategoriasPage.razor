@@ -7,36 +7,55 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Categorías de artículos</h3>
-    <button tabindex="1" class="btn btn-success" @onclick="() => NuevaCategoria()">
-        Nueva categoría
+    <button tabindex="1" class="btn btn-warning btn-texto" @onclick="() => NuevaCategoria()">
+        <Icono Nombre="plus" /><span>Nueva categoría</span>
     </button>
 </div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
 @if (!Categorias.Any()) {
     <div class="alert alert-info">No hay categorías registradas.</div>
 }
 else {
-    <QuickGrid Items="Categorias" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Categorias" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Nombre" Property="c => c.Nombre" Sortable="true" />
         <PropertyColumn Title="Descripción" Property="c => c.Descripcion" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarCategoria(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCategoria(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                    <Icono Nombre="trash" />
+                </button>
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="CategoriaAEliminar != null"
+                  Titulo="¿Eliminar la categoría?"
+                  Mensaje="@($"“{CategoriaAEliminar?.Nombre}” dejará de aparecer. No se puede si tiene artículos asignados.")"
+                  OnConfirmar="EliminarCategoria" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<CategoriaViewModel> Todas { get; set; } = [];
     private IQueryable<CategoriaViewModel> Categorias { get; set; } = Enumerable.Empty<CategoriaViewModel>().AsQueryable();
+    private CategoriaViewModel? CategoriaAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
 
     protected override void OnInitialized() {
-        Categorias = DatosEjemplo.Categorias().AsQueryable();
+        Todas = DatosEjemplo.Categorias();
+        Categorias = Todas.AsQueryable();
     }
 
     private void NuevaCategoria() {
@@ -45,5 +64,33 @@ else {
 
     private void EditarCategoria(int id) {
         Nav.NavigateTo($"/categorias/editar/{id}");
+    }
+
+    private void PedirEliminar(CategoriaViewModel categoria) {
+        CategoriaAEliminar = categoria;
+    }
+
+    private void CancelarEliminacion() {
+        CategoriaAEliminar = null;
+    }
+
+    // Al enlazar se llamará a DELETE /categorias/{id}. Igual que el backend (RN-CA-03),
+    // no se elimina una categoría que tiene artículos asignados.
+    private void EliminarCategoria() {
+        if (CategoriaAEliminar == null) {
+            return;
+        }
+        MensajeExito = null;
+        MensajeError = null;
+        int articulos = DatosEjemplo.Articulos()
+            .Count(a => a.Categorias.Any(c => c.Id == CategoriaAEliminar.Id && c.Seleccionado));
+        if (articulos > 0) {
+            MensajeError = $"No se puede eliminar la categoría “{CategoriaAEliminar.Nombre}”: tiene {articulos} artículo(s) asignado(s).";
+        } else {
+            Todas.Remove(CategoriaAEliminar);
+            Categorias = Todas.AsQueryable();
+            MensajeExito = $"Se eliminó la categoría “{CategoriaAEliminar.Nombre}”.";
+        }
+        CategoriaAEliminar = null;
     }
 }

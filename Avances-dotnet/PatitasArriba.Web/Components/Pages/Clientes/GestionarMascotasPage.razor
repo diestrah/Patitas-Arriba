@@ -9,7 +9,6 @@
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="mb-3">
             <label class="form-label">Dueño</label>
@@ -62,8 +61,10 @@
             </div>
         </div>
 
-        <button tabindex="9" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="10" class="btn btn-outline-secondary" href="mascotas">Cancelar</a>
+        <div class="d-flex gap-2">
+            <button tabindex="9" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="10" class="btn btn-outline-primary" href="mascotas">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -93,6 +94,7 @@
         ViewModel = mascota;
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /mascotas o PUT /mascotas/{Id}
     private void Guardar() {
         Nav.NavigateTo("/mascotas");
     }

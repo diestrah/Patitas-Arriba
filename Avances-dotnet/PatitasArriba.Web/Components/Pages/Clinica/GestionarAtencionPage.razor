@@ -20,7 +20,6 @@
 
 <EditForm Model="ViewModel" OnValidSubmit="Guardar">
     <DataAnnotationsValidator />
-    <ValidationSummary />
 
     <div class="row">
         <div class="col-md-4 mb-3">
@@ -29,7 +28,7 @@
             <ValidationMessage For="() => ViewModel.FechaHora" />
         </div>
         <div class="col-md-8 mb-3">
-            <label class="form-label">Motivo de consulta</label>
+            <label class="form-label">Motivo de consulta @(ViewModel.EsServicioMedico ? "" : "(opcional)")</label>
             <InputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
             <ValidationMessage For="() => ViewModel.MotivoConsulta" />
         </div>
@@ -40,15 +39,19 @@
         <ValidationMessage For="() => ViewModel.Observaciones" />
     </div>
 
-    <h5 class="mt-4">Diagnósticos</h5>
-    <TablaDiagnosticos Diagnosticos="ViewModel.Diagnosticos" Catalogo="Diagnosticos" />
+    @* RN-AT-06: en servicios estéticos no se registran diagnósticos *@
+    @if (ViewModel.EsServicioMedico) {
+        <h5 class="mt-4">Diagnósticos</h5>
+        <TablaDiagnosticos Diagnosticos="ViewModel.Diagnosticos" Catalogo="Diagnosticos" />
+    }
 
     <h5 class="mt-4">Insumos utilizados</h5>
+    <p class="form-text mt-0">Al guardar, los insumos se descuentan del stock (RN-AT-08). Marque "Se cobra aparte" si el cliente los paga en caja.</p>
     <TablaInsumos Insumos="ViewModel.Insumos" Articulos="Articulos" />
 
-    <div class="mt-4">
-        <button tabindex="4" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="5" class="btn btn-outline-secondary" href="atenciones">Cancelar</a>
+    <div class="d-flex gap-2 mt-4">
+        <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+        <a tabindex="5" class="btn btn-outline-primary" href="@(Id == null ? "mi-agenda" : "atenciones")">Cancelar</a>
     </div>
 </EditForm>
 
@@ -92,11 +95,14 @@
             NombreMascota = item.NombreMascota,
             NombreCliente = item.NombreCliente,
             NombreServicio = item.NombreServicio,
+            TipoServicio = item.TipoServicio,
             NombreVeterinario = item.NombreVeterinario,
             FechaHora = DateTime.Now
         };
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /atenciones o PUT /atenciones/{Id};
+    // si no hay stock suficiente de algún insumo, el backend no registra la atención (RN-AT-08).
     private void Guardar() {
         Nav.NavigateTo("/atenciones");
     }

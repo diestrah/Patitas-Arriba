@@ -2,9 +2,9 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <span class="fw-bold">Boleta @Boleta.SerieCorrelativo</span>
         @if (Boleta.IsActivo) {
-            <span class="badge text-bg-success">Emitida</span>
+            <span class="estado estado-aprobado">Emitida</span>
         } else {
-            <span class="badge text-bg-danger">Anulada</span>
+            <span class="estado estado-rechazado">Anulada</span>
         }
     </div>
     <div class="card-body">

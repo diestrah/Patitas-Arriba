@@ -5,71 +5,96 @@
 
 <h3 class="mb-3">Nueva boleta</h3>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@* La búsqueda va fuera del formulario: así, al presionar Enter en el DNI se busca y no se envía la boleta *@
+<div class="row">
+    <div class="col-md-5 mb-3">
+        @* Con muchos clientes una lista desplegable no es práctica: se busca por DNI (GET /clientes?dni=...) *@
+        <label class="form-label">DNI del cliente</label>
+        <div class="input-group">
+            <input tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
+                   @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
+            <button tabindex="2" type="button" class="btn btn-primary btn-texto" @onclick="() => BuscarCliente()">
+                <Icono Nombre="search" /><span>Buscar</span>
+            </button>
+        </div>
+        @if (MensajeCliente != null) {
+            <div class="validation-message">@MensajeCliente</div>
+        }
+    </div>
+    <div class="col-md-4 mb-3">
+        <label class="form-label">Cliente</label>
+        <input class="form-control" value="@(ViewModel.IdCliente == 0 ? "—" : ViewModel.NombreCliente)" disabled />
+    </div>
+    <div class="col-md-3 mb-3">
+        <label class="form-label">N.° de boleta</label>
+        <input class="form-control" value="@ViewModel.SerieCorrelativo" disabled />
+    </div>
+</div>
+
 <EditForm Model="ViewModel" OnValidSubmit="Emitir">
     <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label class="form-label">Cliente</label>
-            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
-                <option value="0">Seleccione el cliente</option>
-                @foreach (ClienteViewModel cliente in Clientes) {
-                    <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => ViewModel.IdCliente" />
-        </div>
-        <div class="col-md-3 mb-3">
-            <label class="form-label">Método de pago</label>
-            <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.MetodoPago">
-                @foreach (MetodoPago metodo in Metodos) {
-                    <option value="@metodo">@TextoEnum.De(metodo)</option>
-                }
-            </InputSelect>
-        </div>
-    </div>
+    <ValidationMessage For="() => ViewModel.IdCliente" />
 
     <div class="row g-4">
         <div class="col-lg-7">
             <h5>Servicios realizados e insumos cobrados</h5>
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Concepto</th>
-                        <th class="text-end">Cant.</th>
-                        <th class="text-end">P. unit.</th>
-                        <th class="text-end">Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (LineaBoletaViewModel linea in Pendientes) {
+            @if (ViewModel.IdCliente == 0) {
+                <div class="alert alert-info">Busque al cliente para ver lo que tiene pendiente de cobro.</div>
+            } else if (Pendientes.Count == 0) {
+                <div class="alert alert-info">@ViewModel.NombreCliente no tiene servicios ni insumos pendientes de cobro.</div>
+            } else {
+                <table class="table table-sm align-middle">
+                    <thead>
                         <tr>
-                            <td><span class="badge text-bg-light border me-1">@linea.Tipo</span>@linea.Descripcion</td>
-                            <td class="text-end">@linea.Cantidad</td>
-                            <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
-                            <td class="text-end">@linea.SubTotal.ToString("N2")</td>
+                            <th>Concepto</th>
+                            <th class="text-end">Cant.</th>
+                            <th class="text-end">P. unit.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th></th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (LineaBoletaViewModel linea in Pendientes) {
+                            <tr>
+                                <td><span class="badge text-bg-light border me-1">@linea.Tipo</span>@linea.Descripcion</td>
+                                <td class="text-end">@linea.Cantidad</td>
+                                <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
+                                <td class="text-end">@linea.SubTotal.ToString("N2")</td>
+                                <td class="text-end">
+                                    @* Si el cliente no lo paga ahora, se quita y sigue pendiente *@
+                                    <button type="button" class="btn btn-outline-danger btn-icono" title="No cobrar ahora" aria-label="No cobrar ahora" @onclick="() => QuitarLinea(linea)">
+                                        <Icono Nombre="x" />
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
 
-            <h5 class="mt-4">Productos adquiridos</h5>
-            <div class="d-flex gap-2 mb-3">
+            <h5 class="mt-4">Productos adquiridos en caja</h5>
+            <div class="d-flex gap-2 mb-2">
                 <select class="form-select" @bind="IdArticuloAgregar">
                     <option value="0">Seleccione un artículo</option>
                     @foreach (ArticuloViewModel articulo in Articulos) {
-                        <option value="@articulo.Id">@articulo.Nombre (S/ @articulo.PrecioBase.ToString("N2"))</option>
+                        <option value="@articulo.Id">@articulo.Nombre (S/ @articulo.PrecioBase.ToString("N2") · stock: @articulo.StockActual)</option>
                     }
                 </select>
                 <input type="number" min="1" class="form-control w-auto" @bind="CantidadAgregar" />
-                <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarArticulo()">
-                    Agregar
+                <button type="button" class="btn btn-secondary btn-texto" @onclick="() => AgregarArticulo()">
+                    <Icono Nombre="plus" /><span>Agregar</span>
                 </button>
             </div>
+            @if (MensajeArticulo != null) {
+                <div class="alert alert-warning">@MensajeArticulo</div>
+            }
 
             @if (Vendidos.Count > 0) {
-                <table class="table table-sm">
+                <table class="table table-sm align-middle">
                     <thead>
                         <tr>
                             <th>Artículo</th>
@@ -87,8 +112,8 @@
                                 <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
                                 <td class="text-end">@linea.SubTotal.ToString("N2")</td>
                                 <td class="text-end">
-                                    <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarArticulo(linea)">
-                                        Quitar
+                                    <button type="button" class="btn btn-outline-danger btn-icono" title="Quitar" aria-label="Quitar" @onclick="() => QuitarLinea(linea)">
+                                        <Icono Nombre="x" />
                                     </button>
                                 </td>
                             </tr>
@@ -103,20 +128,30 @@
                 <div class="card-header fw-bold">Total</div>
                 <div class="card-body">
                     <TotalesBoleta TotalServicios="ViewModel.TotalServicios" TotalArticulos="ViewModel.TotalArticulos" Total="ViewModel.Total" />
+                    <p class="form-text mb-0 mt-2">Los precios salen del catálogo; no se escriben a mano (RN-BO-05).</p>
                 </div>
+            </div>
+            <div class="mt-3">
+                <label class="form-label">Método de pago</label>
+                <InputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.MetodoPago">
+                    @foreach (MetodoPago metodo in Metodos) {
+                        <option value="@metodo">@TextoEnum.De(metodo)</option>
+                    }
+                </InputSelect>
             </div>
         </div>
     </div>
 
-    <div class="mt-4">
-        <button tabindex="3" type="submit" class="btn btn-primary">Generar boleta</button>
-        <a tabindex="4" class="btn btn-outline-secondary" href="boletas">Cancelar</a>
+    <ValidationMessage For="() => ViewModel.Lineas" />
+
+    <div class="d-flex gap-2 mt-4">
+        <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="file-text" /><span>Generar boleta</span></button>
+        <a tabindex="5" class="btn btn-outline-primary" href="boletas">Cancelar</a>
     </div>
 </EditForm>
 
 @code {
     private BoletaViewModel ViewModel { get; set; } = new();
-    private List<ClienteViewModel> Clientes { get; set; } = [];
     private List<ArticuloViewModel> Articulos { get; set; } = [];
     private MetodoPago[] Metodos { get; } = Enum.GetValues<MetodoPago>();
 
@@ -124,41 +159,85 @@
     private List<LineaBoletaViewModel> Pendientes { get; set; } = [];
     private List<LineaBoletaViewModel> Vendidos { get; set; } = [];
 
+    private string DniBuscar { get; set; } = "";
+    private string? MensajeCliente { get; set; }
     private int IdArticuloAgregar { get; set; }
     private int CantidadAgregar { get; set; } = 1;
+    private string? MensajeArticulo { get; set; }
+
+    // Mensaje del backend cuando rechace la boleta
+    private string? MensajeError { get; set; }
 
     protected override void OnInitialized() {
-        Clientes = DatosEjemplo.Clientes();
         Articulos = DatosEjemplo.Articulos();
+        ViewModel.SerieCorrelativo = DatosEjemplo.SiguienteNumeroBoleta();
+    }
 
-        // Lab 9: se muestra como ejemplo lo pendiente de cobro de Ana Torres
-        ViewModel.IdCliente = 1;
-        Pendientes = DatosEjemplo.PendientesDeCobro();
+    private void TeclaEnDni(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            BuscarCliente();
+        }
+    }
+
+    // Busca al cliente por DNI y carga SOLO lo que ese cliente tiene pendiente de cobro (RN-BO-04)
+    private void BuscarCliente() {
+        MensajeCliente = null;
+        string dni = DniBuscar.Trim();
+        if (dni.Length != 8 || !dni.All(char.IsDigit)) {
+            MensajeCliente = "El DNI debe tener 8 dígitos";
+            return;
+        }
+        ClienteViewModel? cliente = DatosEjemplo.ClientePorDni(dni);
+        if (cliente == null) {
+            MensajeCliente = $"No hay un cliente activo con el DNI {dni}";
+            return;
+        }
+        ViewModel.IdCliente = cliente.Id;
+        ViewModel.NombreCliente = cliente.NombreCompleto;
+        ViewModel.DniCliente = cliente.Dni;
+
+        // Al cambiar de cliente se descartan los pendientes del anterior (los vendidos en caja se mantienen)
+        foreach (LineaBoletaViewModel linea in Pendientes) {
+            ViewModel.Lineas.Remove(linea);
+        }
+        Pendientes = DatosEjemplo.PendientesDeCobro(cliente.Id);
         ViewModel.Lineas.AddRange(Pendientes);
     }
 
     private void AgregarArticulo() {
         ArticuloViewModel? articulo = Articulos.Find(a => a.Id == IdArticuloAgregar);
         if (articulo == null || CantidadAgregar < 1) {
+            MensajeArticulo = "Seleccione el artículo e indique una cantidad mayor a 0";
+            return;
+        }
+        // RN-BO-09: lo pedido de un artículo, sumando sus líneas, no supera el stock
+        int yaPedido = Vendidos.Where(l => l.IdArticulo == articulo.Id).Sum(l => l.Cantidad);
+        if (yaPedido + CantidadAgregar > articulo.StockActual) {
+            MensajeArticulo = $"Stock insuficiente de {articulo.Nombre}: quedan {articulo.StockActual - yaPedido}";
             return;
         }
         LineaBoletaViewModel linea = new LineaBoletaViewModel {
             Tipo = "Artículo",
+            IdArticulo = articulo.Id,
             Descripcion = articulo.Nombre,
             Cantidad = CantidadAgregar,
             PrecioUnitario = articulo.PrecioBase
         };
         Vendidos.Add(linea);
         ViewModel.Lineas.Add(linea);
+        MensajeArticulo = null;
         IdArticuloAgregar = 0;
         CantidadAgregar = 1;
     }
 
-    private void QuitarArticulo(LineaBoletaViewModel linea) {
+    private void QuitarLinea(LineaBoletaViewModel linea) {
+        Pendientes.Remove(linea);
         Vendidos.Remove(linea);
         ViewModel.Lineas.Remove(linea);
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /boletas con detallesServicio (IdDetalleCita)
+    // y detallesArticulo (IdArticulo y, si es insumo, IdInsumoUtilizado); el backend fija los precios.
     private void Emitir() {
         Nav.NavigateTo("/boletas");
     }

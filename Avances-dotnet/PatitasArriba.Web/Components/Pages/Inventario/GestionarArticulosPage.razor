@@ -9,7 +9,6 @@
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="mb-3">
             <label class="form-label">Nombre</label>
@@ -31,7 +30,7 @@
                 <label class="form-label">Stock actual</label>
                 <InputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.StockActual" disabled="@(Id != null)" />
                 @if (Id != null) {
-                    <div class="form-text">Use la opción "Stock" del listado para actualizarlo.</div>
+                    <div class="form-text">Use el botón "Stock" del listado para actualizarlo.</div>
                 }
                 <ValidationMessage For="() => ViewModel.StockActual" />
             </div>
@@ -43,7 +42,7 @@
         </div>
 
         <h5 class="mt-2">Categorías</h5>
-        <div class="d-flex flex-wrap gap-3 mb-3">
+        <div class="d-flex flex-wrap gap-3 mb-1">
             @foreach (OpcionSeleccion categoria in ViewModel.Categorias) {
                 <div class="form-check">
                     <InputCheckbox class="form-check-input" id="@($"categoria-{categoria.Id}")" @bind-Value="categoria.Seleccionado" />
@@ -51,10 +50,14 @@
                 </div>
             }
         </div>
+        <div class="mb-3">
+            <ValidationMessage For="() => ViewModel.Categorias" />
+        </div>
 
-
-        <button tabindex="7" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="8" class="btn btn-outline-secondary" href="articulos">Cancelar</a>
+        <div class="d-flex gap-2">
+            <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="8" class="btn btn-outline-primary" href="articulos">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -77,6 +80,7 @@
         ViewModel = articulo;
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /articulos o PUT /articulos/{Id}
     private void Guardar() {
         Nav.NavigateTo("/articulos");
     }

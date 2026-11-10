@@ -4,60 +4,73 @@
 
 <PageTitle>Veterinarios</PageTitle>
 
-<div class="col-md-7">
+<div class="col-lg-8">
     <h3 class="mb-3">@(Id == null ? "Nuevo veterinario" : "Editar veterinario")</h3>
+
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
-        <div class="mb-3">
-            <label class="form-label">Cuenta de usuario</label>
-            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCuenta">
-                <option value="0">Seleccione una cuenta</option>
-                @foreach (CuentaUsuarioViewModel cuenta in Cuentas) {
-                    <option value="@cuenta.Id">@cuenta.NombreUsuario (@cuenta.Correo)</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="() => ViewModel.IdCuenta" />
-        </div>
+        <CamposCuenta Persona="ViewModel" EsNueva="Id == null" TabIndexInicial="1" />
+
+        <h5 class="mt-2 mb-3">Datos personales</h5>
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">DNI</label>
-                <InputText tabindex="3" class="form-control" maxlength="8" @bind-Value="ViewModel.Dni" />
+                <InputText tabindex="5" class="form-control" maxlength="8" @bind-Value="ViewModel.Dni" />
                 <ValidationMessage For="() => ViewModel.Dni" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">N.° de colegiatura</label>
-                <InputText tabindex="4" class="form-control" @bind-Value="ViewModel.NumeroColegiatura" />
+                <InputText tabindex="6" class="form-control" @bind-Value="ViewModel.NumeroColegiatura" />
                 <ValidationMessage For="() => ViewModel.NumeroColegiatura" />
             </div>
         </div>
         <div class="mb-3">
             <label class="form-label">Nombres</label>
-            <InputText tabindex="5" class="form-control" @bind-Value="ViewModel.Nombres" />
+            <InputText tabindex="7" class="form-control" @bind-Value="ViewModel.Nombres" />
             <ValidationMessage For="() => ViewModel.Nombres" />
         </div>
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Apellido paterno</label>
-                <InputText tabindex="6" class="form-control" @bind-Value="ViewModel.ApellidoPaterno" />
+                <InputText tabindex="8" class="form-control" @bind-Value="ViewModel.ApellidoPaterno" />
                 <ValidationMessage For="() => ViewModel.ApellidoPaterno" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Apellido materno</label>
-                <InputText tabindex="7" class="form-control" @bind-Value="ViewModel.ApellidoMaterno" />
+                <InputText tabindex="9" class="form-control" @bind-Value="ViewModel.ApellidoMaterno" />
                 <ValidationMessage For="() => ViewModel.ApellidoMaterno" />
             </div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Teléfono</label>
-            <InputText tabindex="8" class="form-control" maxlength="9" @bind-Value="ViewModel.Telefono" />
-            <ValidationMessage For="() => ViewModel.Telefono" />
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <label class="form-label">Teléfono</label>
+                <InputText tabindex="10" class="form-control" maxlength="9" @bind-Value="ViewModel.Telefono" />
+                <ValidationMessage For="() => ViewModel.Telefono" />
+            </div>
         </div>
 
-        <button tabindex="10" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="11" class="btn btn-outline-secondary" href="veterinarios">Cancelar</a>
+        <h5 class="mt-2 mb-1">Horarios de atención</h5>
+        <div class="form-text mt-0 mb-2">Solo recibe citas en los horarios marcados.</div>
+        <div class="row mb-3">
+            @foreach (OpcionSeleccion horario in ViewModel.Horarios) {
+                <div class="col-md-6">
+                    <div class="form-check">
+                        <InputCheckbox class="form-check-input" id="@($"horario-{horario.Id}")" @bind-Value="horario.Seleccionado" />
+                        <label class="form-check-label" for="@($"horario-{horario.Id}")">@horario.Texto</label>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="d-flex gap-2">
+            <button tabindex="11" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="12" class="btn btn-outline-primary" href="veterinarios">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -66,15 +79,13 @@
     public int? Id { get; set; }
 
     private VeterinarioViewModel ViewModel { get; set; } = new();
-    private List<CuentaUsuarioViewModel> Cuentas { get; set; } = [];
 
-    protected override void OnInitialized() {
-        Cuentas = DatosEjemplo.CuentasUsuario().Where(c => c.Rol == RolUsuario.VETERINARIO).ToList();
-    }
+    // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o colegiatura repetidos)
+    private string? MensajeError { get; set; }
 
     protected override void OnParametersSet() {
         if (Id == null) {
-            ViewModel = new VeterinarioViewModel();
+            ViewModel = new VeterinarioViewModel { Horarios = DatosEjemplo.OpcionesHorario() };
             return;
         }
         VeterinarioViewModel? veterinario = DatosEjemplo.Veterinarios().FirstOrDefault(v => v.Id == Id);
@@ -85,6 +96,9 @@
         ViewModel = veterinario;
     }
 
+    // Sin backend: no se registra nada, solo se regresa al listado.
+    // Al enlazar: POST /cuentas y luego POST /veterinarios (con la cuenta y los horarios marcados);
+    // al editar: PUT /cuentas/{IdCuenta} y PUT /veterinarios/{Id}.
     private void Guardar() {
         Nav.NavigateTo("/veterinarios");
     }

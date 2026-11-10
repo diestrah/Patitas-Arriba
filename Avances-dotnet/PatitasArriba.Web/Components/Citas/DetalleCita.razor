@@ -24,6 +24,9 @@
                 <tr>
                     <th>Servicio</th>
                     <th>Veterinario</th>
+                    @if (Atendidos != null) {
+                        <th>Atención</th>
+                    }
                 </tr>
             </thead>
             <tbody>
@@ -31,6 +34,15 @@
                     <tr>
                         <td>@detalle.NombreServicio</td>
                         <td>@detalle.NombreVeterinario</td>
+                        @if (Atendidos != null) {
+                            <td>
+                                @if (Atendidos.Contains(detalle.Id)) {
+                                    <span class="estado estado-aprobado">Atendido</span>
+                                } else {
+                                    <span class="estado estado-cancelado">Por atender</span>
+                                }
+                            </td>
+                        }
                     </tr>
                 }
             </tbody>
@@ -46,6 +58,10 @@
 @code {
     [Parameter, EditorRequired]
     public CitaViewModel Cita { get; set; } = default!;
+
+    // Ids de los servicios (detalle_cita) que ya tienen atención; si se envía, se muestra la columna "Atención"
+    [Parameter]
+    public HashSet<int>? Atendidos { get; set; }
 
     // Acciones según quién ve la cita (administrador o cliente)
     [Parameter]

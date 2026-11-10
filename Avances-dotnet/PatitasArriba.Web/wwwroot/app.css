@@ -56,3 +56,133 @@ h1:focus {
         margin: 0;
     }
 }
+
+/* ============================================================================
+   PALETA C DE PATITAS ARRIBA (botones estandarizados)
+   Reglas:
+   - Principal (verde, btn-primary): Guardar, Ingresar, Filtrar, Aprobar.
+   - Destacado (mostaza, btn-warning): la acción estrella de la pantalla (Nuevo ...). Uno por pantalla.
+   - Secundario (salvia, btn-secondary): Limpiar, Agregar, Imprimir, Exportar.
+   - Contorno verde (btn-outline-primary): Cancelar, Volver, Ver, Editar.
+   - Contorno terracota (btn-outline-danger): Rechazar, Cancelar cita, Anular, Eliminar en tablas.
+   - Terracota lleno (btn-danger): SOLO en el cuadro de confirmación ("Sí, eliminar").
+   - En tablas: Ver, Editar y Eliminar son solo ícono (btn-icono, con title y aria-label);
+     las acciones del negocio llevan ícono + texto (btn-sm btn-texto).
+   ============================================================================ */
+:root {
+    --pa-verde: #3F6B52; --pa-verde-oscuro: #325642;
+    --pa-salvia: #E3ECDD; --pa-salvia-oscuro: #D3E0CB;
+    --pa-mostaza: #F2B33D; --pa-mostaza-oscuro: #E0A22B;
+    --pa-terracota: #B5483A; --pa-terracota-oscuro: #983B2F;
+    --pa-texto: #1F2A24; --pa-crema: #FAF6EF;
+    /* Bootstrap: que todo lo "azul" tome la paleta */
+    --bs-primary: #3F6B52; --bs-primary-rgb: 63,107,82;
+    --bs-link-color: #3F6B52; --bs-link-color-rgb: 63,107,82;
+    --bs-link-hover-color: #325642; --bs-link-hover-color-rgb: 50,86,66;
+}
+body { background-color: var(--pa-crema); color: var(--pa-texto); }
+.btn { border-radius: .6rem; font-weight: 500; white-space: nowrap; }
+.btn:focus-visible { outline: 2px solid var(--pa-texto); outline-offset: 2px; box-shadow: none; }
+
+/* Principal (verde) — Guardar, Ingresar, Filtrar, Aprobar */
+.btn-primary, .btn-success {
+    --bs-btn-bg: var(--pa-verde); --bs-btn-border-color: var(--pa-verde); --bs-btn-color: #fff;
+    --bs-btn-hover-bg: var(--pa-verde-oscuro); --bs-btn-hover-border-color: var(--pa-verde-oscuro); --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--pa-verde-oscuro); --bs-btn-active-border-color: var(--pa-verde-oscuro); --bs-btn-active-color: #fff;
+    --bs-btn-disabled-bg: var(--pa-verde); --bs-btn-disabled-border-color: var(--pa-verde); --bs-btn-disabled-color: #fff;
+}
+/* Destacado (mostaza) — la acción estrella de la pantalla */
+.btn-warning {
+    --bs-btn-bg: var(--pa-mostaza); --bs-btn-border-color: var(--pa-mostaza); --bs-btn-color: var(--pa-texto);
+    --bs-btn-hover-bg: var(--pa-mostaza-oscuro); --bs-btn-hover-border-color: var(--pa-mostaza-oscuro); --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--pa-mostaza-oscuro); --bs-btn-active-border-color: var(--pa-mostaza-oscuro); --bs-btn-active-color: var(--pa-texto);
+    --bs-btn-disabled-bg: var(--pa-mostaza); --bs-btn-disabled-border-color: var(--pa-mostaza); --bs-btn-disabled-color: var(--pa-texto);
+}
+/* Secundario (salvia) — Limpiar, Agregar, Imprimir, Exportar */
+.btn-secondary {
+    --bs-btn-bg: var(--pa-salvia); --bs-btn-border-color: #c6d6bb; --bs-btn-color: var(--pa-verde-oscuro);
+    --bs-btn-hover-bg: var(--pa-salvia-oscuro); --bs-btn-hover-border-color: #b5c8a8; --bs-btn-hover-color: var(--pa-verde-oscuro);
+    --bs-btn-active-bg: var(--pa-salvia-oscuro); --bs-btn-active-border-color: #b5c8a8; --bs-btn-active-color: var(--pa-verde-oscuro);
+    --bs-btn-disabled-bg: var(--pa-salvia); --bs-btn-disabled-border-color: #c6d6bb; --bs-btn-disabled-color: var(--pa-verde);
+}
+/* Contorno verde — Cancelar, Volver, Ver, Editar */
+.btn-outline-primary, .btn-outline-secondary, .btn-outline-success {
+    --bs-btn-color: var(--pa-verde); --bs-btn-border-color: var(--pa-verde);
+    --bs-btn-hover-bg: var(--pa-verde); --bs-btn-hover-border-color: var(--pa-verde); --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--pa-verde-oscuro); --bs-btn-active-border-color: var(--pa-verde-oscuro); --bs-btn-active-color: #fff;
+    --bs-btn-disabled-color: var(--pa-verde); --bs-btn-disabled-border-color: var(--pa-verde);
+}
+/* Contorno terracota — Rechazar, Cancelar cita, Anular, Eliminar (en tablas) */
+.btn-outline-danger {
+    --bs-btn-color: var(--pa-terracota); --bs-btn-border-color: var(--pa-terracota);
+    --bs-btn-hover-bg: var(--pa-terracota); --bs-btn-hover-border-color: var(--pa-terracota); --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--pa-terracota-oscuro); --bs-btn-active-border-color: var(--pa-terracota-oscuro); --bs-btn-active-color: #fff;
+    --bs-btn-disabled-color: var(--pa-terracota); --bs-btn-disabled-border-color: var(--pa-terracota);
+}
+/* Terracota LLENO — solo para el "Sí, eliminar" del cuadro de confirmación */
+.btn-danger {
+    --bs-btn-bg: var(--pa-terracota); --bs-btn-border-color: var(--pa-terracota); --bs-btn-color: #fff;
+    --bs-btn-hover-bg: var(--pa-terracota-oscuro); --bs-btn-hover-border-color: var(--pa-terracota-oscuro); --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--pa-terracota-oscuro); --bs-btn-active-border-color: var(--pa-terracota-oscuro);
+    --bs-btn-disabled-bg: var(--pa-terracota); --bs-btn-disabled-border-color: var(--pa-terracota);
+}
+/* Botón solo-ícono para filas de tabla (Ver, Editar, Eliminar). Siempre con title y aria-label */
+.btn-icono { width: 2rem; height: 2rem; padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+.btn-icono svg { width: 16px; height: 16px; }
+/* Botones con ícono + texto */
+.btn-texto { display: inline-flex; align-items: center; gap: .4rem; }
+/* Mismo alto (2rem) y ancho en los botones con texto de una fila de tabla */
+.btn-texto.btn-sm { height: 2rem; min-width: 8.6rem; padding-top: 0; padding-bottom: 0; justify-content: center; }
+/* Pares de botones del cuadro de confirmación: mismo ancho */
+.btn-par { min-width: 8.5rem; justify-content: center; }
+
+/* Columna de acciones con solo íconos (Ver · Editar · Eliminar): centrada */
+.acciones { display: inline-flex; gap: .35rem; align-items: center; justify-content: center; }
+/* Columna de acciones con acciones del negocio: a la izquierda, una tras otra, sin huecos.
+   Orden: Ver, Editar, acción positiva, acción negativa, Eliminar */
+.acciones-flujo { display: inline-flex; gap: .4rem; align-items: center; justify-content: flex-start; }
+/* Botón bloqueado (por ejemplo, no puedes eliminar tu propia cuenta): el title explica por qué */
+.btn-icono-bloqueado {
+    width: 2rem; height: 2rem; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px dashed #c5c0b5; color: #9c988e; background: transparent;
+    border-radius: .6rem; cursor: not-allowed; opacity: .65;
+}
+.btn-icono-bloqueado svg { width: 16px; height: 16px; }
+/* Cuando una fila no tiene acciones del negocio */
+.sin-acciones { color: #b5b0a4; }
+
+/* Estado de la cita */
+.estado { display: inline-block; border-radius: 99px; padding: .15rem .65rem; font-size: .75rem; font-weight: 600; border: 1px solid transparent; min-width: 6.5rem; text-align: center; }
+.estado-pendiente { background: #E3ECDD; color: #3F6B52; border-color: #bcd0b0; }
+.estado-aprobado { background: #3F6B52; color: #fff; }
+.estado-completado { background: #325642; color: #fff; }
+.estado-rechazado { background: #f6e4e0; color: #983B2F; border-color: #e3b9b1; }
+.estado-cancelado { background: #e6e2da; color: #4a4a44; }
+.estado.mini { min-width: 0; }
+
+/* Fila de la cuenta que inició sesión */
+.fila-propia { font-weight: 600; }
+
+/* Cuadro de confirmación (Components/Shared/ConfirmarDialogo.razor) */
+.modal-content { border-radius: .9rem; border-color: #d8d2c4; }
+
+/* Resto de componentes con la paleta */
+.form-control:focus, .form-select:focus { border-color: var(--pa-verde); box-shadow: 0 0 0 .25rem rgba(63,107,82,.22); }
+.form-check-input:checked { background-color: var(--pa-verde); border-color: var(--pa-verde); }
+.form-check-input:focus { border-color: var(--pa-verde); box-shadow: 0 0 0 .25rem rgba(63,107,82,.22); }
+.alert-info { --bs-alert-bg: var(--pa-salvia); --bs-alert-color: #24402f; --bs-alert-border-color: #c9d9be; }
+.page-link { color: var(--pa-verde); } .page-item.active .page-link { background-color: var(--pa-verde); border-color: var(--pa-verde); }
+.table { --bs-table-striped-bg: rgba(227,236,221,.55); --bs-table-hover-bg: rgba(227,236,221,.9); }
+.dropdown-menu { --bs-dropdown-link-active-bg: var(--pa-verde); }
+.card { border-color: #e6dfd1; }
+.validation-message { color: var(--pa-terracota-oscuro); font-size: .875rem; }
+/* Stock por debajo del mínimo */
+.stock-bajo { color: var(--pa-terracota-oscuro); font-weight: 700; }
+
+/* Al imprimir una boleta desde el listado, el detalle ocupa todo el ancho */
+@media print {
+    .print-ancho { flex: 0 0 100%; max-width: 100%; }
+    .modal, .modal-backdrop { display: none !important; }
+}
+.invalid { outline: 1px solid var(--pa-terracota); }

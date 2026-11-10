@@ -9,7 +9,6 @@
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="mb-3">
             <label class="form-label">Nombre</label>
@@ -38,12 +37,15 @@
             <div class="col-md-6 mb-3">
                 <label class="form-label">Duración estimada (minutos)</label>
                 <InputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.DuracionEstimada" />
+                <div class="form-text">Opcional. Si se deja vacía, la agenda usa 30 minutos.</div>
                 <ValidationMessage For="() => ViewModel.DuracionEstimada" />
             </div>
         </div>
 
-        <button tabindex="7" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="8" class="btn btn-outline-secondary" href="servicios">Cancelar</a>
+        <div class="d-flex gap-2">
+            <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="8" class="btn btn-outline-primary" href="servicios">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -67,6 +69,7 @@
         ViewModel = servicio;
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /servicios o PUT /servicios/{Id}
     private void Guardar() {
         Nav.NavigateTo("/servicios");
     }

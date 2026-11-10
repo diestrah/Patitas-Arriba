@@ -10,43 +10,73 @@
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Recetas.Any()) {
-    <div class="alert alert-info">No hay recetas registradas.</div>
+    <div class="alert alert-info">No se encontraron recetas.</div>
 }
 else {
-    <QuickGrid Items="Recetas" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Recetas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="N.°" Property="r => r.Id" Sortable="true" />
         <PropertyColumn Title="Emisión" Property="r => r.FechaEmision" Format="dd/MM/yyyy" Sortable="true" />
         <PropertyColumn Title="Mascota" Property="r => r.NombreMascota" />
         <PropertyColumn Title="Dueño" Property="r => r.NombreCliente" />
         <PropertyColumn Title="Diagnóstico" Property="r => r.Diagnostico" />
         <PropertyColumn Title="Veterinario" Property="r => r.NombreVeterinario" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-outline-primary btn-sm" @onclick="() => VerReceta(context.Id)">
-                Ver / imprimir
-            </button>
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarReceta(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Ver e imprimir" aria-label="Ver e imprimir" @onclick="() => VerReceta(context.Id)">
+                    <Icono Nombre="eye" />
+                </button>
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarReceta(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                    <Icono Nombre="trash" />
+                </button>
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="RecetaAEliminar != null"
+                  Titulo="¿Eliminar la receta?"
+                  Mensaje="@($"La receta N.° {RecetaAEliminar?.Id:D6} de {RecetaAEliminar?.NombreMascota} dejará de aparecer en su historial clínico.")"
+                  OnConfirmar="EliminarReceta" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<RecetaViewModel> Todas { get; set; } = [];
     private IQueryable<RecetaViewModel> Recetas { get; set; } = Enumerable.Empty<RecetaViewModel>().AsQueryable();
+    private RecetaViewModel? RecetaAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
-        Recetas = DatosEjemplo.Recetas().AsQueryable();
+        Todas = DatosEjemplo.Recetas();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Recetas = Todas
+            .Where(r => r.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || r.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void VerReceta(int id) {
@@ -55,5 +85,24 @@ else {
 
     private void EditarReceta(int id) {
         Nav.NavigateTo($"/recetas/editar/{id}");
+    }
+
+    private void PedirEliminar(RecetaViewModel receta) {
+        RecetaAEliminar = receta;
+    }
+
+    private void CancelarEliminacion() {
+        RecetaAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /recetas/{id}
+    private void EliminarReceta() {
+        if (RecetaAEliminar == null) {
+            return;
+        }
+        Todas.Remove(RecetaAEliminar);
+        MensajeExito = $"Se eliminó la receta N.° {RecetaAEliminar.Id:D6}.";
+        RecetaAEliminar = null;
+        Filtrar();
     }
 }

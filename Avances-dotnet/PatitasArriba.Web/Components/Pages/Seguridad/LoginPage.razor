@@ -27,9 +27,9 @@
                     <option value="@rol">@TextoEnum.De(rol)</option>
                 }
             </InputSelect>
-            <div class="form-text">Solo para el Lab 9: simula el rol de la cuenta.</div>
+            <div class="form-text">Mientras no se enlaza con el backend: simula el rol de la cuenta.</div>
         </div>
-        <button tabindex="4" type="submit" class="btn btn-primary w-100">Ingresar</button>
+        <button tabindex="4" type="submit" class="btn btn-primary btn-texto w-100 justify-content-center"><Icono Nombre="log-in" /><span>Ingresar</span></button>
     </EditForm>
 </div>
 
@@ -37,7 +37,7 @@
     private LoginViewModel ViewModel { get; set; } = new();
     private RolUsuario[] Roles { get; } = Enum.GetValues<RolUsuario>();
 
-    // Lab 9: no se valida la cuenta contra el backend, solo se simula el rol elegido
+    // Sin backend: no se valida la cuenta, solo se simula el rol elegido. Al enlazar: POST /login
     private void Ingresar() {
         Sesion.IniciarSesion(ViewModel.Perfil);
         Nav.NavigateTo("/");

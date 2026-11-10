@@ -9,7 +9,6 @@
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="row">
             <div class="col-md-4 mb-3">
@@ -23,30 +22,27 @@
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de inicio</label>
                 <InputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
+                <ValidationMessage For="() => ViewModel.HoraInicio" />
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de fin</label>
                 <InputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
+                <ValidationMessage For="() => ViewModel.HoraFin" />
             </div>
         </div>
 
-        <h5 class="mt-2">Personal asignado al turno</h5>
-        <div class="row mb-3">
-            @foreach (OpcionSeleccion persona in ViewModel.Personal) {
-                <div class="col-md-6">
-                    <div class="form-check">
-                        <InputCheckbox class="form-check-input" id="@($"personal-{persona.Id}")" @bind-Value="persona.Seleccionado" />
-                        <label class="form-check-label" for="@($"personal-{persona.Id}")">
-                            @persona.Texto <span class="text-muted small">(@persona.Detalle)</span>
-                        </label>
-                    </div>
-                </div>
-            }
+        @if (Id != null) {
+            <div class="mb-3">
+                <label class="form-label">Personal asignado</label>
+                <input class="form-control" value="@(ViewModel.NombresPersonal.Count == 0 ? "Nadie" : ViewModel.PersonalAsignado)" disabled />
+                <div class="form-text">Se asigna desde la ficha de cada veterinario o administrador.</div>
+            </div>
+        }
+
+        <div class="d-flex gap-2">
+            <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="5" class="btn btn-outline-primary" href="horarios">Cancelar</a>
         </div>
-
-
-        <button tabindex="5" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="6" class="btn btn-outline-secondary" href="horarios">Cancelar</a>
     </EditForm>
 </div>
 
@@ -59,7 +55,7 @@
 
     protected override void OnParametersSet() {
         if (Id == null) {
-            ViewModel = new HorarioViewModel { Personal = DatosEjemplo.OpcionesPersonal() };
+            ViewModel = new HorarioViewModel();
             return;
         }
         HorarioViewModel? horario = DatosEjemplo.Horarios().FirstOrDefault(h => h.Id == Id);
@@ -70,6 +66,7 @@
         ViewModel = horario;
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /horarios o PUT /horarios/{Id}
     private void Guardar() {
         Nav.NavigateTo("/horarios");
     }

@@ -1,4 +1,5 @@
 @page "/reportes/agenda-diaria"
+@inject IJSRuntime JS;
 
 <PageTitle>Reporte de agenda diaria</PageTitle>
 
@@ -7,8 +8,8 @@
 <div class="d-flex align-items-center gap-2 mb-3 no-print">
     <label class="text-nowrap">Fecha:</label>
     <input tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" />
-    <button tabindex="2" class="btn btn-primary">Generar</button>
-    <button tabindex="3" class="btn btn-success">Exportar PDF</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Generar()"><Icono Nombre="search" /><span>Generar</span></button>
+    <button tabindex="3" class="btn btn-secondary btn-texto" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
 <div class="card">
@@ -25,6 +26,9 @@
                 </tr>
             </thead>
             <tbody>
+                @if (Agenda.Count == 0) {
+                    <tr><td colspan="5" class="text-muted">No hay servicios programados para esta fecha.</td></tr>
+                }
                 @foreach (ItemAgendaViewModel item in Agenda) {
                     <tr>
                         <td>@item.FechaHora.ToString("HH:mm")</td>
@@ -49,6 +53,16 @@
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
 
     protected override void OnInitialized() {
-        Agenda = DatosEjemplo.AgendaDeHoy();
+        Generar();
+    }
+
+    // Al enlazar: GET /citas?fecha=AAAA-MM-DD (los datos de ejemplo solo traen la agenda de hoy)
+    private void Generar() {
+        Agenda = DatosEjemplo.AgendaDeHoy().Where(i => i.FechaHora.Date == Fecha.Date).ToList();
+    }
+
+    // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF
+    private async Task Imprimir() {
+        await JS.InvokeVoidAsync("print");
     }
 }

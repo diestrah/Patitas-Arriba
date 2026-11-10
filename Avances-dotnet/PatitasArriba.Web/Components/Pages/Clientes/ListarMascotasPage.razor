@@ -10,8 +10,8 @@
     <h3 class="mb-3">Mascotas</h3>
     @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
     @if (Sesion.EsAdministrador) {
-        <button tabindex="5" class="btn btn-success" @onclick="() => NuevaMascota()">
-            Nueva mascota
+        <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevaMascota()">
+            <Icono Nombre="plus" /><span>Nueva mascota</span>
         </button>
     }
 </div>
@@ -19,15 +19,21 @@
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
-    <button tabindex="3" class="btn btn-primary">Filtrar</button>
-    <button tabindex="4" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Mascotas.Any()) {
-    <div class="alert alert-info">No hay mascotas registradas.</div>
+    <div class="alert alert-info">No se encontraron mascotas.</div>
 }
 else {
-    <QuickGrid Items="Mascotas" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Mascotas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Nombre" Property="m => m.Nombre" Sortable="true" />
         <PropertyColumn Title="Tipo" Property="m => TextoEnum.De(m.TipoMascota)" />
         <PropertyColumn Title="Raza" Property="m => m.Raza" />
@@ -36,29 +42,54 @@ else {
         <PropertyColumn Title="Nacimiento" Property="m => m.FechaNacimiento" Format="dd/MM/yyyy" />
         <PropertyColumn Title="Dueño" Property="m => m.NombreDueno" Sortable="true" />
         <TemplateColumn Title="Acciones">
-            <button class="btn btn-outline-secondary btn-sm" @onclick="() => VerHistorial(context.Id)">
-                Historial
-            </button>
-            @if (Sesion.EsAdministrador) {
-                <button class="btn btn-primary btn-sm" @onclick="() => EditarMascota(context.Id)">
-                    Editar
+            @* Orden: ver (historial), editar, eliminar *@
+            <div class="acciones-flujo">
+                <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(context.Id)">
+                    <Icono Nombre="clipboard" /><span>Historial</span>
                 </button>
-                <button class="btn btn-danger btn-sm">
-                    Eliminar
-                </button>
-            }
+                @if (Sesion.EsAdministrador) {
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarMascota(context.Id)">
+                        <Icono Nombre="edit" />
+                    </button>
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                }
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="MascotaAEliminar != null"
+                  Titulo="¿Eliminar la mascota?"
+                  Mensaje="@($"{MascotaAEliminar?.Nombre} ({MascotaAEliminar?.NombreDueno}) dejará de aparecer. No se puede si tiene citas.")"
+                  OnConfirmar="EliminarMascota" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<MascotaViewModel> Todas { get; set; } = [];
     private IQueryable<MascotaViewModel> Mascotas { get; set; } = Enumerable.Empty<MascotaViewModel>().AsQueryable();
+    private MascotaViewModel? MascotaAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
-        Mascotas = DatosEjemplo.Mascotas().AsQueryable();
+        Todas = DatosEjemplo.Mascotas();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Mascotas = Todas
+            .Where(m => m.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || m.NombreDueno.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void NuevaMascota() {
@@ -71,5 +102,25 @@ else {
 
     private void VerHistorial(int id) {
         Nav.NavigateTo($"/reportes/historial-clinico/{id}");
+    }
+
+    private void PedirEliminar(MascotaViewModel mascota) {
+        MascotaAEliminar = mascota;
+    }
+
+    private void CancelarEliminacion() {
+        MascotaAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /mascotas/{id};
+    // si el backend lo rechaza (RN-MA-05: tiene citas), se mostrará su mensaje.
+    private void EliminarMascota() {
+        if (MascotaAEliminar == null) {
+            return;
+        }
+        Todas.Remove(MascotaAEliminar);
+        MensajeExito = $"Se eliminó la mascota {MascotaAEliminar.Nombre}.";
+        MascotaAEliminar = null;
+        Filtrar();
     }
 }

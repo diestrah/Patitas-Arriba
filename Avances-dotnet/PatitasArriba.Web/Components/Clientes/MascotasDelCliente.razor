@@ -17,10 +17,14 @@
                 @foreach (MascotaViewModel mascota in Mascotas) {
                     <div class="col-12">
                         <TarjetaMascota Mascota="mascota">
+                            <a class="btn btn-secondary btn-sm btn-texto" href="@($"reportes/historial-clinico/{mascota.Id}")">
+                                <Icono Nombre="clipboard" /><span>Historial</span>
+                            </a>
                             @if (PermitirEditar) {
-                                <a class="btn btn-primary btn-sm" href="@($"mascotas/editar/{mascota.Id}")">Editar</a>
+                                <a class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" href="@($"mascotas/editar/{mascota.Id}")">
+                                    <Icono Nombre="edit" />
+                                </a>
                             }
-                            <a class="btn btn-outline-secondary btn-sm" href="@($"reportes/historial-clinico/{mascota.Id}")">Historial clínico</a>
                         </TarjetaMascota>
                     </div>
                 }

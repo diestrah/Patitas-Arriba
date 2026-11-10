@@ -6,7 +6,7 @@
         <select class="form-select" @bind="IdArticuloAgregar">
             <option value="0">Seleccione un artículo</option>
             @foreach (ArticuloViewModel articulo in Articulos) {
-                <option value="@articulo.Id">@articulo.Nombre</option>
+                <option value="@articulo.Id">@articulo.Nombre (stock: @articulo.StockActual)</option>
             }
         </select>
         <input type="number" min="1" class="form-control w-auto" @bind="CantidadAgregar" />
@@ -14,17 +14,20 @@
             <input id="insumo-cobrable" type="checkbox" class="form-check-input" @bind="CobrableAgregar" />
             <label class="form-check-label" for="insumo-cobrable">Se cobra aparte</label>
         </div>
-        <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarInsumo()">
-            Agregar
+        <button type="button" class="btn btn-secondary btn-texto" @onclick="() => AgregarInsumo()">
+            <Icono Nombre="plus" /><span>Agregar</span>
         </button>
     </div>
+    if (MensajeError != null) {
+        <div class="alert alert-warning">@MensajeError</div>
+    }
 }
 
 @if (Insumos.Count == 0) {
     <p class="text-muted small">Sin insumos registrados.</p>
 }
 else {
-    <table class="table table-sm">
+    <table class="table table-sm align-middle">
         <thead>
             <tr>
                 <th>Artículo</th>
@@ -45,8 +48,8 @@ else {
                     </td>
                     @if (!SoloLectura) {
                         <td class="text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarInsumo(insumo)">
-                                Quitar
+                            <button type="button" class="btn btn-outline-danger btn-icono" title="Quitar" aria-label="Quitar" @onclick="() => QuitarInsumo(insumo)">
+                                <Icono Nombre="x" />
                             </button>
                         </td>
                     }
@@ -69,12 +72,22 @@ else {
     private int IdArticuloAgregar { get; set; }
     private int CantidadAgregar { get; set; } = 1;
     private bool CobrableAgregar { get; set; }
+    private string? MensajeError { get; set; }
 
     private void AgregarInsumo() {
         ArticuloViewModel? articulo = Articulos.Find(a => a.Id == IdArticuloAgregar);
         if (articulo == null || CantidadAgregar < 1) {
+            MensajeError = "Seleccione el artículo e indique una cantidad mayor a 0";
             return;
         }
+        // RN-AT-08: sin stock suficiente la atención no se registra.
+        // Solo cuentan los insumos nuevos (Id 0): los ya guardados se descontaron del stock antes.
+        int yaUsado = Insumos.Where(i => i.IdArticulo == articulo.Id && i.Id == 0).Sum(i => i.CantidadUtilizada);
+        if (yaUsado + CantidadAgregar > articulo.StockActual) {
+            MensajeError = $"Stock insuficiente de {articulo.Nombre}: quedan {articulo.StockActual - yaUsado}";
+            return;
+        }
+        MensajeError = null;
         Insumos.Add(new InsumoUtilizadoViewModel {
             IdArticulo = articulo.Id,
             NombreArticulo = articulo.Nombre,

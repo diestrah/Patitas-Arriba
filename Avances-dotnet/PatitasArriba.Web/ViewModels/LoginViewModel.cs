@@ -8,7 +8,7 @@ namespace PatitasArriba.Web.ViewModels {
         [Required(ErrorMessage = "Ingrese su contraseña")]
         public string Password { get; set; } = "";
 
-        // Solo para el Lab 9: simula el rol de la cuenta
+        // Solo mientras no se enlaza con el backend: simula el rol de la cuenta
         public RolUsuario Perfil { get; set; } = RolUsuario.ADMINISTRADOR;
     }
 }

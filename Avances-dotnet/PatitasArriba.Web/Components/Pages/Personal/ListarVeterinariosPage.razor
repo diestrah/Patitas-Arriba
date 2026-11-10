@@ -7,46 +7,78 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Veterinarios</h3>
-    <button tabindex="4" class="btn btn-success" @onclick="() => NuevoVeterinario()">
-        Nuevo veterinario
+    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoVeterinario()">
+        <Icono Nombre="plus" /><span>Nuevo veterinario</span>
     </button>
 </div>
 
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">DNI, nombre o colegiatura:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el texto a buscar..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Veterinarios.Any()) {
-    <div class="alert alert-info">No hay veterinarios registrados.</div>
+    <div class="alert alert-info">No se encontraron veterinarios.</div>
 }
 else {
-    <QuickGrid Items="Veterinarios" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Veterinarios" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="DNI" Property="v => v.Dni" Sortable="true" />
         <PropertyColumn Title="Nombre completo" Property="v => v.NombreCompleto" Sortable="true" />
         <PropertyColumn Title="Colegiatura" Property="v => v.NumeroColegiatura" />
         <PropertyColumn Title="Teléfono" Property="v => v.Telefono" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarVeterinario(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <PropertyColumn Title="Horarios" Property="v => v.TextoHorarios" />
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarVeterinario(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                    <Icono Nombre="trash" />
+                </button>
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="VeterinarioAEliminar != null"
+                  Titulo="¿Eliminar al veterinario?"
+                  Mensaje="@($"{VeterinarioAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja. No se puede si está asignado a alguna cita.")"
+                  OnConfirmar="EliminarVeterinario" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<VeterinarioViewModel> Todos { get; set; } = [];
     private IQueryable<VeterinarioViewModel> Veterinarios { get; set; } = Enumerable.Empty<VeterinarioViewModel>().AsQueryable();
+    private VeterinarioViewModel? VeterinarioAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
 
     protected override void OnInitialized() {
-        Veterinarios = DatosEjemplo.Veterinarios().AsQueryable();
+        Todos = DatosEjemplo.Veterinarios();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Veterinarios = Todos
+            .Where(v => v.Dni.Contains(texto)
+                     || v.NombreCompleto.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || v.NumeroColegiatura.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void NuevoVeterinario() {
@@ -55,5 +87,25 @@ else {
 
     private void EditarVeterinario(int id) {
         Nav.NavigateTo($"/veterinarios/editar/{id}");
+    }
+
+    private void PedirEliminar(VeterinarioViewModel veterinario) {
+        VeterinarioAEliminar = veterinario;
+    }
+
+    private void CancelarEliminacion() {
+        VeterinarioAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /veterinarios/{id};
+    // si el backend lo rechaza (RN-VE-03), se mostrará su mensaje.
+    private void EliminarVeterinario() {
+        if (VeterinarioAEliminar == null) {
+            return;
+        }
+        Todos.Remove(VeterinarioAEliminar);
+        MensajeExito = $"Se eliminó al veterinario {VeterinarioAEliminar.NombreCompleto}.";
+        VeterinarioAEliminar = null;
+        Filtrar();
     }
 }

@@ -1,5 +1,6 @@
 @page "/citas"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -7,67 +8,141 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Gestión de citas</h3>
-    <button tabindex="3" class="btn btn-success" @onclick="() => NuevaCita()">
-        Registrar cita
+    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevaCita()">
+        <Icono Nombre="plus" /><span>Registrar cita</span>
     </button>
 </div>
 
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Fecha:</label>
     <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => VerTodas()">Ver todas</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Citas.Any()) {
-    <div class="alert alert-info">No hay citas registradas.</div>
+    <div class="alert alert-info">No hay citas para mostrar.</div>
 }
 else {
-    <div class="row">
-        <div class="col-lg-7">
-            <QuickGrid Items="Citas" Pagination="Paginacion" Class="table table-striped table-hover">
-                <PropertyColumn Title="N.°" Property="c => c.Id" Sortable="true" />
-                <PropertyColumn Title="Fecha y hora" Property="c => c.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
-                <PropertyColumn Title="Mascota" Property="c => c.NombreMascota" />
-                <PropertyColumn Title="Cliente" Property="c => c.NombreCliente" />
-                <TemplateColumn Title="Estado">
-                    <BadgeEstadoCita Estado="context.Estado" />
-                </TemplateColumn>
-                <TemplateColumn Title="Acciones">
-                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarCita(context)">
-                        Ver
-                    </button>
-                    <button class="btn btn-primary btn-sm" @onclick="() => EditarCita(context.Id)">
-                        Editar
-                    </button>
-                </TemplateColumn>
-            </QuickGrid>
-            <Paginator State="Paginacion"></Paginator>
-        </div>
-        <div class="col-lg-5">
-            @if (CitaSeleccionada == null) {
-                <div class="alert alert-info">Seleccione una cita para ver su detalle.</div>
-            } else {
-                <DetalleCita Cita="CitaSeleccionada">
-                    <button class="btn btn-success btn-sm">Aprobar</button>
-                    <button class="btn btn-outline-danger btn-sm">Rechazar</button>
-                    <button class="btn btn-outline-secondary btn-sm">Cancelar cita</button>
-                </DetalleCita>
+    <QuickGrid Items="Citas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
+        <PropertyColumn Title="N.°" Property="c => c.Id" Sortable="true" />
+        <PropertyColumn Title="Fecha y hora" Property="c => c.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+        <TemplateColumn Title="Mascota">
+            @context.NombreMascota
+            @if (context.EsEmergencia) {
+                <span class="badge text-bg-danger ms-1">Emergencia</span>
             }
-        </div>
+        </TemplateColumn>
+        <PropertyColumn Title="Cliente" Property="c => c.NombreCliente" />
+        <TemplateColumn Title="Estado">
+            <BadgeEstadoCita Estado="context.Estado" />
+        </TemplateColumn>
+        <TemplateColumn Title="Acciones">
+            @* Orden fijo: ver, editar, acción positiva, acción negativa. Solo aparecen las que el backend permite *@
+            <div class="acciones-flujo">
+                <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
+                    <Icono Nombre="eye" />
+                </button>
+                @if (context.EsModificable) {
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCita(context.Id)">
+                        <Icono Nombre="edit" />
+                    </button>
+                }
+                @if (context.Estado == EstadoCita.PENDIENTE) {
+                    <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Aprobar(context)">
+                        <Icono Nombre="check" /><span>Aprobar</span>
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.RECHAZADO)">
+                        <Icono Nombre="x" /><span>Rechazar</span>
+                    </button>
+                }
+                @if (context.Estado == EstadoCita.APROBADO && PuedeCompletarse(context)) {
+                    <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Completar(context)">
+                        <Icono Nombre="check-circle" /><span>Completar</span>
+                    </button>
+                }
+                @if (context.Estado == EstadoCita.APROBADO && PuedeCancelarse(context)) {
+                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCambio(context, EstadoCita.CANCELADO)">
+                        <Icono Nombre="x" /><span>Cancelar cita</span>
+                    </button>
+                }
+            </div>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginator State="Paginacion"></Paginator>
+}
+
+@* Maestro-detalle: el detalle de la cita elegida con "Ver" aparece debajo de la tabla *@
+@if (CitaSeleccionada != null) {
+    <div class="col-lg-8 mt-4">
+        <DetalleCita Cita="CitaSeleccionada" Atendidos="Atendidos" />
     </div>
 }
 
+<ConfirmarDialogo Visible="CitaPorConfirmar != null"
+                  Titulo="@(EstadoDestino == EstadoCita.RECHAZADO ? "¿Rechazar la cita?" : "¿Cancelar la cita?")"
+                  Mensaje="@MensajeConfirmacion()"
+                  TextoConfirmar="@(EstadoDestino == EstadoCita.RECHAZADO ? "Sí, rechazar" : "Sí, cancelar cita")"
+                  TextoCancelar="No, volver"
+                  IconoConfirmar="x"
+                  OnConfirmar="ConfirmarCambio" OnCancelar="CancelarConfirmacion" />
+
 @code {
+    private List<CitaViewModel> Todas { get; set; } = [];
     private IQueryable<CitaViewModel> Citas { get; set; } = Enumerable.Empty<CitaViewModel>().AsQueryable();
     private CitaViewModel? CitaSeleccionada { get; set; }
     private DateTime FechaFiltro { get; set; } = DateTime.Today;
+    private bool FiltrarPorFecha { get; set; }
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+    private string? MensajeExito { get; set; }
+
+    // Servicios de cita que ya tienen su atención registrada
+    private HashSet<int> Atendidos { get; set; } = [];
+
+    // Rechazar y cancelar piden confirmación
+    private CitaViewModel? CitaPorConfirmar { get; set; }
+    private EstadoCita EstadoDestino { get; set; }
 
     protected override void OnInitialized() {
-        Citas = DatosEjemplo.Citas().AsQueryable();
+        Todas = DatosEjemplo.Citas();
+        Atendidos = DatosEjemplo.DetallesAtendidos();
+        Mostrar();
     }
 
-    // Maestro-detalle: al hacer clic en "Ver" se muestra el detalle de la cita a la derecha
+    // Al enlazar: GET /citas?fecha=AAAA-MM-DD
+    private void Mostrar() {
+        Citas = Todas
+            .Where(c => !FiltrarPorFecha || c.FechaHora?.Date == FechaFiltro.Date)
+            .OrderByDescending(c => c.FechaHora)
+            .AsQueryable();
+    }
+
+    private void Filtrar() {
+        FiltrarPorFecha = true;
+        Mostrar();
+    }
+
+    private void VerTodas() {
+        FiltrarPorFecha = false;
+        Mostrar();
+    }
+
+    // RN-CI-10: se completa cuando todos sus servicios tienen su atención
+    private bool PuedeCompletarse(CitaViewModel cita) {
+        return cita.Detalles.All(d => Atendidos.Contains(d.Id));
+    }
+
+    // RN-CI-11: no se cancela si algún servicio ya fue atendido; tampoco si la cita ya pasó
+    private bool PuedeCancelarse(CitaViewModel cita) {
+        return !cita.Detalles.Any(d => Atendidos.Contains(d.Id)) && cita.FechaHora > DateTime.Now;
+    }
+
     private void SeleccionarCita(CitaViewModel cita) {
         CitaSeleccionada = cita;
     }
@@ -78,5 +153,56 @@ else {
 
     private void EditarCita(int id) {
         Nav.NavigateTo($"/citas/editar/{id}");
+    }
+
+    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
+    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
+    private void Aprobar(CitaViewModel cita) {
+        cita.Estado = EstadoCita.APROBADO;
+        cita.IdAdministrador = Sesion.IdPersona;
+        cita.NombreAdministrador = Sesion.NombreUsuario;
+        MensajeExito = $"Se aprobó la cita N.° {cita.Id} de {cita.NombreMascota}.";
+        Mostrar();
+    }
+
+    private void Completar(CitaViewModel cita) {
+        cita.Estado = EstadoCita.COMPLETADO;
+        MensajeExito = $"La cita N.° {cita.Id} de {cita.NombreMascota} quedó completada.";
+        Mostrar();
+    }
+
+    private void PedirCambio(CitaViewModel cita, EstadoCita estado) {
+        CitaPorConfirmar = cita;
+        EstadoDestino = estado;
+    }
+
+    private void CancelarConfirmacion() {
+        CitaPorConfirmar = null;
+    }
+
+    private string MensajeConfirmacion() {
+        if (CitaPorConfirmar == null) {
+            return "";
+        }
+        string cita = $"{CitaPorConfirmar.NombreMascota} · {CitaPorConfirmar.TextoServicios} · {CitaPorConfirmar.FechaHora:dd/MM HH:mm}.";
+        return EstadoDestino == EstadoCita.RECHAZADO
+            ? $"{cita} El cliente verá la cita como rechazada."
+            : $"{cita} Se liberará el horario del veterinario.";
+    }
+
+    private void ConfirmarCambio() {
+        if (CitaPorConfirmar == null) {
+            return;
+        }
+        CitaPorConfirmar.Estado = EstadoDestino;
+        if (EstadoDestino == EstadoCita.RECHAZADO) {
+            CitaPorConfirmar.IdAdministrador = Sesion.IdPersona;
+            CitaPorConfirmar.NombreAdministrador = Sesion.NombreUsuario;
+            MensajeExito = $"Se rechazó la cita N.° {CitaPorConfirmar.Id}.";
+        } else {
+            MensajeExito = $"Se canceló la cita N.° {CitaPorConfirmar.Id}.";
+        }
+        CitaPorConfirmar = null;
+        Mostrar();
     }
 }

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace PatitasArriba.Web.ViewModels {
-    public class AtencionViewModel {
+    public class AtencionViewModel : IValidatableObject {
         public int Id { get; set; }
 
         // Servicio de la cita que se está atendiendo (relación 1 a 1 con detalle_cita)
@@ -10,6 +10,7 @@ namespace PatitasArriba.Web.ViewModels {
         public string NombreMascota { get; set; } = "";
         public string NombreCliente { get; set; } = "";
         public string NombreServicio { get; set; } = "";
+        public TipoServicio TipoServicio { get; set; }
         public string NombreVeterinario { get; set; } = "";
 
         [Required(ErrorMessage = "Indique la fecha y hora de la atención")]
@@ -23,5 +24,19 @@ namespace PatitasArriba.Web.ViewModels {
 
         public List<AtencionDiagnosticoViewModel> Diagnosticos { get; set; } = [];
         public List<InsumoUtilizadoViewModel> Insumos { get; set; } = [];
+
+        // RN-SE-02: estética es el único servicio no médico (no lleva diagnósticos ni recetas)
+        public bool EsServicioMedico => TipoServicio != TipoServicio.ESTETICA;
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
+            // RN-AT-06: en servicios médicos el motivo de consulta es obligatorio
+            if (EsServicioMedico && string.IsNullOrWhiteSpace(MotivoConsulta)) {
+                yield return new ValidationResult("El motivo de consulta es obligatorio en servicios médicos", [nameof(MotivoConsulta)]);
+            }
+            // RN-AT-05: la atención no puede registrarse con una hora futura
+            if (FechaHora > DateTime.Now) {
+                yield return new ValidationResult("La fecha y hora no puede ser posterior a este momento", [nameof(FechaHora)]);
+            }
+        }
     }
 }

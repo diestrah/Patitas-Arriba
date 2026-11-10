@@ -1,71 +1,112 @@
 @page "/boletas"
 @inject NavigationManager Nav;
+@inject IJSRuntime JS;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
 <PageTitle>Boletas</PageTitle>
 
-<div class="d-flex justify-content-between mb-3">
+<div class="d-flex justify-content-between mb-3 no-print">
     <h3 class="mb-3">Boletas de venta</h3>
-    <button tabindex="4" class="btn btn-success" @onclick="() => NuevaBoleta()">
-        Nueva boleta
+    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevaBoleta()">
+        <Icono Nombre="plus" /><span>Nueva boleta</span>
     </button>
 </div>
 
-<div class="d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">Cliente o N.° de boleta:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el cliente o la serie-correlativo..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+<div class="d-flex align-items-center gap-2 mb-3 no-print">
+    <label class="text-nowrap">Cliente, DNI o N.° de boleta:</label>
+    <input tabindex="1" class="form-control" placeholder="Ingrese el cliente, su DNI o la serie-correlativo..." @bind="Filtro" />
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success no-print">@MensajeExito</div>
+}
+
 @if (!Boletas.Any()) {
-    <div class="alert alert-info">No hay boletas registradas.</div>
+    <div class="alert alert-info">No se encontraron boletas.</div>
 }
 else {
     <div class="row">
-        <div class="col-lg-7">
-            <QuickGrid Items="Boletas" Pagination="Paginacion" Class="table table-striped table-hover">
+        <div class="col-lg-7 no-print">
+            <QuickGrid Items="Boletas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
                 <PropertyColumn Title="N.° boleta" Property="b => b.SerieCorrelativo" Sortable="true" />
                 <PropertyColumn Title="Fecha" Property="b => b.Fecha" Format="dd/MM/yyyy HH:mm" Sortable="true" />
                 <PropertyColumn Title="Cliente" Property="b => b.NombreCliente" />
                 <PropertyColumn Title="Total (S/)" Property="b => b.Total" Format="N2" Align="Align.Right" />
                 <TemplateColumn Title="Estado">
                     @if (context.IsActivo) {
-                        <span class="badge text-bg-success">Emitida</span>
+                        <span class="estado estado-aprobado">Emitida</span>
                     } else {
-                        <span class="badge text-bg-danger">Anulada</span>
+                        <span class="estado estado-rechazado">Anulada</span>
                     }
                 </TemplateColumn>
-                <TemplateColumn Title="Acciones">
-                    <button class="btn btn-outline-primary btn-sm" @onclick="() => SeleccionarBoleta(context)">
-                        Ver
+                <TemplateColumn Title="Ver" Align="Align.Center">
+                    <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarBoleta(context)">
+                        <Icono Nombre="eye" />
                     </button>
                 </TemplateColumn>
             </QuickGrid>
             <Paginator State="Paginacion"></Paginator>
         </div>
-        <div class="col-lg-5">
+        <div class="col-lg-5 print-ancho">
             @if (BoletaSeleccionada == null) {
-                <div class="alert alert-info">Seleccione una boleta para ver su detalle.</div>
+                <div class="alert alert-info no-print">Seleccione una boleta para ver su detalle.</div>
             } else {
                 <DetalleBoleta Boleta="BoletaSeleccionada">
-                    <button class="btn btn-success btn-sm">Imprimir</button>
-                    <button class="btn btn-outline-danger btn-sm">Anular boleta</button>
+                    <div class="d-flex gap-2 no-print">
+                        <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => Imprimir()">
+                            <Icono Nombre="printer" /><span>Imprimir</span>
+                        </button>
+                        @* RN-BO-11: una boleta anulada no se vuelve a anular *@
+                        @if (BoletaSeleccionada.IsActivo) {
+                            <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(BoletaSeleccionada)">
+                                <Icono Nombre="ban" /><span>Anular boleta</span>
+                            </button>
+                        }
+                    </div>
                 </DetalleBoleta>
             }
         </div>
     </div>
 }
 
+<ConfirmarDialogo Visible="BoletaAAnular != null"
+                  Titulo="¿Anular la boleta?"
+                  Mensaje="@($"La boleta {BoletaAAnular?.SerieCorrelativo} de {BoletaAAnular?.NombreCliente} quedará anulada y lo vendido en caja vuelve al stock. Su número no se puede volver a usar.")"
+                  TextoConfirmar="Sí, anular"
+                  IconoConfirmar="ban"
+                  OnConfirmar="AnularBoleta" OnCancelar="CancelarAnulacion" />
+
 @code {
+    private List<BoletaViewModel> Todas { get; set; } = [];
     private IQueryable<BoletaViewModel> Boletas { get; set; } = Enumerable.Empty<BoletaViewModel>().AsQueryable();
     private BoletaViewModel? BoletaSeleccionada { get; set; }
+    private BoletaViewModel? BoletaAAnular { get; set; }
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
-        Boletas = DatosEjemplo.Boletas().AsQueryable();
+        Todas = DatosEjemplo.Boletas();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Boletas = Todas
+            .Where(b => b.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || b.DniCliente.Contains(texto)
+                     || b.SerieCorrelativo.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     // Maestro-detalle: al hacer clic en "Ver" se muestra la boleta a la derecha
@@ -75,5 +116,29 @@ else {
 
     private void NuevaBoleta() {
         Nav.NavigateTo("/boletas/nueva");
+    }
+
+    // Imprime solo la boleta: la tabla, los filtros y los botones tienen la clase no-print
+    private async Task Imprimir() {
+        await JS.InvokeVoidAsync("print");
+    }
+
+    private void PedirAnulacion(BoletaViewModel boleta) {
+        BoletaAAnular = boleta;
+    }
+
+    private void CancelarAnulacion() {
+        BoletaAAnular = null;
+    }
+
+    // Sin backend se marca como anulada en la lista. Al enlazar: DELETE /boletas/{id} (RN-BO-11)
+    private void AnularBoleta() {
+        if (BoletaAAnular == null) {
+            return;
+        }
+        BoletaAAnular.IsActivo = false;
+        MensajeExito = $"Se anuló la boleta {BoletaAAnular.SerieCorrelativo}.";
+        BoletaAAnular = null;
+        Filtrar();
     }
 }

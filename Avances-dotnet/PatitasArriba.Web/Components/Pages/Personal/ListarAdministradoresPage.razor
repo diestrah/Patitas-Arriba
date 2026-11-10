@@ -1,5 +1,6 @@
 @page "/administradores"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -7,45 +8,97 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Administradores</h3>
-    <button tabindex="4" class="btn btn-success" @onclick="() => NuevoAdministrador()">
-        Nuevo administrador
+    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoAdministrador()">
+        <Icono Nombre="plus" /><span>Nuevo administrador</span>
     </button>
 </div>
 
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">DNI o nombre:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
 @if (!Administradores.Any()) {
-    <div class="alert alert-info">No hay administradores registrados.</div>
+    <div class="alert alert-info">No se encontraron administradores.</div>
 }
 else {
-    <QuickGrid Items="Administradores" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Administradores" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="DNI" Property="a => a.Dni" Sortable="true" />
-        <PropertyColumn Title="Nombre completo" Property="a => a.NombreCompleto" Sortable="true" />
+        <TemplateColumn Title="Nombre completo" SortBy="PorNombre">
+            @context.NombreCompleto
+            @if (EsLaSesion(context)) {
+                <span class="estado estado-pendiente mini ms-1">tú</span>
+            }
+        </TemplateColumn>
         <PropertyColumn Title="Teléfono" Property="a => a.Telefono" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarAdministrador(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <PropertyColumn Title="Horarios" Property="a => a.TextoHorarios" />
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAdministrador(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                @if (EsLaSesion(context)) {
+                    @* No puede eliminarse a sí mismo: perdería el acceso con el que está trabajando *@
+                    <span class="btn-icono-bloqueado" tabindex="0" title="No puede eliminarse a sí mismo mientras está en sesión" aria-label="Eliminar no disponible: es su propia cuenta">
+                        <Icono Nombre="lock" />
+                    </span>
+                } else {
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                }
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="AdministradorAEliminar != null"
+                  Titulo="¿Eliminar al administrador?"
+                  Mensaje="@($"{AdministradorAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja.")"
+                  OnConfirmar="EliminarAdministrador" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<AdministradorViewModel> Todos { get; set; } = [];
     private IQueryable<AdministradorViewModel> Administradores { get; set; } = Enumerable.Empty<AdministradorViewModel>().AsQueryable();
+    private AdministradorViewModel? AdministradorAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+    private GridSort<AdministradorViewModel> PorNombre { get; } = GridSort<AdministradorViewModel>.ByAscending(a => a.NombreCompleto);
 
     protected override void OnInitialized() {
-        Administradores = DatosEjemplo.Administradores().AsQueryable();
+        Todos = DatosEjemplo.Administradores();
+        Filtrar();
+    }
+
+    // Fila del administrador que inició sesión
+    private bool EsLaSesion(AdministradorViewModel administrador) {
+        return Sesion.EsAdministrador && administrador.Id == Sesion.IdPersona;
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Administradores = Todos
+            .Where(a => a.Dni.Contains(texto) || a.NombreCompleto.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void NuevoAdministrador() {
@@ -54,5 +107,31 @@ else {
 
     private void EditarAdministrador(int id) {
         Nav.NavigateTo($"/administradores/editar/{id}");
+    }
+
+    private void PedirEliminar(AdministradorViewModel administrador) {
+        AdministradorAEliminar = administrador;
+    }
+
+    private void CancelarEliminacion() {
+        AdministradorAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /administradores/{id};
+    // el backend no deja eliminar al último administrador activo (RN-AD-02).
+    private void EliminarAdministrador() {
+        if (AdministradorAEliminar == null) {
+            return;
+        }
+        MensajeExito = null;
+        MensajeError = null;
+        if (Todos.Count == 1) {
+            MensajeError = "No se puede eliminar al último administrador activo.";
+        } else {
+            Todos.Remove(AdministradorAEliminar);
+            MensajeExito = $"Se eliminó al administrador {AdministradorAEliminar.NombreCompleto}.";
+        }
+        AdministradorAEliminar = null;
+        Filtrar();
     }
 }

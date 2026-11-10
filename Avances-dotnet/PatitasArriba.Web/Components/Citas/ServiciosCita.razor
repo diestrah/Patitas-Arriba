@@ -15,8 +15,8 @@
             <option value="@veterinario.Id">@veterinario.NombreCompleto</option>
         }
     </select>
-    <button type="button" class="btn btn-outline-primary" @onclick="() => AgregarServicio()">
-        Agregar
+    <button type="button" class="btn btn-secondary btn-texto" @onclick="() => AgregarServicio()">
+        <Icono Nombre="plus" /><span>Agregar</span>
     </button>
 </div>
 
@@ -28,7 +28,7 @@
     <div class="alert alert-info">Agregue al menos un servicio.</div>
 }
 else {
-    <table class="table table-sm">
+    <table class="table table-sm align-middle">
         <thead>
             <tr>
                 <th>Servicio</th>
@@ -42,9 +42,14 @@ else {
                     <td>@detalle.NombreServicio</td>
                     <td>@detalle.NombreVeterinario</td>
                     <td class="text-end">
-                        <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarServicio(detalle)">
-                            Quitar
-                        </button>
+                        @* RN-CI-13: un servicio ya atendido no se puede quitar *@
+                        @if (Atendidos.Contains(detalle.Id)) {
+                            <span class="estado estado-aprobado">Atendido</span>
+                        } else {
+                            <button type="button" class="btn btn-outline-danger btn-icono" title="Quitar" aria-label="Quitar" @onclick="() => QuitarServicio(detalle)">
+                                <Icono Nombre="x" />
+                            </button>
+                        }
                     </td>
                 </tr>
             }
@@ -61,6 +66,10 @@ else {
 
     [Parameter, EditorRequired]
     public List<VeterinarioViewModel> Veterinarios { get; set; } = default!;
+
+    // Servicios de la cita que ya tienen atención (no se pueden quitar)
+    [Parameter]
+    public HashSet<int> Atendidos { get; set; } = [];
 
     private int IdServicioAgregar { get; set; }
     private int IdVeterinarioAgregar { get; set; }

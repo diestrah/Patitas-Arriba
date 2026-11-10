@@ -1,12 +1,13 @@
 @page "/recetas/{Id:int}"
 @inject NavigationManager Nav;
+@inject IJSRuntime JS;
 
 <PageTitle>Receta médica</PageTitle>
 
 <div class="d-flex gap-2 mb-3 no-print">
-    <a class="btn btn-outline-secondary" href="recetas">Volver</a>
-    <a class="btn btn-primary" href="@($"recetas/editar/{Id}")">Editar</a>
-    <button class="btn btn-success">Imprimir / exportar PDF</button>
+    <a class="btn btn-outline-primary btn-texto" href="recetas"><Icono Nombre="arrow-left" /><span>Volver</span></a>
+    <a class="btn btn-outline-primary btn-texto" href="@($"recetas/editar/{Id}")"><Icono Nombre="edit" /><span>Editar</span></a>
+    <button class="btn btn-secondary btn-texto" @onclick="() => Imprimir()" disabled="@(Receta == null)"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
 @if (Receta == null) {
@@ -57,5 +58,11 @@ else {
 
     protected override void OnParametersSet() {
         Receta = DatosEjemplo.Recetas().FirstOrDefault(r => r.Id == Id);
+    }
+
+    // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF.
+    // Los botones y el menú no se imprimen (clase no-print en app.css)
+    private async Task Imprimir() {
+        await JS.InvokeVoidAsync("print");
     }
 }

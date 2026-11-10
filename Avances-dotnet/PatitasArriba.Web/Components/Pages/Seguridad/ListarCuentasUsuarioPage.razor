@@ -1,59 +1,130 @@
 @page "/cuentas-usuario"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
 <PageTitle>Cuentas de usuario</PageTitle>
 
-<div class="d-flex justify-content-between mb-3">
-    <h3 class="mb-3">Cuentas de usuario</h3>
-    <button tabindex="5" class="btn btn-success" @onclick="() => NuevaCuenta()">
-        Nueva cuenta
-    </button>
-</div>
+<h3 class="mb-1">Cuentas de usuario</h3>
+<p class="text-muted small mb-3">Las cuentas se crean al registrar un cliente, un veterinario o un administrador.</p>
 
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Usuario o correo:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el usuario o el correo..." @bind="Filtro" />
-    <button tabindex="3" class="btn btn-primary">Filtrar</button>
-    <button tabindex="4" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
 @if (!Cuentas.Any()) {
-    <div class="alert alert-info">No hay cuentas registradas.</div>
+    <div class="alert alert-info">No se encontraron cuentas.</div>
 }
 else {
-    <QuickGrid Items="Cuentas" Pagination="Paginacion" Class="table table-striped table-hover">
-        <PropertyColumn Title="Usuario" Property="c => c.NombreUsuario" Sortable="true" />
+    <QuickGrid Items="Cuentas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
+        <TemplateColumn Title="Usuario" SortBy="PorUsuario">
+            @context.NombreUsuario
+            @if (EsLaSesion(context)) {
+                <span class="estado estado-pendiente mini ms-1">tú</span>
+            }
+        </TemplateColumn>
         <PropertyColumn Title="Correo" Property="c => c.Correo" />
         <PropertyColumn Title="Rol" Property="c => TextoEnum.De(c.Rol)" />
         <PropertyColumn Title="Pertenece a" Property="c => c.NombrePersona" Sortable="true" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarCuenta(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCuenta(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                @if (EsLaSesion(context)) {
+                    @* Punto 4 del feedback: nadie puede eliminar la cuenta con la que está trabajando *@
+                    <span class="btn-icono-bloqueado" tabindex="0" title="No puede eliminar su propia cuenta mientras está en sesión" aria-label="Eliminar no disponible: es su propia cuenta">
+                        <Icono Nombre="lock" />
+                    </span>
+                } else {
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                }
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="CuentaAEliminar != null"
+                  Titulo="¿Eliminar la cuenta?"
+                  Mensaje="@($"La cuenta “{CuentaAEliminar?.NombreUsuario}” ya no podrá iniciar sesión.")"
+                  OnConfirmar="EliminarCuenta" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<CuentaUsuarioViewModel> Todas { get; set; } = [];
     private IQueryable<CuentaUsuarioViewModel> Cuentas { get; set; } = Enumerable.Empty<CuentaUsuarioViewModel>().AsQueryable();
+    private CuentaUsuarioViewModel? CuentaAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+    private GridSort<CuentaUsuarioViewModel> PorUsuario { get; } = GridSort<CuentaUsuarioViewModel>.ByAscending(c => c.NombreUsuario);
 
     protected override void OnInitialized() {
-        Cuentas = DatosEjemplo.CuentasUsuario().AsQueryable();
+        Todas = DatosEjemplo.CuentasUsuario();
+        Filtrar();
     }
 
-    private void NuevaCuenta() {
-        Nav.NavigateTo("/cuentas-usuario/nuevo");
+    // Cuenta con la que se inició sesión
+    private bool EsLaSesion(CuentaUsuarioViewModel cuenta) {
+        return cuenta.Id == Sesion.IdCuenta;
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Cuentas = Todas
+            .Where(c => c.NombreUsuario.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || c.Correo.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void EditarCuenta(int id) {
         Nav.NavigateTo($"/cuentas-usuario/editar/{id}");
+    }
+
+    private void PedirEliminar(CuentaUsuarioViewModel cuenta) {
+        CuentaAEliminar = cuenta;
+    }
+
+    private void CancelarEliminacion() {
+        CuentaAEliminar = null;
+    }
+
+    // Al enlazar se llamará a DELETE /cuentas/{id}. El backend no deja dar de baja una cuenta que usa
+    // una persona activa (RN-CU-06): la cuenta se da de baja junto con la persona. Aquí se simula esa respuesta.
+    private void EliminarCuenta() {
+        if (CuentaAEliminar == null) {
+            return;
+        }
+        MensajeExito = null;
+        MensajeError = null;
+        if (!string.IsNullOrEmpty(CuentaAEliminar.NombrePersona)) {
+            MensajeError = $"No se puede eliminar la cuenta “{CuentaAEliminar.NombreUsuario}”: la usa {CuentaAEliminar.NombrePersona} ({TextoEnum.De(CuentaAEliminar.Rol).ToLower()}). Elimine a la persona y su cuenta se dará de baja con ella.";
+        } else {
+            Todas.Remove(CuentaAEliminar);
+            MensajeExito = $"Se eliminó la cuenta “{CuentaAEliminar.NombreUsuario}”.";
+            Filtrar();
+        }
+        CuentaAEliminar = null;
     }
 }

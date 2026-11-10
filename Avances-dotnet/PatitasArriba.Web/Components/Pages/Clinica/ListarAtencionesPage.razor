@@ -10,15 +10,21 @@
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Atenciones.Any()) {
-    <div class="alert alert-info">No hay atenciones registradas.</div>
+    <div class="alert alert-info">No se encontraron atenciones.</div>
 }
 else {
-    <QuickGrid Items="Atenciones" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Atenciones" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Fecha" Property="a => a.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
         <PropertyColumn Title="Mascota" Property="a => a.NombreMascota" Sortable="true" />
         <PropertyColumn Title="Dueño" Property="a => a.NombreCliente" />
@@ -26,27 +32,67 @@ else {
         <PropertyColumn Title="Veterinario" Property="a => a.NombreVeterinario" />
         <PropertyColumn Title="Motivo" Property="a => a.MotivoConsulta" />
         <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarAtencion(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-outline-success btn-sm" @onclick="() => NuevaReceta(context.Id)">
-                Registrar receta
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+            @* Orden: editar, acción positiva (receta), acción negativa (anular) *@
+            <div class="acciones-flujo">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                @* RN-RE-02: no se emiten recetas en servicios estéticos *@
+                @if (context.EsServicioMedico) {
+                    <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => NuevaReceta(context.Id)">
+                        <Icono Nombre="file-text" /><span>Receta</span>
+                    </button>
+                }
+                @* RN-AT-10: no se anula si tiene recetas emitidas o insumos cobrados *@
+                @if (PuedeAnularse(context)) {
+                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
+                        <Icono Nombre="ban" /><span>Anular</span>
+                    </button>
+                }
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="AtencionAAnular != null"
+                  Titulo="¿Anular la atención?"
+                  Mensaje="@($"{AtencionAAnular?.NombreServicio} de {AtencionAAnular?.NombreMascota}: sus insumos vuelven al stock y el servicio queda como no realizado (no se puede volver a atender).")"
+                  TextoConfirmar="Sí, anular"
+                  IconoConfirmar="ban"
+                  OnConfirmar="AnularAtencion" OnCancelar="CancelarAnulacion" />
+
 @code {
+    private List<AtencionViewModel> Todas { get; set; } = [];
     private IQueryable<AtencionViewModel> Atenciones { get; set; } = Enumerable.Empty<AtencionViewModel>().AsQueryable();
+    private AtencionViewModel? AtencionAAnular { get; set; }
+    private HashSet<int> InsumosCobrados { get; set; } = [];
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
-        Atenciones = DatosEjemplo.Atenciones().AsQueryable();
+        Todas = DatosEjemplo.Atenciones();
+        InsumosCobrados = DatosEjemplo.InsumosCobrados();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Atenciones = Todas
+            .Where(a => a.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || a.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
+    }
+
+    private bool PuedeAnularse(AtencionViewModel atencion) {
+        return DatosEjemplo.RecetaDeAtencion(atencion.Id) == null
+            && !atencion.Insumos.Any(i => InsumosCobrados.Contains(i.Id));
     }
 
     private void EditarAtencion(int id) {
@@ -55,5 +101,24 @@ else {
 
     private void NuevaReceta(int idAtencion) {
         Nav.NavigateTo($"/recetas/nueva/{idAtencion}");
+    }
+
+    private void PedirAnulacion(AtencionViewModel atencion) {
+        AtencionAAnular = atencion;
+    }
+
+    private void CancelarAnulacion() {
+        AtencionAAnular = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /atenciones/{id}
+    private void AnularAtencion() {
+        if (AtencionAAnular == null) {
+            return;
+        }
+        Todas.Remove(AtencionAAnular);
+        MensajeExito = $"Se anuló la atención de {AtencionAAnular.NombreMascota} ({AtencionAAnular.NombreServicio}).";
+        AtencionAAnular = null;
+        Filtrar();
     }
 }

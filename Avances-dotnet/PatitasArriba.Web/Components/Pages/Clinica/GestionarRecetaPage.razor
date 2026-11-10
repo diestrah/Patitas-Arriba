@@ -19,7 +19,6 @@
 
 <EditForm Model="ViewModel" OnValidSubmit="Guardar">
     <DataAnnotationsValidator />
-    <ValidationSummary />
 
     <div class="row">
         <div class="col-md-4 mb-3">
@@ -30,8 +29,10 @@
     </div>
 
     <h5 class="mt-2">Medicamentos</h5>
-    <div class="row g-2 mb-3">
+    <p class="form-text mt-0">Recetar no descuenta stock: el cliente compra lo recetado en caja (RN-RE-04).</p>
+    <div class="row g-2 mb-1 align-items-end">
         <div class="col-md-3">
+            <label class="form-label small mb-1">Medicamento</label>
             <select class="form-select" @bind="IdMedicamentoAgregar">
                 <option value="0">Seleccione un medicamento</option>
                 @foreach (ArticuloViewModel medicamento in Medicamentos) {
@@ -40,39 +41,44 @@
             </select>
         </div>
         <div class="col-md-2">
-            <input class="form-control" placeholder="Dosis" @bind="DosisAgregar" />
+            <label class="form-label small mb-1">Dosis (cada toma)</label>
+            <input class="form-control" placeholder="Ej.: 1 tableta" maxlength="45" @bind="DosisAgregar" />
         </div>
         <div class="col-md-2">
-            <input class="form-control" placeholder="Frecuencia" @bind="FrecuenciaAgregar" />
+            <label class="form-label small mb-1">Frecuencia</label>
+            <input class="form-control" placeholder="Ej.: cada 12 horas" maxlength="45" @bind="FrecuenciaAgregar" />
         </div>
         <div class="col-md-2">
+            <label class="form-label small mb-1">Duración</label>
             <div class="input-group">
                 <input type="number" min="1" class="form-control" @bind="DiasAgregar" />
                 <span class="input-group-text">días</span>
             </div>
         </div>
         <div class="col-md-2">
+            <label class="form-label small mb-1">Cantidad total</label>
             <div class="input-group">
                 <input type="number" min="1" class="form-control" @bind="CantidadAgregar" />
                 <span class="input-group-text">und.</span>
             </div>
         </div>
         <div class="col-md-1">
-            <button type="button" class="btn btn-outline-primary w-100" @onclick="() => AgregarMedicamento()">
-                Agregar
+            <button type="button" class="btn btn-secondary btn-icono w-100" title="Agregar medicamento" aria-label="Agregar medicamento" @onclick="() => AgregarMedicamento()">
+                <Icono Nombre="plus" />
             </button>
         </div>
     </div>
+    <div class="form-text mb-3">La cantidad total es lo que el cliente debe comprar para todo el tratamiento (por ejemplo, 1 tableta cada 12 horas por 7 días = 14).</div>
 
     @if (MensajeError != null) {
         <div class="alert alert-warning">@MensajeError</div>
     }
 
     @if (ViewModel.Medicamentos.Count == 0) {
-        <div class="alert alert-info">Agregue al menos un medicamento.</div>
+        <div class="alert alert-info mb-1">Agregue al menos un medicamento.</div>
     }
     else {
-        <table class="table table-sm">
+        <table class="table table-sm align-middle">
             <thead>
                 <tr>
                     <th>Medicamento</th>
@@ -92,8 +98,8 @@
                         <td class="text-end">@medicamento.DuracionDias días</td>
                         <td class="text-end">@medicamento.CantidadTotal</td>
                         <td class="text-end">
-                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => QuitarMedicamento(medicamento)">
-                                Quitar
+                            <button type="button" class="btn btn-outline-danger btn-icono" title="Quitar" aria-label="Quitar" @onclick="() => QuitarMedicamento(medicamento)">
+                                <Icono Nombre="x" />
                             </button>
                         </td>
                     </tr>
@@ -101,15 +107,18 @@
             </tbody>
         </table>
     }
+    <ValidationMessage For="() => ViewModel.Medicamentos" />
 
-    <div class="mb-3">
+    <div class="mb-3 mt-3">
         <label class="form-label">Indicaciones generales</label>
-        <InputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.IndicacionesGenerales" />
+        <InputTextArea tabindex="2" class="form-control" rows="3" placeholder="Ej.: dar con comida; control en 7 días" @bind-Value="ViewModel.IndicacionesGenerales" />
         <ValidationMessage For="() => ViewModel.IndicacionesGenerales" />
     </div>
 
-    <button tabindex="3" type="submit" class="btn btn-primary">Guardar</button>
-    <a tabindex="4" class="btn btn-outline-secondary" href="recetas">Cancelar</a>
+    <div class="d-flex gap-2">
+        <button tabindex="3" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+        <a tabindex="4" class="btn btn-outline-primary" href="recetas">Cancelar</a>
+    </div>
 </EditForm>
 
 @code {
@@ -147,7 +156,8 @@
         }
 
         AtencionViewModel? atencion = DatosEjemplo.Atenciones().FirstOrDefault(a => a.Id == IdAtencion);
-        if (atencion == null) {
+        // RN-RE-02: no se emiten recetas en servicios estéticos
+        if (atencion == null || !atencion.EsServicioMedico) {
             Nav.NavigateTo("/atenciones");
             return;
         }
@@ -161,17 +171,22 @@
         };
     }
 
+    // RN-RE-03: cada medicamento con artículo, dosis, frecuencia, duración y cantidad válidos
     private void AgregarMedicamento() {
         ArticuloViewModel? medicamento = Medicamentos.Find(m => m.Id == IdMedicamentoAgregar);
         if (medicamento == null || string.IsNullOrWhiteSpace(DosisAgregar) || string.IsNullOrWhiteSpace(FrecuenciaAgregar)) {
             MensajeError = "Seleccione el medicamento e indique la dosis y la frecuencia";
             return;
         }
+        if (DiasAgregar < 1 || CantidadAgregar < 1) {
+            MensajeError = "La duración y la cantidad total deben ser mayores a 0";
+            return;
+        }
         ViewModel.Medicamentos.Add(new DetalleRecetaViewModel {
             IdArticulo = medicamento.Id,
             NombreArticulo = medicamento.Nombre,
-            Dosis = DosisAgregar,
-            Frecuencia = FrecuenciaAgregar,
+            Dosis = DosisAgregar.Trim(),
+            Frecuencia = FrecuenciaAgregar.Trim(),
             DuracionDias = DiasAgregar,
             CantidadTotal = CantidadAgregar
         });
@@ -187,6 +202,7 @@
         ViewModel.Medicamentos.Remove(medicamento);
     }
 
+    // Sin backend: solo regresa al listado. Al enlazar: POST /recetas o PUT /recetas/{Id}
     private void Guardar() {
         Nav.NavigateTo("/recetas");
     }

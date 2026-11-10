@@ -1,15 +1,16 @@
-<span class="badge @ClaseColor">@TextoEnum.De(Estado)</span>
+<span class="estado @ClaseColor">@TextoEnum.De(Estado)</span>
 
 @code {
     [Parameter, EditorRequired]
     public EstadoCita Estado { get; set; }
 
+    // Colores de la paleta C (ver app.css)
     private string ClaseColor => Estado switch {
-        EstadoCita.PENDIENTE => "text-bg-warning",
-        EstadoCita.APROBADO => "text-bg-primary",
-        EstadoCita.RECHAZADO => "text-bg-danger",
-        EstadoCita.CANCELADO => "text-bg-secondary",
-        EstadoCita.COMPLETADO => "text-bg-success",
-        _ => "text-bg-light"
+        EstadoCita.PENDIENTE => "estado-pendiente",
+        EstadoCita.APROBADO => "estado-aprobado",
+        EstadoCita.RECHAZADO => "estado-rechazado",
+        EstadoCita.CANCELADO => "estado-cancelado",
+        EstadoCita.COMPLETADO => "estado-completado",
+        _ => ""
     };
 }

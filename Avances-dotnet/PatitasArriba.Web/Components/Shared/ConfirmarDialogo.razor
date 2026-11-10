@@ -1,0 +1,60 @@
+@* Cuadro para confirmar una acción que no se puede deshacer (eliminar, anular, rechazar, cancelar).
+   En las tablas esas acciones van con contorno terracota; el terracota lleno solo aparece aquí,
+   cuando el usuario ya decidió. Reemplaza al confirm() de JavaScript del ejemplo del profesor. *@
+@if (Visible) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="confirmar-titulo">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="confirmar-titulo">@Titulo</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary mb-0">@Mensaje</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-primary btn-par" @onclick="Cancelar">@TextoCancelar</button>
+                    <button type="button" class="btn btn-danger btn-texto btn-par" @onclick="Confirmar">
+                        <Icono Nombre="@IconoConfirmar" />
+                        <span>@TextoConfirmar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    [Parameter]
+    public bool Visible { get; set; }
+
+    [Parameter]
+    public string Titulo { get; set; } = "¿Está seguro?";
+
+    [Parameter]
+    public string Mensaje { get; set; } = "";
+
+    [Parameter]
+    public string TextoConfirmar { get; set; } = "Sí, eliminar";
+
+    // "Cancelar"; si la acción ya se llama "cancelar", se usa "No, volver" para no confundir
+    [Parameter]
+    public string TextoCancelar { get; set; } = "Cancelar";
+
+    [Parameter]
+    public string IconoConfirmar { get; set; } = "trash";
+
+    [Parameter]
+    public EventCallback OnConfirmar { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelar { get; set; }
+
+    private async Task Confirmar() {
+        await OnConfirmar.InvokeAsync();
+    }
+
+    private async Task Cancelar() {
+        await OnCancelar.InvokeAsync();
+    }
+}

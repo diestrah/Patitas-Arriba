@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace PatitasArriba.Web.ViewModels {
-    public class ArticuloViewModel {
+    public class ArticuloViewModel : IValidatableObject {
         public int Id { get; set; }
 
         [Required(ErrorMessage = "El nombre es obligatorio")]
@@ -24,5 +24,14 @@ namespace PatitasArriba.Web.ViewModels {
         public List<OpcionSeleccion> Categorias { get; set; } = [];
 
         public string NombresCategorias => string.Join(", ", Categorias.Where(c => c.Seleccionado).Select(c => c.Texto));
+
+        public bool StockBajo => StockActual < StockMinimo;
+
+        // RN-AR-02: todo artículo pertenece al menos a una categoría
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
+            if (!Categorias.Any(c => c.Seleccionado)) {
+                yield return new ValidationResult("Marque al menos una categoría", [nameof(Categorias)]);
+            }
+        }
     }
 }

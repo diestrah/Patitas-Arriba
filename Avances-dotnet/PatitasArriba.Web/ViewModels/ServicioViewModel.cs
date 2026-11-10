@@ -8,6 +8,8 @@ namespace PatitasArriba.Web.ViewModels {
         [StringLength(45, ErrorMessage = "Máximo 45 caracteres")]
         public string Nombre { get; set; } = "";
 
+        // El backend exige la descripción (RN-SE-01)
+        [Required(ErrorMessage = "La descripción es obligatoria")]
         [StringLength(200, ErrorMessage = "Máximo 200 caracteres")]
         public string? Descripcion { get; set; }
 

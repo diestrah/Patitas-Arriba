@@ -8,7 +8,6 @@
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="mb-3">
             <label class="form-label">Artículo</label>
@@ -26,8 +25,10 @@
             </div>
         </div>
 
-        <button tabindex="2" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="3" class="btn btn-outline-secondary" href="articulos">Cancelar</a>
+        <div class="d-flex gap-2">
+            <button tabindex="2" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="3" class="btn btn-outline-primary" href="articulos">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -51,6 +52,8 @@
         };
     }
 
+    // Sin backend: solo regresa al listado. El backend no tiene un endpoint solo para el stock:
+    // al enlazar se lee el artículo (GET /articulos/{id}), se cambia su stock y se envía PUT /articulos/{id} (RN-AR-04)
     private void Guardar() {
         Nav.NavigateTo("/articulos");
     }

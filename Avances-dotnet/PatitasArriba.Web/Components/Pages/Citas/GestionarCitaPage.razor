@@ -7,27 +7,31 @@
 <div class="col-lg-9">
     <h3 class="mb-3">@(Id == null ? "Registrar cita" : $"Editar cita N.° {Id}")</h3>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
-        <ValidationSummary />
 
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Cliente</label>
-                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
+                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente" @bind-Value:after="CambiarCliente" disabled="@(Id != null)">
                     <option value="0">Seleccione el cliente</option>
                     @foreach (ClienteViewModel cliente in Clientes) {
-                        <option value="@cliente.Id">@cliente.NombreCompleto</option>
+                        <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
                     }
                 </InputSelect>
                 <ValidationMessage For="() => ViewModel.IdCliente" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Mascota</label>
-                <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.IdMascota">
+                @* Solo las mascotas del cliente elegido. La mascota de una cita no cambia (RN-CI-13) *@
+                <InputSelect tabindex="2" class="form-select" @bind-Value="ViewModel.IdMascota" disabled="@(Id != null)">
                     <option value="0">Seleccione la mascota</option>
-                    @foreach (MascotaViewModel mascota in Mascotas) {
-                        <option value="@mascota.Id">@mascota.Nombre (@mascota.NombreDueno)</option>
+                    @foreach (MascotaViewModel mascota in MascotasDelClienteElegido) {
+                        <option value="@mascota.Id">@mascota.Nombre</option>
                     }
                 </InputSelect>
                 <ValidationMessage For="() => ViewModel.IdMascota" />
@@ -40,25 +44,28 @@
                 <ValidationMessage For="() => ViewModel.FechaHora" />
             </div>
             <div class="col-md-4 mb-3">
-                <label class="form-label">Estado</label>
-                <InputSelect tabindex="4" class="form-select" @bind-Value="ViewModel.Estado" disabled="@(Id == null)">
-                    @foreach (EstadoCita estado in Estados) {
-                        <option value="@estado">@TextoEnum.De(estado)</option>
-                    }
-                </InputSelect>
+                <label class="form-label d-block">Estado</label>
+                <BadgeEstadoCita Estado="ViewModel.Estado" />
             </div>
             <div class="col-md-3 mb-3">
+                @* Una cita no pasa de normal a emergencia ni al revés (RN-CI-07) *@
                 <div class="form-check">
-                    <InputCheckbox tabindex="5" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" />
+                    <InputCheckbox tabindex="4" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" disabled="@(Id != null)" />
                     <label class="form-check-label" for="es-emergencia">Es emergencia</label>
                 </div>
             </div>
         </div>
+        @if (Id != null) {
+            <div class="form-text mb-2">El estado cambia con Aprobar, Rechazar, Completar o Cancelar cita en el listado.</div>
+        }
 
-        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" />
+        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos" />
+        <ValidationMessage For="() => ViewModel.Detalles" />
 
-        <button tabindex="6" type="submit" class="btn btn-primary">Guardar</button>
-        <a tabindex="7" class="btn btn-outline-secondary" href="citas">Cancelar</a>
+        <div class="d-flex gap-2 mt-3">
+            <button tabindex="5" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <a tabindex="6" class="btn btn-outline-primary" href="citas">Cancelar</a>
+        </div>
     </EditForm>
 </div>
 
@@ -71,13 +78,19 @@
     private List<MascotaViewModel> Mascotas { get; set; } = [];
     private List<ServicioViewModel> Servicios { get; set; } = [];
     private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
-    private EstadoCita[] Estados { get; } = Enum.GetValues<EstadoCita>();
+    private HashSet<int> Atendidos { get; set; } = [];
+
+    // Mensaje del backend cuando rechace la cita (por ejemplo, el veterinario no atiende a esa hora)
+    private string? MensajeError { get; set; }
+
+    private IEnumerable<MascotaViewModel> MascotasDelClienteElegido => Mascotas.Where(m => m.IdCliente == ViewModel.IdCliente);
 
     protected override void OnInitialized() {
         Clientes = DatosEjemplo.Clientes();
         Mascotas = DatosEjemplo.Mascotas();
         Servicios = DatosEjemplo.Servicios();
         Veterinarios = DatosEjemplo.Veterinarios();
+        Atendidos = DatosEjemplo.DetallesAtendidos();
     }
 
     protected override void OnParametersSet() {
@@ -86,13 +99,21 @@
             return;
         }
         CitaViewModel? cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Id == Id);
-        if (cita == null) {
+        // Las citas rechazadas, canceladas o completadas ya no se modifican (RN-CI-08)
+        if (cita == null || !cita.EsModificable) {
             Nav.NavigateTo("/citas");
             return;
         }
         ViewModel = cita;
     }
 
+    // Al cambiar de cliente se limpia la mascota elegida
+    private void CambiarCliente() {
+        ViewModel.IdMascota = 0;
+    }
+
+    // Sin backend: solo regresa al listado. Al enlazar: POST /citas (queda PENDIENTE) o PUT /citas/{Id};
+    // el backend revisa el horario de cada veterinario y los cruces (RN-CI-05 y RN-CI-06).
     private void Guardar() {
         Nav.NavigateTo("/citas");
     }

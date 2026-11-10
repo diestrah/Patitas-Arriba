@@ -10,8 +10,8 @@
     <h3 class="mb-3">Catálogo de diagnósticos</h3>
     @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
     @if (Sesion.EsAdministrador) {
-        <button tabindex="4" class="btn btn-success" @onclick="() => NuevoDiagnostico()">
-            Nuevo diagnóstico
+        <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoDiagnostico()">
+            <Icono Nombre="plus" /><span>Nuevo diagnóstico</span>
         </button>
     }
 </div>
@@ -19,38 +19,67 @@
 <div class="d-flex align-items-center gap-2 mb-3">
     <label class="text-nowrap">Enfermedad:</label>
     <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la enfermedad..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary">Filtrar</button>
-    <button tabindex="3" class="btn btn-secondary">Limpiar</button>
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+
 @if (!Diagnosticos.Any()) {
-    <div class="alert alert-info">No hay diagnósticos registrados.</div>
+    <div class="alert alert-info">No se encontraron diagnósticos.</div>
 }
 else {
-    <QuickGrid Items="Diagnosticos" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Diagnosticos" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Enfermedad" Property="d => d.NombreEnfermedad" Sortable="true" />
         <PropertyColumn Title="Descripción" Property="d => d.Descripcion" />
         @if (Sesion.EsAdministrador) {
-            <TemplateColumn Title="Acciones">
-                <button class="btn btn-primary btn-sm" @onclick="() => EditarDiagnostico(context.Id)">
-                    Editar
-                </button>
-                <button class="btn btn-danger btn-sm">
-                    Eliminar
-                </button>
+            <TemplateColumn Title="Acciones" Align="Align.Center">
+                <div class="acciones">
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarDiagnostico(context.Id)">
+                        <Icono Nombre="edit" />
+                    </button>
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                </div>
             </TemplateColumn>
         }
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="DiagnosticoAEliminar != null"
+                  Titulo="¿Eliminar el diagnóstico?"
+                  Mensaje="@($"“{DiagnosticoAEliminar?.NombreEnfermedad}” dejará de aparecer en el catálogo. No se puede si se registró en alguna atención.")"
+                  OnConfirmar="EliminarDiagnostico" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<DiagnosticoViewModel> Todos { get; set; } = [];
     private IQueryable<DiagnosticoViewModel> Diagnosticos { get; set; } = Enumerable.Empty<DiagnosticoViewModel>().AsQueryable();
+    private DiagnosticoViewModel? DiagnosticoAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
-        Diagnosticos = DatosEjemplo.Diagnosticos().AsQueryable();
+        Todos = DatosEjemplo.Diagnosticos();
+        Filtrar();
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Diagnosticos = Todos
+            .Where(d => d.NombreEnfermedad.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
     }
 
     private void NuevoDiagnostico() {
@@ -59,5 +88,25 @@ else {
 
     private void EditarDiagnostico(int id) {
         Nav.NavigateTo($"/diagnosticos/editar/{id}");
+    }
+
+    private void PedirEliminar(DiagnosticoViewModel diagnostico) {
+        DiagnosticoAEliminar = diagnostico;
+    }
+
+    private void CancelarEliminacion() {
+        DiagnosticoAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /diagnosticos/{id};
+    // si el backend lo rechaza (RN-DI-02), se mostrará su mensaje.
+    private void EliminarDiagnostico() {
+        if (DiagnosticoAEliminar == null) {
+            return;
+        }
+        Todos.Remove(DiagnosticoAEliminar);
+        MensajeExito = $"Se eliminó el diagnóstico “{DiagnosticoAEliminar.NombreEnfermedad}”.";
+        DiagnosticoAEliminar = null;
+        Filtrar();
     }
 }

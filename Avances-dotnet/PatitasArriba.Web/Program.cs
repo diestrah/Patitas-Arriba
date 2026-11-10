@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// Lab 9: sesión simulada para mostrar el menú de cada rol
+// Mientras no se enlaza con el backend: sesión simulada para mostrar el menú de cada rol
 builder.Services.AddScoped<SesionDemo>();
 
 var app = builder.Build();

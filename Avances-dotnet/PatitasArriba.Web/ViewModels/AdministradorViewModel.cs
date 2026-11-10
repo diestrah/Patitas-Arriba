@@ -1,4 +1,4 @@
 namespace PatitasArriba.Web.ViewModels {
-    public class AdministradorViewModel : PersonaViewModel {
+    public class AdministradorViewModel : PersonalViewModel {
     }
 }

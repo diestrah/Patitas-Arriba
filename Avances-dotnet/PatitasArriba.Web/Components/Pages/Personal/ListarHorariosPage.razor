@@ -7,37 +7,62 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Horarios de atención</h3>
-    <button tabindex="3" class="btn btn-success" @onclick="() => NuevoHorario()">
-        Nuevo horario
+    <button tabindex="1" class="btn btn-warning btn-texto" @onclick="() => NuevoHorario()">
+        <Icono Nombre="plus" /><span>Nuevo horario</span>
     </button>
 </div>
+
+<p class="text-muted small">El personal se asigna a cada horario desde la ficha del veterinario o del administrador.</p>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
 @if (!Horarios.Any()) {
     <div class="alert alert-info">No hay horarios registrados.</div>
 }
 else {
-    <QuickGrid Items="Horarios" Pagination="Paginacion" Class="table table-striped table-hover">
+    <QuickGrid Items="Horarios" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Día" Property="h => TextoEnum.De(h.DiaSemana)" />
         <PropertyColumn Title="Horario" Property="h => h.Rango" />
         <PropertyColumn Title="Personal asignado" Property="h => h.PersonalAsignado" />
-        <TemplateColumn Title="Acciones">
-            <button class="btn btn-primary btn-sm" @onclick="() => EditarHorario(context.Id)">
-                Editar
-            </button>
-            <button class="btn btn-danger btn-sm">
-                Eliminar
-            </button>
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarHorario(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                    <Icono Nombre="trash" />
+                </button>
+            </div>
         </TemplateColumn>
     </QuickGrid>
     <Paginator State="Paginacion"></Paginator>
 }
 
+<ConfirmarDialogo Visible="HorarioAEliminar != null"
+                  Titulo="¿Eliminar el horario?"
+                  Mensaje="@($"El horario del {TextoHorario(HorarioAEliminar)} dejará de estar disponible.")"
+                  OnConfirmar="EliminarHorario" OnCancelar="CancelarEliminacion" />
+
 @code {
+    private List<HorarioViewModel> Todos { get; set; } = [];
     private IQueryable<HorarioViewModel> Horarios { get; set; } = Enumerable.Empty<HorarioViewModel>().AsQueryable();
+    private HorarioViewModel? HorarioAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 7 };
 
     protected override void OnInitialized() {
-        Horarios = DatosEjemplo.Horarios().AsQueryable();
+        Todos = DatosEjemplo.Horarios();
+        Horarios = Todos.AsQueryable();
+    }
+
+    private string TextoHorario(HorarioViewModel? horario) {
+        return horario == null ? "" : $"{TextoEnum.De(horario.DiaSemana).ToLower()} {horario.Rango}";
     }
 
     private void NuevoHorario() {
@@ -46,5 +71,31 @@ else {
 
     private void EditarHorario(int id) {
         Nav.NavigateTo($"/horarios/editar/{id}");
+    }
+
+    private void PedirEliminar(HorarioViewModel horario) {
+        HorarioAEliminar = horario;
+    }
+
+    private void CancelarEliminacion() {
+        HorarioAEliminar = null;
+    }
+
+    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /horarios/{id}.
+    // Igual que el backend (RN-HO-04), no se elimina un horario que tiene personal asignado.
+    private void EliminarHorario() {
+        if (HorarioAEliminar == null) {
+            return;
+        }
+        MensajeExito = null;
+        MensajeError = null;
+        if (HorarioAEliminar.NombresPersonal.Count > 0) {
+            MensajeError = $"No se puede eliminar el horario: está asignado a {HorarioAEliminar.PersonalAsignado}. Quíteselo primero desde su ficha.";
+        } else {
+            Todos.Remove(HorarioAEliminar);
+            MensajeExito = $"Se eliminó el horario del {TextoHorario(HorarioAEliminar)}.";
+            Horarios = Todos.AsQueryable();
+        }
+        HorarioAEliminar = null;
     }
 }
