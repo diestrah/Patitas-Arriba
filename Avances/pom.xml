@@ -15,6 +15,7 @@
         <module>patitasarriba-app</module>
         <module>patitasarriba-persistencia</module>
         <module>patitasarriba-negocio</module>
+        <module>patitasarriba-rest</module>
     </modules>
 
     <properties>

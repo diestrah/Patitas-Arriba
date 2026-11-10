@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.receta;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.RecetaBL;
 import patitasarriba.dao.ArticuloDAO;
@@ -47,7 +48,7 @@ public class RecetaBLImpl implements RecetaBL {
 
     @Override
     public List<Receta> findByAtencion(Integer idAtencion) throws BLException {
-        if (idAtencion == null) throw new BLException("El id de la atención no puede ser nulo");
+        if (idAtencion == null) throw new ValidacionException("El id de la atención no puede ser nulo");
         List<Receta> recetas = new ArrayList<>();
         for (Receta receta : findAll()) {
             if (receta.getAtencion().getId() == idAtencion) recetas.add(receta);
@@ -61,6 +62,10 @@ public class RecetaBLImpl implements RecetaBL {
         validarExistentes(entidad);
         validarServicioMedico (entidad);
 
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        entidad.setActivo(true);
+        entidad.getDetalles().forEach(d -> d.setActivo(true));
         TransactionsManager.iniciar();
         try {
             recetaDAO.insert(entidad);
@@ -74,8 +79,13 @@ public class RecetaBLImpl implements RecetaBL {
     @Override
     public void update(Receta entidad) throws BLException {
         validar(entidad);
+        validarExiste(entidad.getId());
         validarExistentes(entidad);
         validarServicioMedico (entidad);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        entidad.setActivo(true);
+        entidad.getDetalles().forEach(d -> d.setActivo(true));
 
         TransactionsManager.iniciar();
         try {
@@ -89,6 +99,7 @@ public class RecetaBLImpl implements RecetaBL {
 
     @Override
     public void delete(Integer integer) throws BLException {
+        validarExiste(integer);
         TransactionsManager.iniciar();
         try {
             recetaDAO.delete(integer);
@@ -101,37 +112,37 @@ public class RecetaBLImpl implements RecetaBL {
 
     private void validar(Receta receta) throws BLException {
         if (receta == null) {
-            throw new BLException("La receta no puede ser nula");
+            throw new ValidacionException("La receta no puede ser nula");
         }
         if (receta.getFechaEmision() == null){
-            throw new BLException("La receta debe tener una fecha");
+            throw new ValidacionException("La receta debe tener una fecha");
         }
         if (receta.getAtencion() == null){
-            throw new BLException("La receta debe estar asociada a una atención médica");
+            throw new ValidacionException("La receta debe estar asociada a una atención médica");
         }
         if (receta.getDetalles() == null || receta.getDetalles().isEmpty()) {
-            throw new BLException("La receta debe tener al menos un detalle");
+            throw new ValidacionException("La receta debe tener al menos un detalle");
         }
         if (receta.getIndicacionesGenerales() == null || receta.getIndicacionesGenerales().isBlank()) {
-            throw new BLException("La receta debe tener indicaciones");
+            throw new ValidacionException("La receta debe tener indicaciones");
         }
         for (DetalleReceta detalle : receta.getDetalles()) {
             if (detalle == null || detalle.getArticulo() == null
                     || detalle.getDosis() == null || detalle.getDosis().isBlank()
                     || detalle.getFrecuencia() == null || detalle.getFrecuencia().isBlank()
                     || detalle.getDuracionDias() <= 0 || detalle.getCantidadTotal() <= 0) {
-                throw new BLException("Cada detalle de receta debe tener articulo, dosis, frecuencia, duración y cantidad válidos");
+                throw new ValidacionException("Cada detalle de receta debe tener articulo, dosis, frecuencia, duración y cantidad válidos");
             }
         }
     }
     private void validarExistentes(Receta receta) throws BLException {
         try {
             if (atencionDAO.findById(receta.getAtencion().getId()) == null) {
-                throw new BLException("La atención no existe o fue anulada");
+                throw new ValidacionException("La atención no existe o fue anulada");
             }
             for (DetalleReceta detalle : receta.getDetalles()) {
                 if (articuloDAO.findById(detalle.getArticulo().getId()) == null) {
-                    throw new BLException("El artículo " + detalle.getArticulo().getNombre()
+                    throw new ValidacionException("El artículo " + detalle.getArticulo().getNombre()
                             + " no existe o está dado de baja");
                 }
             }
@@ -144,10 +155,20 @@ public class RecetaBLImpl implements RecetaBL {
         try {
             Atencion atencion = atencionDAO.findById(receta.getAtencion().getId());
             if (atencion.getDetalleCita().getServicio().getTipo() == TipoServicio.ESTETICA) {
-                throw new BLException("No se pueden emitir recetas en servicios estéticos");
+                throw new ValidacionException("No se pueden emitir recetas en servicios estéticos");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el tipo de servicio de la atención", e);
+        }
+    }
+
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (recetaDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe una receta con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia de la receta", e);
         }
     }
 }

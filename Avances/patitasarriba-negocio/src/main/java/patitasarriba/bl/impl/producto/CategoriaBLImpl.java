@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.CategoriaBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.ArticuloDAO;
@@ -42,6 +43,9 @@ public class CategoriaBLImpl implements CategoriaBL {
     public void insert(Categoria categoria) throws BLException {
         validar(categoria);
         validarNombreUnico(categoria);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        categoria.setActivo(true);
         try {
             categoriaDAO.insert(categoria);
         } catch (SQLException e) {
@@ -54,6 +58,9 @@ public class CategoriaBLImpl implements CategoriaBL {
         validar(categoria);
         validarExiste(categoria.getId());
         validarNombreUnico(categoria);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        categoria.setActivo(true);
         try {
             categoriaDAO.update(categoria);
         } catch (SQLException e) {
@@ -75,7 +82,7 @@ public class CategoriaBLImpl implements CategoriaBL {
     private void validarExiste(int id) throws BLException {
         try {
             if (categoriaDAO.findById(id) == null) {
-                throw new BLException("No existe una categoria de articulo con id " + id);
+                throw new NoEncontradoException("No existe una categoria de articulo con id " + id);
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la existencia de la categoria de articulo", e);
@@ -87,7 +94,7 @@ public class CategoriaBLImpl implements CategoriaBL {
         try {
             Categoria existente = categoriaDAO.findByNombre(categoria.getNombre());
             if (existente != null && existente.getId() != categoria.getId()) {
-                throw new BLException("Ya existe una categoria con el nombre '" + categoria.getNombre() + "'");
+                throw new ValidacionException("Ya existe una categoria con el nombre '" + categoria.getNombre() + "'");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la unicidad del nombre de la categoria", e);
@@ -98,7 +105,7 @@ public class CategoriaBLImpl implements CategoriaBL {
     private void validarSinArticulos(int id) throws BLException {
         try {
             if (!articuloDAO.findByCategoriaId(id).isEmpty()) {
-                throw new BLException("No se puede eliminar la categoria: tiene articulos asignados");
+                throw new ValidacionException("No se puede eliminar la categoria: tiene articulos asignados");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar los articulos de la categoria", e);
@@ -107,14 +114,14 @@ public class CategoriaBLImpl implements CategoriaBL {
 
     private void validar(Categoria categoria) throws BLException {
         if (categoria == null) {
-            throw new BLException("La categoria de articulo no puede ser nula");
+            throw new ValidacionException("La categoria de articulo no puede ser nula");
         }
         if (categoria.getNombre() == null || categoria.getNombre().isBlank()) {
-            throw new BLException("El nombre de la categoria es obligatorio");
+            throw new ValidacionException("El nombre de la categoria es obligatorio");
         }
 
         if (categoria.getDescripcion() == null || categoria.getDescripcion().isBlank()) {
-            throw new BLException("La descripción es obligatoria");
+            throw new ValidacionException("La descripción es obligatoria");
         }
     }
 }

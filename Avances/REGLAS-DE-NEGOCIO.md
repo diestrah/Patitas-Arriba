@@ -50,7 +50,8 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-GE-01 | **Ningún registro se borra físicamente.** "Eliminar" significa dar de baja (borrado lógico): el registro queda inactivo y deja de aparecer en búsquedas y listados. |
 | RN-GE-02 | No se puede dar de baja un registro mientras otros registros dependan de él, porque dejarían de poder leerse (por ejemplo, un cliente con citas). Cada caso se detalla en su sección y se resume en §14. |
 | RN-GE-03 | Las operaciones que afectan varios registros a la vez (atención + stock, boleta + stock, cliente + mascotas, persona + cuenta) se ejecutan **todo o nada**: si una parte falla, no se guarda ninguna. |
-| RN-GE-04 | Los valores únicos (usuario, correo, DNI, teléfono, colegiatura, número de boleta y los nombres de servicio, diagnóstico y categoría) no pueden repetirse. **[BD]** |
+| RN-GE-04 | Los valores únicos (usuario, correo, DNI, teléfono, colegiatura, número de boleta y los nombres de servicio, diagnóstico y categoría) no pueden repetirse, aunque el registro que lo usa esté dado de baja. **[BD]** Las búsquedas por esos valores solo devuelven registros activos. |
+| RN-GE-05 | **El estado activo solo cambia al dar de baja.** Registrar o modificar siempre guarda el registro y sus líneas como activos, aunque la petición indique lo contrario: así nadie se salta las validaciones de la baja con una modificación. Modificar o dar de baja un registro inexistente o ya dado de baja se rechaza como "no encontrado". |
 
 ---
 
@@ -60,7 +61,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 |---|---|
 | RN-CU-01 | Toda cuenta requiere nombre de usuario, contraseña y un correo con formato válido (`usuario@dominio.ext`). |
 | RN-CU-02 | El nombre de usuario y el correo son únicos, aunque la cuenta esté dada de baja. **[BD]** |
-| RN-CU-03 | La contraseña nunca se guarda en texto plano: se almacena su hash SHA-256. Al modificar una cuenta, la contraseña solo se vuelve a cifrar si cambió. |
+| RN-CU-03 | La contraseña nunca se guarda en texto plano: se almacena su hash SHA-256, y nunca se devuelve en las consultas. Al modificar una cuenta, una contraseña vacía conserva la actual y la contraseña solo se vuelve a cifrar si cambió. La fecha de creación la fija el sistema. |
 | RN-CU-04 | Para iniciar sesión se requieren usuario y contraseña. Solo ingresan cuentas activas de una persona activa. Al ingresar, el sistema devuelve la persona dueña de la cuenta, cuyo tipo es su rol: cliente, veterinario o administrador. |
 | RN-CU-05 | Ante un acceso fallido el sistema responde siempre "Usuario o contraseña incorrectos", sin indicar cuál de los dos falló. |
 | RN-CU-06 | No se puede dar de baja una cuenta que use un cliente, veterinario o administrador activo. Al dar de baja a la persona, su cuenta se da de baja con ella (RN-PE-05). |
@@ -296,10 +297,33 @@ Una boleta puede combinar tres tipos de línea:
 
 ---
 
-## 15. Fuera de la capa de negocio
+## 15. Capa REST (`/api/v1`)
+
+La capa de negocio distingue el tipo de error y la capa REST lo traduce a un código HTTP:
+
+| Excepción de la capa de negocio | Significado | HTTP |
+|---|---|---|
+| `ValidacionException` | Se incumple una regla de este documento | 400 |
+| `CredencialesInvalidasException` | Usuario o contraseña incorrectos (RN-CU-05) | 401 |
+| `NoEncontradoException` | El registro no existe o está dado de baja | 404 |
+| `BLException` | Error técnico (base de datos) | 500 |
+
+Consultas de los requisitos:
+
+| Requisito | Endpoint |
+|---|---|
+| RF01 | `POST /login` → cuenta, persona y `rol` (CLIENTE, VETERINARIO o ADMINISTRADOR) |
+| RF03 | `GET /mascotas?cliente={id}` |
+| RF10 | `GET /citas?cliente={id}` |
+| RF11, RF13 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
+| RF16 | `GET /atenciones?mascota={id}` y `GET /recetas?atencion={id}` |
+
+---
+
+## 16. Fuera de la capa de negocio
 
 | Requisito | Dónde se resuelve |
 |---|---|
-| RF01 (cerrar sesión y restringir módulos por rol) | Frontend y capa REST, con la persona que devuelve el login (RN-CU-04). |
+| RF01 (cerrar sesión y restringir módulos por rol) | Frontend, con el `rol` que devuelve `POST /login` (RN-CU-04). |
 | RF12 (recordatorios por correo 24 h antes) | No implementado. Requiere un proceso programado y un servicio de correo; puede usar las citas de un día (RN-CI-14). |
-| RF13, RF16, RF17, RF18 (reportes e impresión) | Capa de presentación, con las consultas de la capa de negocio. |
+| RF13, RF16, RF17, RF18 (reportes e impresión) | Frontend, con las consultas de §15. |

@@ -1,6 +1,7 @@
 package patitasarriba.bl.impl.producto;
 
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ServicioBL;
 import patitasarriba.bl.ValidacionException;
 import patitasarriba.dao.ServicioDAO;
@@ -21,7 +22,10 @@ public class ServicioBLImpl implements ServicioBL {
             throw new ValidacionException("El nombre no es valido");
         }
         try {
-            return servicioDAO.findByName(name);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Servicio encontrado = servicioDAO.findByName(name);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
@@ -39,7 +43,11 @@ public class ServicioBLImpl implements ServicioBL {
     @Override
     public Servicio findById(Integer integer) throws BLException {
         try {
-            return servicioDAO.findById(integer);
+            Servicio servicio = servicioDAO.findById(integer);
+            if (servicio == null) {
+                throw new NoEncontradoException("No existe un servicio con id " + integer);
+            }
+            return servicio;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar el servicio", e);
         }
@@ -49,6 +57,9 @@ public class ServicioBLImpl implements ServicioBL {
     public void insert(Servicio entidad) throws BLException {
         validar(entidad);
         validarNombreUnico(entidad);
+        // activo es el borrado logico: todo registro nuevo se crea activo,
+        // aunque el cliente mande "activo": false (para desactivar esta el delete)
+        entidad.setActivo(true);
         try {
             servicioDAO.insert(entidad);
         } catch (SQLException e) {
@@ -59,7 +70,11 @@ public class ServicioBLImpl implements ServicioBL {
     @Override
     public void update(Servicio entidad) throws BLException {
         validar(entidad);
+        validarExiste(entidad.getId());
         validarNombreUnico(entidad);
+        // activo es el borrado logico: modificar nunca da de baja, aunque el cliente mande
+        // "activo": false (para dar de baja esta el delete)
+        entidad.setActivo(true);
         try {
             servicioDAO.update(entidad);
         } catch (SQLException e) {
@@ -69,6 +84,7 @@ public class ServicioBLImpl implements ServicioBL {
 
     @Override
     public void delete(Integer integer) throws BLException {
+        validarExiste(integer);
         validarSinCitas (integer);
         try {
             servicioDAO.delete(integer);
@@ -79,22 +95,22 @@ public class ServicioBLImpl implements ServicioBL {
 
     private void validar(Servicio servicio) throws BLException {
         if (servicio == null) {
-            throw new BLException("El servicio no puede ser nulo");
+            throw new ValidacionException("El servicio no puede ser nulo");
         }
         if (servicio.getNombre() == null || servicio.getNombre().isBlank()) {
-            throw new BLException("El nombre del servicio es obligatorio");
+            throw new ValidacionException("El nombre del servicio es obligatorio");
         }
         if (servicio.getTipo() == null ){
-            throw new BLException("El servicio debe tener un tipo de servicio");
+            throw new ValidacionException("El servicio debe tener un tipo de servicio");
         }
         if (servicio.getPrecioBase() <= 0) {
-            throw new BLException("El precio base debe ser mayor a 0");
+            throw new ValidacionException("El precio base debe ser mayor a 0");
         }
         if (servicio.getDescripcion() == null || servicio.getDescripcion().isBlank()){
-            throw new BLException("El servicio debe contar con una descripción");
+            throw new ValidacionException("El servicio debe contar con una descripción");
         }
         if (servicio.getDuracionEstimada() != null && servicio.getDuracionEstimada() <= 0){
-            throw new BLException("La duración estimada debe ser mayor a 0");
+            throw new ValidacionException("La duración estimada debe ser mayor a 0");
         }
     }
 
@@ -106,7 +122,7 @@ public class ServicioBLImpl implements ServicioBL {
     private void validarSinCitas(int idServicio) throws BLException {
         try {
             if (detalleCitaDAO.existeDetalleConServicio(idServicio)) {
-                throw new BLException("No se puede eliminar el servicio: está asignado a una cita");
+                throw new ValidacionException("No se puede eliminar el servicio: está asignado a una cita");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar las citas del servicio", e);
@@ -119,7 +135,7 @@ public class ServicioBLImpl implements ServicioBL {
         try {
             Servicio existente = servicioDAO.findByName(servicio.getNombre().trim());
             if (existente != null && existente.getId() != servicio.getId()) {
-                throw new BLException("Ya existe un servicio" + (existente.isActivo() ? "" : " dado de baja")
+                throw new ValidacionException("Ya existe un servicio" + (existente.isActivo() ? "" : " dado de baja")
                         + " con el nombre '" + servicio.getNombre() + "'");
             }
         } catch (SQLException e) {
@@ -127,4 +143,13 @@ public class ServicioBLImpl implements ServicioBL {
         }
     }
 
+    private void validarExiste(int id) throws BLException {
+        try {
+            if (servicioDAO.findById(id) == null) {
+                throw new NoEncontradoException("No existe un servicio con id " + id);
+            }
+        } catch (SQLException e) {
+            throw new BLException("No se pudo verificar la existencia del servicio", e);
+        }
+    }
 }

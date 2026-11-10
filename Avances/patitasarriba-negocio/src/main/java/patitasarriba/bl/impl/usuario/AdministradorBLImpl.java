@@ -2,6 +2,7 @@ package patitasarriba.bl.impl.usuario;
 
 import patitasarriba.bl.AdministradorBL;
 import patitasarriba.bl.BLException;
+import patitasarriba.bl.ValidacionException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.dao.AdministradorDAO;
 import patitasarriba.dao.CuentaDAO;
@@ -42,7 +43,13 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public Administrador findByDni(String dni) throws BLException {
         try {
-            return administradorDAO.findByDni(dni);
+            // El DAO no filtra activo (lo necesita la validacion de unicos); la consulta solo
+            // devuelve registros activos, igual que findById
+            Administrador encontrado = administradorDAO.findByDni(dni);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
+        } catch (IllegalArgumentException e) {
+            // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja
+            return null;
         } catch (SQLException e) {
             throw new BLException("Error al buscar el administrador por DNI", e);
         }
@@ -53,6 +60,9 @@ public class AdministradorBLImpl implements AdministradorBL {
         validar(admin);
         validarCuentaActiva (admin);
         validarUnicos(admin);
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
+        admin.setActivo(true);
         TransactionsManager.iniciar();
         try {
             administradorDAO.insert(admin);
@@ -66,8 +76,12 @@ public class AdministradorBLImpl implements AdministradorBL {
     @Override
     public void update(Administrador admin) throws BLException {
         validar(admin);
+        findById(admin.getId());
         validarCuentaActiva(admin);
         validarUnicos(admin);
+        // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
+        // aunque el cliente mande "activo": false (para dar de baja esta el delete)
+        admin.setActivo(true);
         TransactionsManager.iniciar();
         try {
             administradorDAO.update(admin);
@@ -80,16 +94,16 @@ public class AdministradorBLImpl implements AdministradorBL {
 
     @Override
     public void delete(Integer id) throws BLException {
+        Administrador admin = findById(id);
         // Para que no nos quedemos en 0 administradores. Se valida antes de abrir la transaccion:
         // dentro del try, la BLException no la captura el catch y la transaccion quedaba abierta
         try {
             if (administradorDAO.findAll().size() <= 1) {
-                throw new BLException("No se puede eliminar al único administrador activo");
+                throw new ValidacionException("No se puede eliminar al único administrador activo");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar los administradores activos", e);
         }
-        Administrador admin = findById(id);
         TransactionsManager.iniciar();
         try {
             administradorDAO.delete(id);
@@ -104,21 +118,21 @@ public class AdministradorBLImpl implements AdministradorBL {
 
     private void validar(Administrador admin) throws BLException {
         if (admin == null) {
-            throw new BLException("El administrador no puede ser nulo");
+            throw new ValidacionException("El administrador no puede ser nulo");
         }
         if (admin.getDni() == null || !admin.getDni().matches("\\d{8}")) {
-            throw new BLException("El DNI debe contener exactamente 8 dígitos numéricos");
+            throw new ValidacionException("El DNI debe contener exactamente 8 dígitos numéricos");
         }
         if (admin.getNombres() == null || admin.getNombres().trim().isEmpty()) {
-            throw new BLException("El nombre del administrador es obligatorio");
+            throw new ValidacionException("El nombre del administrador es obligatorio");
         }
     }
 
     private void validarCuentaActiva(Administrador admin) throws BLException {
-        if (admin.getCuenta() == null) throw new BLException("El administrador debe tener una cuenta");
+        if (admin.getCuenta() == null) throw new ValidacionException("El administrador debe tener una cuenta");
         try {
             if (cuentaDAO.findById(admin.getCuenta().getId()) == null) {
-                throw new BLException("La cuenta no existe o está dada de baja");
+                throw new ValidacionException("La cuenta no existe o está dada de baja");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar la cuenta del administrador", e);
@@ -133,14 +147,14 @@ public class AdministradorBLImpl implements AdministradorBL {
                 porDni = administradorDAO.findByDni(admin.getDni());
             } catch (IllegalArgumentException e) {
                 // El DAO falla al leer un administrador dado de baja cuya cuenta tambien se dio de baja
-                throw new BLException("Ya existe un administrador dado de baja con el DNI " + admin.getDni());
+                throw new ValidacionException("Ya existe un administrador dado de baja con el DNI " + admin.getDni());
             }
             if (porDni != null && porDni.getId() != admin.getId()) {
-                throw new BLException("Ya existe un administrador con el DNI " + admin.getDni());
+                throw new ValidacionException("Ya existe un administrador con el DNI " + admin.getDni());
             }
             for (Administrador otro : administradorDAO.findAll()) {
                 if (otro.getId() != admin.getId() && otro.getTelefono().equals(admin.getTelefono())) {
-                    throw new BLException("Ya existe un administrador con el teléfono " + admin.getTelefono());
+                    throw new ValidacionException("Ya existe un administrador con el teléfono " + admin.getTelefono());
                 }
             }
         } catch (SQLException e) {
