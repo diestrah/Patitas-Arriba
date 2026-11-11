@@ -1,0 +1,183 @@
+@page "/mis-mascotas/nueva"
+@page "/mis-mascotas/editar/{Id:int}"
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+
+<PageTitle>@(Id == null ? "Agregar mascota" : "Editar mascota")</PageTitle>
+
+<div class="col-lg-8">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="mb-0">@(Id == null ? "Agregar mascota" : $"Editar a {NombreOriginal}")</h3>
+        <a class="small fw-bold" href="mis-mascotas">Volver</a>
+    </div>
+
+    <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+        <DataAnnotationsValidator />
+
+        <div class="card">
+            <div class="card-body d-flex flex-column gap-3">
+                <div>
+                    <div class="form-label">Dueño</div>
+                    <div class="dato-fijo">@Sesion.NombreUsuario (usted)</div>
+                </div>
+
+                <div class="d-flex align-items-center gap-3">
+                    <AvatarMascota Nombre="@ViewModel.Nombre" Foto="@ViewModel.Foto" Tamano="grande" />
+                    <div>
+                        <div class="form-label mb-1">Foto <span class="text-muted fw-normal">(opcional)</span></div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <label class="btn btn-secondary btn-texto mb-0" for="mm-foto">
+                                <Icono Nombre="plus" /><span>@(string.IsNullOrEmpty(ViewModel.Foto) ? "Elegir foto" : "Cambiar foto")</span>
+                            </label>
+                            <InputFile id="mm-foto" class="d-none" accept="image/jpeg,image/png,image/webp" OnChange="AlElegirFoto" />
+                            @if (!string.IsNullOrEmpty(ViewModel.Foto)) {
+                                <button type="button" class="btn btn-outline-danger btn-texto" @onclick="QuitarFoto">
+                                    <Icono Nombre="trash" /><span>Quitar foto</span>
+                                </button>
+                            }
+                        </div>
+                        <div class="form-text">JPG, PNG o WEBP. Se reduce automáticamente.</div>
+                        @if (MensajeFoto != null) {
+                            <div class="validation-message">@MensajeFoto</div>
+                        }
+                    </div>
+                </div>
+
+                @if (Bloqueada) {
+                    <div class="alert alert-warning mb-0">
+                        Esta mascota ya tiene citas aprobadas o atendidas, por eso el nombre y el tipo no se pueden cambiar.
+                        Si hay un error, pídale a la clínica que lo corrija.
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="mm-nombre">Nombre</label>
+                        <PaInputText id="mm-nombre" tabindex="1" class="form-control" maxlength="45" @bind-Value="ViewModel.Nombre" disabled="@Bloqueada" />
+                        <ValidationMessage For="() => ViewModel.Nombre" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="mm-peso">Peso en kg <span class="text-muted fw-normal">(opcional)</span></label>
+                        <PaInputNumber id="mm-peso" tabindex="2" class="form-control" @bind-Value="ViewModel.Peso" />
+                        <ValidationMessage For="() => ViewModel.Peso" />
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-label">Tipo</div>
+                        <div class="seg-pago">
+                            @foreach (TipoMascota tipo in Tipos) {
+                                <button type="button" tabindex="3" class="@(tipo == ViewModel.TipoMascota ? "activo" : "")" aria-pressed="@(tipo == ViewModel.TipoMascota)"
+                                        disabled="@Bloqueada" @onclick="() => ViewModel.TipoMascota = tipo">@TextoEnum.De(tipo)</button>
+                            }
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-label">Sexo</div>
+                        <div class="seg-pago">
+                            @foreach (SexoMascota sexo in Sexos) {
+                                <button type="button" tabindex="4" class="@(sexo == ViewModel.Sexo ? "activo" : "")" aria-pressed="@(sexo == ViewModel.Sexo)"
+                                        @onclick="() => ViewModel.Sexo = sexo">@TextoEnum.De(sexo)</button>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="mm-raza">Raza <span class="text-muted fw-normal">(opcional)</span></label>
+                        <PaInputText id="mm-raza" tabindex="5" class="form-control" maxlength="45" @bind-Value="ViewModel.Raza" />
+                        <ValidationMessage For="() => ViewModel.Raza" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="mm-nacimiento">Fecha de nacimiento</label>
+                        <PaInputDate id="mm-nacimiento" tabindex="6" class="form-control" max="@DateTime.Today.ToString("yyyy-MM-dd")" @bind-Value="ViewModel.FechaNacimiento" />
+                        <div class="form-text">Si no la sabe, indique una fecha aproximada.</div>
+                        <ValidationMessage For="() => ViewModel.FechaNacimiento" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a tabindex="8" class="btn btn-outline-primary" href="mis-mascotas">Cancelar</a>
+                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar mascota</span></button>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+</div>
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private MascotaClienteViewModel ViewModel { get; set; } = new();
+    private TipoMascota[] Tipos { get; } = Enum.GetValues<TipoMascota>();
+    private SexoMascota[] Sexos { get; } = Enum.GetValues<SexoMascota>();
+    private string NombreOriginal { get; set; } = "";
+    private bool Bloqueada { get; set; }
+
+    // La foto se reduce en el navegador a 300 px y JPG (pesa pocos KB); el backend acepta hasta 200 KB (RN-MA-07)
+    private static readonly string[] TiposFoto = ["image/jpeg", "image/png", "image/webp"];
+    private const int MaxBytesFoto = 150_000;
+    private string? MensajeFoto { get; set; }
+
+    // Solo se edita una mascota del cliente que inició sesión (al enlazar: GET /mascotas?cliente={id})
+    protected override void OnParametersSet() {
+        if (Id == null) {
+            // Esta misma pantalla sirve para agregar y para editar: al agregar no queda nada de una edición anterior
+            ViewModel = new MascotaClienteViewModel();
+            NombreOriginal = "";
+            Bloqueada = false;
+            return;
+        }
+        MascotaViewModel? mascota = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona).FirstOrDefault(m => m.Id == Id);
+        if (mascota == null) {
+            Nav.NavigateTo("/mis-mascotas");
+            return;
+        }
+        NombreOriginal = mascota.Nombre;
+        Bloqueada = PortalCliente.NombreYTipoBloqueados(DatosEjemplo.CitasDeCliente(Sesion.IdPersona), mascota.Id);
+        ViewModel = new MascotaClienteViewModel {
+            Id = mascota.Id,
+            Nombre = mascota.Nombre,
+            TipoMascota = mascota.TipoMascota,
+            Sexo = mascota.Sexo,
+            Raza = mascota.Raza,
+            Peso = mascota.Peso is > 0 ? mascota.Peso : null,
+            FechaNacimiento = mascota.FechaNacimiento,
+            Foto = mascota.Foto
+        };
+    }
+
+    private async Task AlElegirFoto(InputFileChangeEventArgs e) {
+        MensajeFoto = null;
+        IBrowserFile archivo = e.File;
+        if (!TiposFoto.Contains(archivo.ContentType)) {
+            MensajeFoto = "Elija una imagen JPG, PNG o WEBP";
+            return;
+        }
+        try {
+            // El navegador la reduce antes de enviarla al servidor
+            IBrowserFile reducida = await archivo.RequestImageFileAsync("image/jpeg", 300, 300);
+            using Stream flujo = reducida.OpenReadStream(MaxBytesFoto);
+            using MemoryStream memoria = new();
+            await flujo.CopyToAsync(memoria);
+            ViewModel.Foto = $"data:image/jpeg;base64,{Convert.ToBase64String(memoria.ToArray())}";
+        } catch (IOException) {
+            MensajeFoto = "La imagen es demasiado grande. Elija otra";
+        }
+    }
+
+    private void QuitarFoto() {
+        ViewModel.Foto = null;
+        MensajeFoto = null;
+    }
+
+    // Sin backend: solo regresa a "Mis mascotas". Al enlazar: POST /mascotas o PUT /mascotas/{Id}, con el dueño
+    // fijado al cliente de la sesión, "foto" con el texto base64 (o vacío) y, si no indicó el peso, peso 0
+    // ("no registrado"): el backend lo acepta (MascotaBLImpl, RN-MA-02) y valida la foto (RN-MA-07).
+    private void Guardar() {
+        Nav.NavigateTo("/mis-mascotas");
+    }
+}

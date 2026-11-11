@@ -7,26 +7,76 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Veterinarios</h3>
-    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoVeterinario()">
+    <button tabindex="6" class="btn btn-warning btn-texto" @onclick="() => NuevoVeterinario()">
         <Icono Nombre="plus" /><span>Nuevo veterinario</span>
     </button>
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">DNI, nombre o colegiatura:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el texto a buscar..." @bind="Filtro" />
+@* Todo se calcula con los horarios asignados y la agenda de hoy: no hay datos nuevos *@
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-verde">
+            <span class="indicador-icono"><Icono Nombre="stethoscope" /></span>
+            <span class="indicador-valor">@Todos.Count</span>
+            <span class="indicador-texto">Veterinarios registrados</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-mostaza">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@(EnTurno.Count == 0 ? "Ninguno" : $"{EnTurno.Count} en turno")</span>
+            <span class="indicador-texto">@(EnTurno.Count == 0 ? "Fuera de los horarios asignados" : string.Join(", ", EnTurno.Select(v => v.Nombres.Split(' ')[0])))</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-salvia">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">@ProximoRelevo</span>
+            <span class="indicador-texto">Próximo cambio de turno</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-terracota">
+            <span class="indicador-icono"><Icono Nombre="paw" /></span>
+            <span class="indicador-valor">@ServiciosHoy servicios hoy</span>
+            <span class="indicador-texto">@AtendidosHoy atendidos · @(ServiciosHoy - AtendidosHoy) pendientes</span>
+        </div>
+    </div>
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap" for="filtro-vet">DNI, nombre o colegiatura:</label>
+    <input id="filtro-vet" tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el texto a buscar..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <div class="seg-pago ms-auto" role="group" aria-label="Vista">
+        <button type="button" tabindex="4" class="@(Vista == "tarjetas" ? "activo" : "")" aria-pressed="@(Vista == "tarjetas")" @onclick='() => Vista = "tarjetas"'>
+            <Icono Nombre="grid" /> Tarjetas
+        </button>
+        <button type="button" tabindex="5" class="@(Vista == "tabla" ? "activo" : "")" aria-pressed="@(Vista == "tabla")" @onclick='() => Vista = "tabla"'>
+            <Icono Nombre="list" /> Tabla
+        </button>
+    </div>
 </div>
 
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
 
-@if (!Veterinarios.Any()) {
+@if (!Filtrados.Any()) {
     <div class="alert alert-info">No se encontraron veterinarios.</div>
+}
+else if (Vista == "tarjetas") {
+    <div class="row g-3">
+        @foreach (VeterinarioViewModel veterinario in Filtrados) {
+            <div class="col-md-6 col-xl-4">
+                <TarjetaPersonal Persona="veterinario" Colegiatura="@veterinario.NumeroColegiatura"
+                                 OnEditar="p => EditarVeterinario(p.Id)" OnEliminar="p => PedirEliminar((VeterinarioViewModel)p)" />
+            </div>
+        }
+    </div>
 }
 else {
     <QuickGrid Items="Veterinarios" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
@@ -35,6 +85,9 @@ else {
         <PropertyColumn Title="Colegiatura" Property="v => v.NumeroColegiatura" />
         <PropertyColumn Title="Teléfono" Property="v => v.Telefono" />
         <PropertyColumn Title="Horarios" Property="v => v.TextoHorarios" />
+        <TemplateColumn Title="Estado">
+            <span class="etiqueta @Estado(context).Clase">@Estado(context).Texto</span>
+        </TemplateColumn>
         <TemplateColumn Title="Acciones" Align="Align.Center">
             <div class="acciones">
                 <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarVeterinario(context.Id)">
@@ -49,6 +102,8 @@ else {
     <Paginador State="Paginacion" />
 }
 
+<p class="text-muted small mt-3">Los horarios se asignan desde la ficha de cada veterinario. Un veterinario con citas asignadas no se puede eliminar (RN-VE-03).</p>
+
 <ConfirmarDialogo Visible="VeterinarioAEliminar != null"
                   Titulo="¿Eliminar al veterinario?"
                   Mensaje="@($"{VeterinarioAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja. No se puede si está asignado a alguna cita.")"
@@ -60,11 +115,37 @@ else {
     private VeterinarioViewModel? VeterinarioAEliminar { get; set; }
     private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
+    private string Vista { get; set; } = "tarjetas";
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
 
+    private List<VeterinarioViewModel> Filtrados => Veterinarios.ToList();
+    private List<VeterinarioViewModel> EnTurno { get; set; } = [];
+    private string ProximoRelevo { get; set; } = "—";
+    private int ServiciosHoy { get; set; }
+    private int AtendidosHoy { get; set; }
+
+    // Al enlazar: GET /veterinarios (cada uno trae sus horarios) y GET /citas?fecha=hoy para los servicios de hoy
     protected override void OnInitialized() {
         Todos = DatosEjemplo.Veterinarios();
         Filtrar();
+        Resumir();
+    }
+
+    private void Resumir() {
+        DateTime ahora = DateTime.Now;
+        EnTurno = Todos.Where(v => TurnosPersonal.EnTurno(v.NombreCompleto, ahora) != null).ToList();
+        ProximoRelevo = TurnosPersonal.ProximoRelevo(ahora);
+        ServiciosHoy = 0;
+        AtendidosHoy = 0;
+        foreach (VeterinarioViewModel veterinario in Todos) {
+            (int programados, int atendidos) = TurnosPersonal.ServiciosDeHoy(veterinario.NombreCompleto);
+            ServiciosHoy += programados;
+            AtendidosHoy += atendidos;
+        }
+    }
+
+    private static (string Clase, string Texto) Estado(VeterinarioViewModel veterinario) {
+        return TurnosPersonal.Estado(veterinario.NombreCompleto, DateTime.Now);
     }
 
     private void Filtrar() {
@@ -107,5 +188,6 @@ else {
         MensajeExito = $"Se eliminó al veterinario {VeterinarioAEliminar.NombreCompleto}.";
         VeterinarioAEliminar = null;
         Filtrar();
+        Resumir();
     }
 }

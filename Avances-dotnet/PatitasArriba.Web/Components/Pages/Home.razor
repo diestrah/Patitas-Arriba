@@ -2,23 +2,15 @@
 @inject SesionDemo Sesion;
 @inject NavigationManager Nav;
 
-@using System.Globalization
-
 <PageTitle>Inicio</PageTitle>
 
-@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized) *@
+@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized). Cada rol tiene su inicio *@
 @if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
-    @* El administrador tiene su propio inicio: citas por aprobar, stock bajo y lo cobrado hoy *@
     <InicioAdministrador />
-} else if (Sesion.Rol != null) {
-    <section class="inicio-hero">
-        <div>
-            <span class="inicio-chip">@Saludo · @Fecha</span>
-            <h2>Bienvenido, @Sesion.Nombres</h2>
-            <p>Ingresó como <strong>@TextoEnum.De(Sesion.Rol.Value)</strong>. Aquí tiene un resumen de hoy y sus accesos más usados.</p>
-        </div>
-        <DibujoInicio />
-    </section>
+} else if (Sesion.Rol == RolUsuario.CLIENTE) {
+    <InicioCliente />
+} else if (Sesion.Rol == RolUsuario.VETERINARIO) {
+    <BannerInicio Nombre="@Sesion.Nombres" Texto="Aquí tiene un resumen de hoy y sus accesos más usados." />
 
     <div class="row g-3 mb-4">
         @foreach (Indicador indicador in Indicadores) {
@@ -36,12 +28,12 @@
         <div class="col-lg-7">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">@TituloLista</span>
-                    <a class="small fw-bold" href="@HrefLista">Ver todo</a>
+                    <span class="fw-bold">Mi agenda de hoy</span>
+                    <a class="small fw-bold" href="mi-agenda">Ver todo</a>
                 </div>
                 <div class="card-body">
                     @if (Lista.Count == 0) {
-                        <p class="text-muted mb-0">@TextoListaVacia</p>
+                        <p class="text-muted mb-0">No tiene servicios programados para hoy.</p>
                     } else {
                         <ul class="lista-agenda">
                             @foreach (ItemInicio item in Lista) {
@@ -85,60 +77,29 @@
     private List<Indicador> Indicadores { get; set; } = [];
     private List<ItemInicio> Lista { get; set; } = [];
     private List<OpcionMenu> Accesos { get; set; } = [];
-    private string TituloLista { get; set; } = "";
-    private string HrefLista { get; set; } = "";
-    private string TextoListaVacia { get; set; } = "";
 
-    private static readonly CultureInfo Peru = new("es-PE");
-    private string Fecha => DateTime.Today.ToString("dddd d 'de' MMMM", Peru);
-    private string Saludo => DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 19 ? "Buenas tardes" : "Buenas noches";
-
-    // Mientras no se enlaza con el backend, el resumen se arma con los datos de ejemplo
+    // Mientras no se enlaza con el backend, el resumen se arma con los datos de ejemplo.
+    // El inicio del administrador y el del cliente están en Components/Inicio.
     protected override void OnInitialized() {
         if (Sesion.Rol == null) {
             Nav.NavigateTo("login", replace: true);
             return;
         }
-        if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
+        if (Sesion.Rol != RolUsuario.VETERINARIO) {
             return;
         }
         Accesos = Permisos.MenuDelRol(Sesion.Rol).SelectMany(g => g.Value).ToList();
         HashSet<int> atendidos = DatosEjemplo.DetallesAtendidos();
 
-        if (Sesion.Rol == RolUsuario.VETERINARIO) {
-            List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario);
-            int porAtender = agenda.Count(i => !atendidos.Contains(i.IdDetalleCita));
-            Indicadores = [
-                new("clock", agenda.Count.ToString(), "Servicios de hoy", "mi-agenda", "verde"),
-                new("activity", porAtender.ToString(), "Por atender", "mi-agenda", "mostaza"),
-                new("check-circle", (agenda.Count - porAtender).ToString(), "Atendidos hoy", "atenciones", "salvia"),
-                new("file-text", DatosEjemplo.Recetas().Count(r => r.NombreVeterinario == Sesion.NombreUsuario).ToString(), "Recetas emitidas", "recetas", "terracota")
-            ];
-            TituloLista = "Mi agenda de hoy";
-            HrefLista = "mi-agenda";
-            TextoListaVacia = "No tiene servicios programados para hoy.";
-            Lista = agenda.Select(i => ItemDeAgenda(i, atendidos)).ToList();
-        } else {
-            List<CitaViewModel> citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
-            List<MascotaViewModel> mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
-            CitaViewModel? proxima = citas.Where(c => c.EsModificable && c.FechaHora > DateTime.Now).OrderBy(c => c.FechaHora).FirstOrDefault();
-            int atenciones = DatosEjemplo.Atenciones().Count(a => mascotas.Any(m => m.Id == a.IdMascota));
-            Indicadores = [
-                new("paw", mascotas.Count.ToString(), "Mis mascotas", "mis-mascotas", "verde"),
-                new("calendar", proxima?.FechaHora?.ToString("dd/MM HH:mm") ?? "—", "Próxima cita", "mis-citas", "mostaza"),
-                new("clock", citas.Count(c => c.Estado == EstadoCita.PENDIENTE).ToString(), "Citas por confirmar", "mis-citas", "salvia"),
-                new("heart", atenciones.ToString(), "Atenciones de mis mascotas", "mis-mascotas", "terracota")
-            ];
-            TituloLista = "Mis citas";
-            HrefLista = "mis-citas";
-            TextoListaVacia = "Todavía no tiene citas. Puede reservar una desde Mi portal.";
-            Lista = citas.Take(5).Select(c => new ItemInicio(
-                c.FechaHora?.ToString("dd/MM HH:mm") ?? "",
-                $"{c.NombreMascota} · {c.TextoServicios}",
-                string.Join(", ", c.Detalles.Select(d => d.NombreVeterinario).Distinct()),
-                TextoEnum.De(c.Estado),
-                ClaseDeEstado(c.Estado))).ToList();
-        }
+        List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario);
+        int porAtender = agenda.Count(i => !atendidos.Contains(i.IdDetalleCita));
+        Indicadores = [
+            new("clock", agenda.Count.ToString(), "Servicios de hoy", "mi-agenda", "verde"),
+            new("activity", porAtender.ToString(), "Por atender", "mi-agenda", "mostaza"),
+            new("check-circle", (agenda.Count - porAtender).ToString(), "Atendidos hoy", "atenciones", "salvia"),
+            new("file-text", DatosEjemplo.Recetas().Count(r => r.NombreVeterinario == Sesion.NombreUsuario).ToString(), "Recetas emitidas", "recetas", "terracota")
+        ];
+        Lista = agenda.Select(i => ItemDeAgenda(i, atendidos)).ToList();
     }
 
     private static ItemInicio ItemDeAgenda(ItemAgendaViewModel item, HashSet<int> atendidos) {
@@ -149,15 +110,5 @@
         }
         return new ItemInicio(item.FechaHora.ToString("HH:mm"), $"{item.NombreMascota} · {item.NombreServicio}", detalle,
             atendido ? "Atendido" : "Por atender", atendido ? "estado-aprobado" : "estado-pendiente");
-    }
-
-    private static string ClaseDeEstado(EstadoCita estado) {
-        return estado switch {
-            EstadoCita.PENDIENTE => "estado-pendiente",
-            EstadoCita.APROBADO => "estado-aprobado",
-            EstadoCita.COMPLETADO => "estado-completado",
-            EstadoCita.RECHAZADO => "estado-rechazado",
-            _ => "estado-cancelado"
-        };
     }
 }

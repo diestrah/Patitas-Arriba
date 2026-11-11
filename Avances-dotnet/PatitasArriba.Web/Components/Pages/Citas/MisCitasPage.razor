@@ -1,124 +1,141 @@
 @page "/mis-citas"
-@inject NavigationManager Nav;
 @inject SesionDemo Sesion;
-
-@using Microsoft.AspNetCore.Components.QuickGrid
 
 <PageTitle>Mis citas</PageTitle>
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Mis citas</h3>
-    <button tabindex="1" class="btn btn-warning btn-texto" @onclick="() => NuevaReserva()">
+    <a class="btn btn-warning btn-texto" href="mis-citas/nueva">
         <Icono Nombre="plus" /><span>Reservar cita</span>
-    </button>
+    </a>
 </div>
 
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
 
-@if (!Citas.Any()) {
-    <div class="alert alert-info">Todavía no tiene citas reservadas.</div>
-}
-else {
-    <QuickGrid Items="Citas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
-        <PropertyColumn Title="Fecha y hora" Property="c => c.FechaHora" Format="dd/MM/yyyy HH:mm" Sortable="true" />
-        <PropertyColumn Title="Mascota" Property="c => c.NombreMascota" />
-        <PropertyColumn Title="Servicios" Property="c => c.TextoServicios" />
-        <TemplateColumn Title="Estado">
-            <BadgeEstadoCita Estado="context.Estado" />
-        </TemplateColumn>
-        <TemplateColumn Title="Acciones">
-            @* Espacios fijos: ver | modificar | cancelar. Si una acción no aplica, queda un guion *@
-            <div class="acciones-fija">
-                <span class="slot-icono">
-                    <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarCita(context)">
-                        <Icono Nombre="eye" />
-                    </button>
-                </span>
-                <span class="slot-icono">
-                    @if (PuedeModificarse(context)) {
-                        <button class="btn btn-outline-primary btn-icono" title="Modificar reserva" aria-label="Modificar reserva" @onclick="() => ModificarReserva(context.Id)">
-                            <Icono Nombre="edit" />
-                        </button>
-                    } else {
-                        <span class="slot-guion">—</span>
-                    }
-                </span>
-                <span class="slot-texto">
-                    @if (PuedeModificarse(context)) {
-                        <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirCancelacion(context)">
-                            <Icono Nombre="x" /><span>Cancelar reserva</span>
-                        </button>
-                    } else {
-                        <span class="slot-guion">—</span>
-                    }
-                </span>
+<h5 class="mb-2">Próximas</h5>
+<div class="card lista-citas mb-4">
+    @if (ProximasCitas.Count == 0) {
+        <div class="p-3 text-muted">No tiene citas próximas.</div>
+    }
+    @foreach (CitaViewModel cita in ProximasCitas) {
+        <FilaCitaCliente Cita="cita" MostrarAcciones="true" OnVer="Ver" OnModificar="PedirReprogramar" OnCancelar="PedirCancelacion" />
+    }
+</div>
+
+<h5 class="mb-2">Citas anteriores</h5>
+<div class="card lista-citas">
+    @if (AnterioresCitas.Count == 0) {
+        <div class="p-3 text-muted">Aún no tiene citas anteriores.</div>
+    }
+    @foreach (CitaViewModel cita in AnterioresCitas) {
+        <FilaCitaCliente Cita="cita" MostrarAcciones="true" OnVer="Ver" OnModificar="PedirReprogramar" OnCancelar="PedirCancelacion" />
+    }
+</div>
+
+<p class="text-muted small mt-3">
+    ¿Es una emergencia? Llame o acérquese a la clínica; la atendemos de inmediato. Las emergencias las registra la clínica y aquí aparecen con la etiqueta "Emergencia".
+</p>
+
+@* Detalle de la cita en una ventana *@
+@if (CitaSeleccionada != null) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <DetalleCita Cita="CitaSeleccionada">
+                    <button type="button" class="btn btn-outline-primary ms-auto" @onclick="() => CitaSeleccionada = null">Cerrar</button>
+                </DetalleCita>
             </div>
-        </TemplateColumn>
-    </QuickGrid>
-    <Paginador State="Paginacion" />
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
-@if (CitaSeleccionada != null) {
-    <div class="col-lg-8 mt-4">
-        <DetalleCita Cita="CitaSeleccionada" />
+@* Modificar: solo cambia la fecha y la hora; la mascota y los servicios no cambian *@
+@if (CitaAReprogramar != null) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="reprogramar-titulo">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <EditForm Model="Reprogramar" OnValidSubmit="GuardarReprogramacion">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title" id="reprogramar-titulo">Modificar la cita de @CitaAReprogramar.NombreMascota</h5>
+                    </div>
+                    <div class="modal-body">
+                        <p class="text-secondary">La mascota y los servicios no cambian. Puede elegir otra fecha y hora.</p>
+                        <label class="form-label" for="reprogramar-fecha">Fecha y hora</label>
+                        <PaInputDate id="reprogramar-fecha" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="Reprogramar.FechaHora" />
+                        <ValidationMessage For="() => Reprogramar.FechaHora" />
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" class="btn btn-outline-primary btn-par" @onclick="CancelarReprogramacion">Cancelar</button>
+                        <button type="submit" class="btn btn-primary btn-texto btn-par"><Icono Nombre="save" /><span>Guardar cambios</span></button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
     </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
 <ConfirmarDialogo Visible="CitaACancelar != null"
                   Titulo="¿Cancelar la reserva?"
-                  Mensaje="@($"{CitaACancelar?.NombreMascota} · {CitaACancelar?.TextoServicios} · {CitaACancelar?.FechaHora:dd/MM HH:mm}. Si la necesita otra vez, tendrá que reservar de nuevo.")"
+                  Mensaje="@($"{CitaACancelar?.NombreMascota} · {CitaACancelar?.TextoServicios} · {CitaACancelar?.FechaHora:dd/MM HH:mm}. Se liberará el horario. Una cita cancelada no se puede reactivar; tendrá que reservar otra.")"
                   TextoConfirmar="Sí, cancelar reserva"
                   TextoCancelar="No, volver"
                   IconoConfirmar="x"
-                  OnConfirmar="CancelarReserva" OnCancelar="CerrarConfirmacion" />
+                  OnConfirmar="CancelarReserva" OnCancelar="CancelarConfirmacion" />
 
 @code {
-    // Citas del cliente que inició sesión (al enlazar: GET /citas?cliente={id})
-    private List<CitaViewModel> Todas { get; set; } = [];
-    private IQueryable<CitaViewModel> Citas { get; set; } = Enumerable.Empty<CitaViewModel>().AsQueryable();
+    private List<CitaViewModel> Citas { get; set; } = [];
     private CitaViewModel? CitaSeleccionada { get; set; }
     private CitaViewModel? CitaACancelar { get; set; }
-    private HashSet<int> Atendidos { get; set; } = [];
+    private CitaViewModel? CitaAReprogramar { get; set; }
+    private ReprogramarCitaViewModel Reprogramar { get; set; } = new();
     private string? MensajeExito { get; set; }
-    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
 
+    private List<CitaViewModel> ProximasCitas => PortalCliente.Proximas(Citas);
+    private List<CitaViewModel> AnterioresCitas => PortalCliente.Anteriores(Citas);
+
+    // Solo las citas del cliente que inició sesión (al enlazar: GET /citas?cliente={id})
     protected override void OnInitialized() {
-        Todas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-        Citas = Todas.AsQueryable();
+        Citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
     }
 
-    // El cliente modifica o cancela mientras la cita no esté cerrada (RN-CI-08), no haya pasado
-    // y ningún servicio se haya atendido (RN-CI-11)
-    private bool PuedeModificarse(CitaViewModel cita) {
-        return cita.EsModificable
-            && cita.FechaHora > DateTime.Now
-            && !cita.Detalles.Any(d => Atendidos.Contains(d.Id));
-    }
-
-    private void SeleccionarCita(CitaViewModel cita) {
+    private void Ver(CitaViewModel cita) {
         CitaSeleccionada = cita;
     }
 
-    private void NuevaReserva() {
-        Nav.NavigateTo("/mis-citas/nueva");
+    private void PedirReprogramar(CitaViewModel cita) {
+        CitaAReprogramar = cita;
+        Reprogramar = new ReprogramarCitaViewModel { FechaHora = cita.FechaHora };
     }
 
-    private void ModificarReserva(int id) {
-        Nav.NavigateTo($"/mis-citas/editar/{id}");
+    private void CancelarReprogramacion() {
+        CitaAReprogramar = null;
+    }
+
+    // Sin backend se cambia en la lista. Al enlazar: PUT /citas/{id} con la nueva fecha y hora; el backend vuelve a
+    // exigir el horario del veterinario y que no se cruce (RN-CI-12) y, si lo rechaza, se muestra su mensaje.
+    private void GuardarReprogramacion() {
+        if (CitaAReprogramar == null) {
+            return;
+        }
+        CitaAReprogramar.FechaHora = Reprogramar.FechaHora;
+        MensajeExito = $"Se modificó la cita de {CitaAReprogramar.NombreMascota} para el {CitaAReprogramar.FechaHora:dd/MM/yyyy HH:mm}.";
+        CitaAReprogramar = null;
     }
 
     private void PedirCancelacion(CitaViewModel cita) {
         CitaACancelar = cita;
     }
 
-    private void CerrarConfirmacion() {
+    private void CancelarConfirmacion() {
         CitaACancelar = null;
     }
 
-    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con estado CANCELADO
+    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con estado CANCELADO (RN-CI-11)
     private void CancelarReserva() {
         if (CitaACancelar == null) {
             return;
@@ -126,6 +143,5 @@ else {
         CitaACancelar.Estado = EstadoCita.CANCELADO;
         MensajeExito = $"Se canceló la reserva de {CitaACancelar.NombreMascota}.";
         CitaACancelar = null;
-        Citas = Todas.AsQueryable();
     }
 }

@@ -59,8 +59,7 @@ namespace PatitasArriba.Web.Seguridad {
                 new OpcionMenu { Texto = "Cuentas de usuario", Href = "cuentas-usuario", Permiso = "CuentasUsuario", Icono = "key" }
             ],
             ["Caja"] = [
-                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" },
-                new OpcionMenu { Texto = "Nueva boleta", Href = "boletas/nueva", Permiso = "Boletas", Icono = "file-text" }
+                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" }
             ],
             ["Reportes"] = [
                 new OpcionMenu { Texto = "Reporte de agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda", Icono = "bar-chart" },
@@ -68,8 +67,7 @@ namespace PatitasArriba.Web.Seguridad {
             ],
             ["Mi portal"] = [
                 new OpcionMenu { Texto = "Mis mascotas", Href = "mis-mascotas", Permiso = "MisMascotas", Icono = "paw" },
-                new OpcionMenu { Texto = "Mis citas", Href = "mis-citas", Permiso = "MisCitas", Icono = "calendar" },
-                new OpcionMenu { Texto = "Reservar cita", Href = "mis-citas/nueva", Permiso = "MisCitas", Icono = "plus" }
+                new OpcionMenu { Texto = "Mis citas", Href = "mis-citas", Permiso = "MisCitas", Icono = "calendar" }
             ]
         };
 

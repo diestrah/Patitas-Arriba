@@ -1,0 +1,21 @@
+@* Imagen redonda de una mascota: su foto si la tiene y, si no, la inicial de su nombre.
+   Tamano: "" (normal), "chico" o "grande". *@
+@if (!string.IsNullOrEmpty(Foto)) {
+    <img class="@Clase" src="@Foto" alt="@($"Foto de {Nombre}")" />
+} else {
+    <span class="@Clase" aria-hidden="true">@Inicial</span>
+}
+
+@code {
+    [Parameter]
+    public string Nombre { get; set; } = "";
+
+    [Parameter]
+    public string? Foto { get; set; }
+
+    [Parameter]
+    public string Tamano { get; set; } = "";
+
+    private string Clase => $"avatar-mascota {Tamano}".Trim();
+    private string Inicial => string.IsNullOrWhiteSpace(Nombre) ? "?" : Nombre.Trim()[..1].ToUpper();
+}

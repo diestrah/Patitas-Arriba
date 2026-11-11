@@ -57,8 +57,8 @@ namespace PatitasArriba.Web.Datos {
 
         // ---------------------------------------------------------------- Mascotas (GET /mascotas?cliente=...)
         public static List<MascotaViewModel> Mascotas() => [
-            new() { Id = 1, IdCliente = 1, NombreDueno = "Ana Torres Quispe", Nombre = "Firulais", TipoMascota = TipoMascota.PERRO, Raza = "Mestizo", Sexo = SexoMascota.MACHO, Peso = 12.5, FechaNacimiento = new DateOnly(2021, 3, 14) },
-            new() { Id = 2, IdCliente = 1, NombreDueno = "Ana Torres Quispe", Nombre = "Michi", TipoMascota = TipoMascota.GATO, Raza = "Siamés", Sexo = SexoMascota.HEMBRA, Peso = 4.2, FechaNacimiento = new DateOnly(2022, 7, 2) },
+            new() { Id = 1, IdCliente = 1, NombreDueno = "Ana Torres Quispe", Nombre = "Firulais", TipoMascota = TipoMascota.PERRO, Raza = "Mestizo", Sexo = SexoMascota.MACHO, Peso = 12.5, Foto = "img/mascotas/firulais.webp", FechaNacimiento = new DateOnly(2021, 3, 14) },
+            new() { Id = 2, IdCliente = 1, NombreDueno = "Ana Torres Quispe", Nombre = "Michi", TipoMascota = TipoMascota.GATO, Raza = "Siamés", Sexo = SexoMascota.HEMBRA, Peso = 4.2, Foto = "img/mascotas/michi.webp", FechaNacimiento = new DateOnly(2022, 7, 2) },
             new() { Id = 3, IdCliente = 2, NombreDueno = "Luis Ramírez Paredes", Nombre = "Rocky", TipoMascota = TipoMascota.PERRO, Raza = "Labrador", Sexo = SexoMascota.MACHO, Peso = 28.0, FechaNacimiento = new DateOnly(2019, 11, 20) },
             new() { Id = 4, IdCliente = 3, NombreDueno = "María Fernanda Salas Cáceres", Nombre = "Luna", TipoMascota = TipoMascota.GATO, Raza = "Persa", Sexo = SexoMascota.HEMBRA, Peso = 3.8, FechaNacimiento = new DateOnly(2023, 1, 9) },
             new() { Id = 5, IdCliente = 4, NombreDueno = "Jorge Huamán Rojas", Nombre = "Max", TipoMascota = TipoMascota.PERRO, Raza = "Schnauzer", Sexo = SexoMascota.MACHO, Peso = 9.1, FechaNacimiento = new DateOnly(2020, 5, 30) },
@@ -132,12 +132,29 @@ namespace PatitasArriba.Web.Datos {
             [5] = ["Patricia León Flores", "Gabriela Ríos Campos"]
         };
 
+        // Los veterinarios se distinguen de los administradores por nombre porque la lista de personal de cada horario
+        // (PersonalPorHorario) solo trae nombres. Al enlazar, VeterinarioDTO.horarios y AdministradorDTO.horarios dicen quién es quién.
+        private static readonly string[] NombresVeterinarios = ["Carla Vega Soto", "Miguel Ángel Castro Ruiz", "Patricia León Flores"];
+
+        private static HorarioViewModel Horario(int id, DiaSemana dia, TimeOnly inicio, TimeOnly fin) {
+            List<string> personal = PersonalPorHorario[id].ToList();
+            return new HorarioViewModel {
+                Id = id,
+                DiaSemana = dia,
+                HoraInicio = inicio,
+                HoraFin = fin,
+                NombresPersonal = personal,
+                NombresVeterinarios = personal.Where(n => NombresVeterinarios.Contains(n)).ToList(),
+                NombresAdministradores = personal.Where(n => !NombresVeterinarios.Contains(n)).ToList()
+            };
+        }
+
         public static List<HorarioViewModel> Horarios() => [
-            new() { Id = 1, DiaSemana = DiaSemana.LUNES, HoraInicio = new TimeOnly(8, 0), HoraFin = new TimeOnly(14, 0), NombresPersonal = PersonalPorHorario[1].ToList() },
-            new() { Id = 2, DiaSemana = DiaSemana.LUNES, HoraInicio = new TimeOnly(14, 0), HoraFin = new TimeOnly(20, 0), NombresPersonal = PersonalPorHorario[2].ToList() },
-            new() { Id = 3, DiaSemana = DiaSemana.MARTES, HoraInicio = new TimeOnly(8, 0), HoraFin = new TimeOnly(14, 0), NombresPersonal = PersonalPorHorario[3].ToList() },
-            new() { Id = 4, DiaSemana = DiaSemana.MIERCOLES, HoraInicio = new TimeOnly(8, 0), HoraFin = new TimeOnly(14, 0), NombresPersonal = PersonalPorHorario[4].ToList() },
-            new() { Id = 5, DiaSemana = DiaSemana.SABADO, HoraInicio = new TimeOnly(9, 0), HoraFin = new TimeOnly(13, 0), NombresPersonal = PersonalPorHorario[5].ToList() }
+            Horario(1, DiaSemana.LUNES, new TimeOnly(8, 0), new TimeOnly(14, 0)),
+            Horario(2, DiaSemana.LUNES, new TimeOnly(14, 0), new TimeOnly(20, 0)),
+            Horario(3, DiaSemana.MARTES, new TimeOnly(8, 0), new TimeOnly(14, 0)),
+            Horario(4, DiaSemana.MIERCOLES, new TimeOnly(8, 0), new TimeOnly(14, 0)),
+            Horario(5, DiaSemana.SABADO, new TimeOnly(9, 0), new TimeOnly(13, 0))
         ];
 
         // Todos los horarios como casillas, marcando los de la persona indicada (vacío = ninguno marcado)
@@ -176,7 +193,12 @@ namespace PatitasArriba.Web.Datos {
             new() { Id = 7, IdCliente = 4, NombreCliente = "Jorge Huamán Rojas", IdMascota = 6, NombreMascota = "Canela", FechaHora = Hoy.AddDays(-2).AddHours(9.5), Estado = EstadoCita.RECHAZADO, IdAdministrador = 2, NombreAdministrador = "Gabriela Ríos Campos",
                     Detalles = [Detalle(8, 7, 3)] },
             new() { Id = 8, IdCliente = 1, NombreCliente = "Ana Torres Quispe", IdMascota = 1, NombreMascota = "Firulais", FechaHora = Hoy.AddDays(-30).AddHours(17), Estado = EstadoCita.COMPLETADO, IdAdministrador = 1, NombreAdministrador = "Diego López Reyes",
-                    Detalles = [Detalle(9, 1, 1), Detalle(10, 2, 1)] }
+                    Detalles = [Detalle(9, 1, 1), Detalle(10, 2, 1)] },
+            // Dos citas próximas de Ana (una aprobada y una pendiente) para mostrar el portal del cliente
+            new() { Id = 9, IdCliente = 1, NombreCliente = "Ana Torres Quispe", IdMascota = 2, NombreMascota = "Michi", FechaHora = Hoy.AddDays(2).AddHours(10), Estado = EstadoCita.APROBADO, IdAdministrador = 1, NombreAdministrador = "Diego López Reyes",
+                    Detalles = [Detalle(11, 1, 1)] },
+            new() { Id = 10, IdCliente = 1, NombreCliente = "Ana Torres Quispe", IdMascota = 1, NombreMascota = "Firulais", FechaHora = Hoy.AddDays(5).AddHours(16), Estado = EstadoCita.PENDIENTE,
+                    Detalles = [Detalle(12, 4, 2)] }
         ];
 
         // Citas del cliente que inició sesión

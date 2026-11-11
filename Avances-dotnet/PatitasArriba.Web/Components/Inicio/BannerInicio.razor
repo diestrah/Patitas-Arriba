@@ -1,0 +1,26 @@
+@* Banner de la pantalla de inicio de todos los roles: saludo con el nombre, una frase, los botones que cada rol
+   necesite (ChildContent) y la imagen del perrito. El saludo cambia según la hora (sin fecha). *@
+<section class="inicio-hero">
+    <div class="inicio-hero-texto">
+        <h2>@Saludo, @Nombre</h2>
+        <p>@Texto</p>
+        @ChildContent
+    </div>
+    <div class="inicio-hero-img" aria-hidden="true">
+        <img src="img/banner-perrito.webp" alt="" />
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public string Nombre { get; set; } = "";
+
+    [Parameter]
+    public string Texto { get; set; } = "";
+
+    // Botones u otros elementos debajo de la frase
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private string Saludo => DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 19 ? "Buenas tardes" : "Buenas noches";
+}

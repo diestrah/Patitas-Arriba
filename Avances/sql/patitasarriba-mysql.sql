@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS `patitasarriba`.`mascota` (
   `fecha_nacimiento` DATE NOT NULL,
   `tipo_mascota` ENUM('PERRO', 'GATO') NOT NULL,
   `raza` VARCHAR(45) NULL DEFAULT NULL,
+  `foto` MEDIUMTEXT NULL,
   `activo` TINYINT(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`id_mascota`),
   INDEX `fk_mascota_cliente1_idx` (`id_cliente` ASC) VISIBLE,

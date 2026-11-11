@@ -1,34 +1,139 @@
 @page "/horarios"
 @inject NavigationManager Nav;
+@inject IJSRuntime JS;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
 <PageTitle>Horarios de atención</PageTitle>
 
-<div class="d-flex justify-content-between mb-3">
-    <h3 class="mb-3">Horarios de atención</h3>
-    <button tabindex="1" class="btn btn-warning btn-texto" @onclick="() => NuevoHorario()">
-        <Icono Nombre="plus" /><span>Nuevo horario</span>
-    </button>
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-1 no-print">
+    <div>
+        <h3 class="mb-1">Horarios de atención</h3>
+        <p class="text-muted">Franjas semanales de la clínica y el personal que cubre cada una. Se repiten todas las semanas.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button tabindex="3" class="btn btn-secondary btn-texto" @onclick="() => Imprimir()">
+            <Icono Nombre="printer" /><span>Imprimir / exportar PDF</span>
+        </button>
+        <button tabindex="1" class="btn btn-warning btn-texto" @onclick="() => NuevoHorario()">
+            <Icono Nombre="plus" /><span>Nuevo horario</span>
+        </button>
+    </div>
 </div>
 
-<p class="text-muted small">El personal se asigna a cada horario desde la ficha del veterinario o del administrador.</p>
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-verde">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@Todos.Count @(Todos.Count == 1 ? "franja" : "franjas")</span>
+            <span class="indicador-texto">Horarios activos</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-salvia">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">@DiasDeAtencion</span>
+            <span class="indicador-texto">Días de atención</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-mostaza">
+            <span class="indicador-icono"><Icono Nombre="stethoscope" /></span>
+            <span class="indicador-valor">@Todos.Sum(h => h.Horas).ToString("0.#") horas</span>
+            <span class="indicador-texto">Atención por semana</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="@($"indicador {(SinVeterinario == 0 ? "indicador-verde" : "indicador-terracota")}")">
+            <span class="indicador-icono"><Icono Nombre="@(SinVeterinario == 0 ? "check-circle" : "alert")" /></span>
+            <span class="indicador-valor">@(SinVeterinario == 0 ? "Todo cubierto" : $"{SinVeterinario} sin veterinario")</span>
+            <span class="indicador-texto">Una franja sin veterinario no recibe citas (RN-CI-05)</span>
+        </div>
+    </div>
+</div>
+
+<div class="barra-filtros d-flex align-items-center gap-2 mb-3 no-print">
+    <div class="seg-pago" role="group" aria-label="Vista">
+        <button type="button" tabindex="2" class="@(Vista == "semana" ? "activo" : "")" aria-pressed="@(Vista == "semana")" @onclick='() => Vista = "semana"'>
+            <Icono Nombre="grid" /> Semana
+        </button>
+        <button type="button" tabindex="2" class="@(Vista == "lista" ? "activo" : "")" aria-pressed="@(Vista == "lista")" @onclick='() => Vista = "lista"'>
+            <Icono Nombre="list" /> Lista
+        </button>
+    </div>
+    <span class="text-muted small ms-auto">@Todos.Count @(Todos.Count == 1 ? "horario" : "horarios") · @PersonasAsignadas @(PersonasAsignadas == 1 ? "persona asignada" : "personas asignadas")</span>
+</div>
 
 @if (MensajeExito != null) {
-    <div class="alert alert-success">@MensajeExito</div>
+    <div class="alert alert-success no-print">@MensajeExito</div>
 }
 @if (MensajeError != null) {
-    <div class="alert alert-danger">@MensajeError</div>
+    <div class="alert alert-danger no-print">@MensajeError</div>
 }
 
-@if (!Horarios.Any()) {
-    <div class="alert alert-info">No hay horarios registrados.</div>
+@if (Todos.Count == 0) {
+    <div class="alert alert-info">No hay horarios registrados. Cree el primero con "Nuevo horario".</div>
+}
+else if (Vista == "semana") {
+    <div class="semana-grid">
+        @foreach (DiaSemana dia in Dias) {
+            List<HorarioViewModel> delDia = Todos.Where(h => h.DiaSemana == dia).OrderBy(h => h.HoraInicio).ToList();
+            <div class="dia-col">
+                <h6>@TextoEnum.De(dia)</h6>
+                @if (delDia.Count == 0) {
+                    <div class="dia-vacio">Sin atención</div>
+                }
+                @foreach (HorarioViewModel horario in delDia) {
+                    <div class="bloque-horario @(horario.EsTarde ? "tarde" : dia == DiaSemana.SABADO ? "sabado" : "")">
+                        <div class="rango">
+                            @horario.HoraInicio.ToString("HH:mm") – @horario.HoraFin.ToString("HH:mm")
+                            <small>@(horario.EsTarde ? "Tarde" : "Mañana") · @horario.Horas.ToString("0.#") h</small>
+                        </div>
+                        <div class="d-flex flex-column gap-1">
+                            @foreach (string nombre in horario.NombresVeterinarios) {
+                                <div class="persona-linea">
+                                    <span class="ini">@Iniciales(nombre)</span>
+                                    <span>@NombreCorto(nombre)<small>Veterinario</small></span>
+                                </div>
+                            }
+                            @foreach (string nombre in horario.NombresAdministradores) {
+                                <div class="persona-linea adm">
+                                    <span class="ini">@Iniciales(nombre)</span>
+                                    <span>@NombreCorto(nombre)<small>Administrador</small></span>
+                                </div>
+                            }
+                            @if (!horario.TieneVeterinario) {
+                                <span class="etiqueta etiqueta-roja align-self-start">Sin veterinario</span>
+                            }
+                        </div>
+                        <div class="acciones-bloque no-print">
+                            <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="@($"Editar el horario del {TextoHorario(horario)}")" @onclick="() => EditarHorario(horario.Id)">
+                                <Icono Nombre="edit" />
+                            </button>
+                            <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="@($"Eliminar el horario del {TextoHorario(horario)}")" @onclick="() => PedirEliminar(horario)">
+                                <Icono Nombre="trash" />
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
 }
 else {
     <QuickGrid Items="Horarios" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <PropertyColumn Title="Día" Property="h => TextoEnum.De(h.DiaSemana)" />
         <PropertyColumn Title="Horario" Property="h => h.Rango" />
         <PropertyColumn Title="Personal asignado" Property="h => h.PersonalAsignado" />
+        <TemplateColumn Title="Cobertura">
+            @if (context.TieneVeterinario) {
+                <span class="etiqueta etiqueta-verde">Con veterinario</span>
+            } else if (context.NombresAdministradores.Count > 0) {
+                <span class="etiqueta etiqueta-mostaza">Solo administración</span>
+            } else {
+                <span class="etiqueta etiqueta-roja">Sin personal</span>
+            }
+        </TemplateColumn>
         <TemplateColumn Title="Acciones" Align="Align.Center">
             <div class="acciones">
                 <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarHorario(context.Id)">
@@ -43,22 +148,83 @@ else {
     <Paginador State="Paginacion" />
 }
 
+<p class="text-muted small mt-3 no-print">
+    El personal se asigna al crear o editar el horario, o desde la ficha del veterinario o del administrador (RN-HO-03).
+    Un horario asignado a alguien no se puede eliminar (RN-HO-04).
+</p>
+
 <ConfirmarDialogo Visible="HorarioAEliminar != null"
                   Titulo="¿Eliminar el horario?"
                   Mensaje="@($"El horario del {TextoHorario(HorarioAEliminar)} dejará de estar disponible.")"
                   OnConfirmar="EliminarHorario" OnCancelar="CancelarEliminacion" />
 
+@* RN-HO-04: no se elimina un horario con personal asignado; se dice a quién *@
+@if (HorarioBloqueado != null) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="bloqueado-titulo">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title" id="bloqueado-titulo">No se puede eliminar este horario</h5>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary">El horario del @TextoHorario(HorarioBloqueado) está asignado a:</p>
+                    <div class="mb-3">
+                        @foreach (string nombre in HorarioBloqueado.NombresPersonal) {
+                            <span class="chip-cat">@nombre</span>
+                        }
+                    </div>
+                    <div class="alert alert-warning mb-0">Primero quite a esas personas, desde "Editar" en este horario o desde la ficha de cada una.</div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-primary btn-par" @onclick="() => HorarioBloqueado = null">Entendido</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
     private List<HorarioViewModel> Todos { get; set; } = [];
     private IQueryable<HorarioViewModel> Horarios { get; set; } = Enumerable.Empty<HorarioViewModel>().AsQueryable();
     private HorarioViewModel? HorarioAEliminar { get; set; }
+    private HorarioViewModel? HorarioBloqueado { get; set; }
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
+    private string Vista { get; set; } = "semana";
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 7 };
+    private DiaSemana[] Dias { get; } = Enum.GetValues<DiaSemana>();
 
+    private int SinVeterinario => Todos.Count(h => !h.TieneVeterinario);
+    private int PersonasAsignadas => Todos.SelectMany(h => h.NombresPersonal).Distinct().Count();
+
+    // "Lunes a sábado" (primer y último día con atención)
+    private string DiasDeAtencion {
+        get {
+            List<DiaSemana> conAtencion = Dias.Where(d => Todos.Any(h => h.DiaSemana == d)).ToList();
+            if (conAtencion.Count == 0) {
+                return "—";
+            }
+            return conAtencion.Count == 1
+                ? TextoEnum.De(conAtencion[0])
+                : $"{TextoEnum.De(conAtencion[0])} a {TextoEnum.De(conAtencion[^1]).ToLower()}";
+        }
+    }
+
+    // Al enlazar: GET /horarios y, para saber quién está en cada uno, GET /veterinarios y /administradores
     protected override void OnInitialized() {
         Todos = DatosEjemplo.Horarios();
         Horarios = Todos.AsQueryable();
+    }
+
+    private static string NombreCorto(string nombreCompleto) {
+        string[] partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length >= 3 ? $"{partes[0]} {partes[^2]}" : nombreCompleto;
+    }
+
+    private static string Iniciales(string nombreCompleto) {
+        string[] partes = nombreCompleto.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length >= 3 ? $"{partes[0][..1]}{partes[^2][..1]}".ToUpper() : nombreCompleto[..1].ToUpper();
     }
 
     private string TextoHorario(HorarioViewModel? horario) {
@@ -73,8 +239,17 @@ else {
         Nav.NavigateTo($"/horarios/editar/{id}");
     }
 
+    // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF
+    private async Task Imprimir() {
+        await JS.InvokeVoidAsync("print");
+    }
+
     private void PedirEliminar(HorarioViewModel horario) {
-        HorarioAEliminar = horario;
+        if (horario.NombresPersonal.Count > 0) {
+            HorarioBloqueado = horario;
+        } else {
+            HorarioAEliminar = horario;
+        }
     }
 
     private void CancelarEliminacion() {
@@ -87,15 +262,10 @@ else {
         if (HorarioAEliminar == null) {
             return;
         }
-        MensajeExito = null;
         MensajeError = null;
-        if (HorarioAEliminar.NombresPersonal.Count > 0) {
-            MensajeError = $"No se puede eliminar el horario: está asignado a {HorarioAEliminar.PersonalAsignado}. Quíteselo primero desde su ficha.";
-        } else {
-            Todos.Remove(HorarioAEliminar);
-            MensajeExito = $"Se eliminó el horario del {TextoHorario(HorarioAEliminar)}.";
-            Horarios = Todos.AsQueryable();
-        }
+        Todos.Remove(HorarioAEliminar);
+        MensajeExito = $"Se eliminó el horario del {TextoHorario(HorarioAEliminar)}.";
+        Horarios = Todos.AsQueryable();
         HorarioAEliminar = null;
     }
 }

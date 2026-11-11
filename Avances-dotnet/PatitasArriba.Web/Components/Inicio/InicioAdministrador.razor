@@ -2,20 +2,14 @@
 
 @using System.Globalization
 
-<section class="inicio-hero">
-    <div>
-        <span class="inicio-chip">@Saludo · @Fecha</span>
-        <h2>Bienvenido, @Sesion.Nombres</h2>
-        <p>@Resumen</p>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-warning btn-texto" href="citas/nueva"><Icono Nombre="plus" /><span>Nueva cita</span></a>
-            <a class="btn btn-secondary btn-texto" href="clientes/nuevo"><Icono Nombre="users" /><span>Nuevo cliente</span></a>
-            <a class="btn btn-secondary btn-texto" href="mascotas/nuevo"><Icono Nombre="paw" /><span>Nueva mascota</span></a>
-            <a class="btn btn-secondary btn-texto" href="agenda"><Icono Nombre="calendar" /><span>Agenda diaria</span></a>
-        </div>
+<BannerInicio Nombre="@Sesion.Nombres" Texto="@Resumen">
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-warning btn-texto" href="citas/nueva"><Icono Nombre="plus" /><span>Nueva cita</span></a>
+        <a class="btn btn-secondary btn-texto" href="clientes/nuevo"><Icono Nombre="users" /><span>Nuevo cliente</span></a>
+        <a class="btn btn-secondary btn-texto" href="mascotas/nuevo"><Icono Nombre="paw" /><span>Nueva mascota</span></a>
+        <a class="btn btn-secondary btn-texto" href="agenda"><Icono Nombre="calendar" /><span>Agenda diaria</span></a>
     </div>
-    <DibujoInicio />
-</section>
+</BannerInicio>
 
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
@@ -189,8 +183,6 @@
     private CitaViewModel? CitaARechazar { get; set; }
     private string? MensajeExito { get; set; }
 
-    private string Fecha => DateTime.Today.ToString("dddd d 'de' MMMM", Peru);
-    private string Saludo => DateTime.Now.Hour < 12 ? "Buenos días" : DateTime.Now.Hour < 19 ? "Buenas tardes" : "Buenas noches";
 
     private List<CitaViewModel> PorAprobar => Citas.Where(c => c.Estado == EstadoCita.PENDIENTE).OrderBy(c => c.FechaHora).ToList();
     private List<ArticuloViewModel> StockBajo => Articulos.Where(a => a.StockBajo).ToList();

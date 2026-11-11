@@ -101,7 +101,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 |---|---|
 | RN-CL-01 | No se puede dar de baja a un cliente si alguna de sus mascotas tiene citas o si tiene boletas emitidas. |
 | RN-CL-02 | Al dar de baja a un cliente, también se dan de baja todas sus mascotas. |
-| RN-CL-03 | **[Rol]** El administrador gestiona los clientes; el veterinario solo los consulta. Un cliente solo ve sus propias mascotas y citas. |
+| RN-CL-03 | **[Rol]** El administrador gestiona los clientes; el veterinario solo los consulta. Un cliente solo ve y gestiona sus propias mascotas, y solo ve sus propias citas. |
 
 ### 5.3 Veterinario
 
@@ -127,11 +127,12 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | Código | Regla |
 |---|---|
 | RN-MA-01 | La clínica atiende **perros y gatos**. |
-| RN-MA-02 | Toda mascota tiene nombre, sexo (macho / hembra), tipo, peso mayor a 0 y un dueño. La raza y la fecha de nacimiento son opcionales. |
+| RN-MA-02 | Toda mascota tiene nombre, sexo (macho / hembra), tipo y un dueño. El **peso es opcional**: si se indica debe ser mayor a 0, y si no se indica (0) significa "no registrado"; el administrador lo exige en su formulario y lo aplica el frontend. La raza y la fecha de nacimiento son opcionales. |
 | RN-MA-03 | El dueño debe ser un cliente existente y activo. |
 | RN-MA-04 | La fecha de nacimiento no puede ser futura. |
 | RN-MA-05 | No se puede dar de baja una mascota que tenga citas. |
-| RN-MA-06 | Se pueden consultar las mascotas activas de un cliente. **[Rol]** El cliente solo consulta las suyas; el veterinario solo consulta. |
+| RN-MA-06 | Se pueden consultar las mascotas activas de un cliente. **[Rol]** El cliente consulta, **registra y modifica** las suyas (no las da de baja, RN-MA-05) y el veterinario solo consulta. *Propuesta pendiente de aprobación del JP; la restricción por rol la aplica el frontend.* |
+| RN-MA-07 | **Foto de la mascota (opcional).** Se guarda como texto `data:image/jpeg;base64,...` (también PNG o WEBP) y debe pesar menos de 200 KB; el frontend la reduce a 300 px antes de enviarla. Sin foto, el campo queda vacío. |
 
 ---
 
@@ -222,7 +223,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | Código | Regla |
 |---|---|
 | RN-CI-14 | Se pueden consultar las citas de un cliente (ordenadas por fecha) y las citas de un día (ordenadas por hora), opcionalmente solo las de un veterinario. El reporte de agenda diaria (RF13) se arma con estas últimas. |
-| RN-CI-15 | **[Rol]** El cliente registra, modifica y cancela las citas de sus mascotas. El administrador además las aprueba, rechaza y completa. El veterinario solo consulta y filtra su agenda diaria. |
+| RN-CI-15 | **[Rol]** El cliente registra, modifica y cancela las citas de sus mascotas, pero **no registra emergencias**: la cita de emergencia solo la registra el administrador (lo aplica el frontend; propuesta pendiente del JP). El administrador además las aprueba, rechaza y completa. El veterinario solo consulta y filtra su agenda diaria. |
 
 ---
 

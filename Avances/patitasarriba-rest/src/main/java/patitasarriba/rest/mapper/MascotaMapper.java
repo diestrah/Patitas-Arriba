@@ -33,6 +33,7 @@ public final class MascotaMapper {
         dto.setFechaNacimiento(mascota.getFechaNacimiento().toString());
         dto.setRaza(mascota.getRaza());
         dto.setTipoMascota(mascota.getTipoMascota().name());
+        dto.setFoto(mascota.getFoto());
         return dto;
     }
 
@@ -67,6 +68,7 @@ public final class MascotaMapper {
             mascota.setFechaNacimiento(LocalDate.parse(dto.getFechaNacimiento()));
             mascota.setRaza(dto.getRaza());
             mascota.setTipoMascota(TipoMascota.valueOf(dto.getTipoMascota()));
+            mascota.setFoto(dto.getFoto());
         } catch (IllegalArgumentException | DateTimeParseException | NullPointerException e) {
             throw new ValidacionException("Datos de la mascota invalidos: " + e.getMessage());
         }

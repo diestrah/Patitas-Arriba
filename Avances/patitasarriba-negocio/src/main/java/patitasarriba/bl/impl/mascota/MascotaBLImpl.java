@@ -22,6 +22,9 @@ public class MascotaBLImpl implements MascotaBL {
     private final ClienteDAO clienteDAO = new ClienteDAOImpl();
     private final CitaDAO citaDAO = new CitaDAOImpl();
 
+    // 200 KB de imagen en base64 son unos 270 000 caracteres
+    private static final int MAX_CARACTERES_FOTO = 280_000;
+
     @Override
     public List<Mascota> findAll() throws BLException {
         try{
@@ -135,12 +138,30 @@ public class MascotaBLImpl implements MascotaBL {
         if (mascota.getCliente() == null) {
             throw new ValidacionException("La mascota debe tener un cliente asociado");
         }
-        if (mascota.getPeso() <= 0) {
-            throw new ValidacionException("El peso de la mascota debe ser mayor a 0");
+        // El peso es opcional (lo puede omitir el cliente al registrar): 0 significa que no se registró (RN-MA-02)
+        if (mascota.getPeso() < 0) {
+            throw new ValidacionException("El peso de la mascota no puede ser negativo");
         }
+        validarFoto(mascota.getFoto());
         if (mascota.getFechaNacimiento() != null
                 && mascota.getFechaNacimiento().isAfter(LocalDate.now())) {
             throw new ValidacionException("La fecha de nacimiento no puede estar en el futuro");
+        }
+    }
+
+    // RN-MA-07: la foto es opcional; si viene, es una imagen JPG, PNG o WEBP en base64 de menos de 200 KB
+    private void validarFoto(String foto) throws BLException {
+        if (foto == null) {
+            return;
+        }
+        boolean formatoValido = foto.startsWith("data:image/jpeg;base64,")
+                || foto.startsWith("data:image/png;base64,")
+                || foto.startsWith("data:image/webp;base64,");
+        if (!formatoValido) {
+            throw new ValidacionException("La foto debe ser una imagen JPG, PNG o WEBP");
+        }
+        if (foto.length() > MAX_CARACTERES_FOTO) {
+            throw new ValidacionException("La foto es muy grande: debe pesar menos de 200 KB");
         }
     }
 

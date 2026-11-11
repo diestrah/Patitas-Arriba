@@ -243,6 +243,18 @@ public class Tester {
         campo("telefono", telefonoAnterior + " -> " + clienteBL.findById(cliente.getId()).getTelefono());
         campo("peso", pesoAnterior + " kg -> " + mascotaBL.findById(mascota.getId()).getPeso() + " kg");
 
+        // Foto opcional (portal del cliente): se guarda como texto base64 y se lee igual
+        String foto = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+        mascota.setFoto(foto);
+        mascotaBL.update(mascota);
+        campo("foto", mascotaBL.findById(mascota.getId()).getFoto() == null ? "sin foto" : "guardada");
+        verificar("la foto se guarda y se lee igual", foto.equals(mascotaBL.findById(mascota.getId()).getFoto()));
+        // El peso es opcional: 0 significa que no se registró (RN-MA-02)
+        Mascota sinPeso = nuevaMascota(cliente, "Sinpeso", 0);
+        mascotaBL.insert(sinPeso);
+        verificar("una mascota sin peso (0) se acepta", mascotaBL.findById(sinPeso.getId()).getPeso() == 0);
+        mascotaBL.delete(sinPeso.getId());
+
         listarMascotas(mascotaBL.findAll());
 
         // Reglas de negocio: se usa otra cuenta para que solo falle el dato que se quiere probar
@@ -263,7 +275,11 @@ public class Tester {
             clienteBL.insert(invalido);
         });
         Cliente dueno = cliente;
-        regla("Mascota con peso 0", () -> mascotaBL.insert(nuevaMascota(dueno, "Sinpeso", 0)));
+        regla("Mascota con foto que no es una imagen", () -> {
+            Mascota conFotoMala = nuevaMascota(dueno, "Fotomala", 5.0);
+            conFotoMala.setFoto("no es una imagen");
+            mascotaBL.insert(conFotoMala);
+        });
         regla("Eliminar la cuenta de un cliente activo", () -> cuentaBL.delete(cuenta.getId()));
         mostrarReglas();
 

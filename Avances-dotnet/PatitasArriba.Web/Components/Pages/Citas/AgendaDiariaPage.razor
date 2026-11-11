@@ -115,6 +115,10 @@
     private const int PxPorHora = 88;
     private static readonly CultureInfo Peru = new("es-PE");
 
+    // Llega desde "Ver citas asignadas" de un veterinario: abre la agenda ya filtrada por él
+    [SupplyParameterFromQuery(Name = "veterinario")]
+    public string? VeterinarioInicial { get; set; }
+
     private List<CitaViewModel> Citas { get; set; } = [];
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
     private HashSet<int> Atendidos { get; set; } = [];
@@ -139,6 +143,9 @@
         Citas = DatosEjemplo.Citas();
         Atendidos = DatosEjemplo.DetallesAtendidos();
         Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
+        if (VeterinarioInicial != null && Veterinarios.Contains(VeterinarioInicial)) {
+            FiltroVeterinario = VeterinarioInicial;
+        }
         Recalcular();
     }
 
