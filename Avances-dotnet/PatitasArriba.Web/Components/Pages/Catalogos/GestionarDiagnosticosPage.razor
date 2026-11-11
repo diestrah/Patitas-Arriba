@@ -1,5 +1,6 @@
 @page "/diagnosticos/nuevo"
 @page "/diagnosticos/editar/{Id:int}"
+@attribute [Authorize(Policy = "Diagnosticos")]
 @inject NavigationManager Nav;
 @inject IDiagnosticoService DiagnosticoService;
 

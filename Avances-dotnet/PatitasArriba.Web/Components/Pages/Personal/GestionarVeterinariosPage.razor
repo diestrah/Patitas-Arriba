@@ -1,5 +1,6 @@
 @page "/veterinarios/nuevo"
 @page "/veterinarios/editar/{Id:int}"
+@attribute [Authorize(Policy = "Personal")]
 @inject NavigationManager Nav;
 @inject IVeterinarioService VeterinarioService;
 @inject IHorarioService HorarioService;

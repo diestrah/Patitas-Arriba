@@ -1,5 +1,6 @@
 @page "/categorias/nuevo"
 @page "/categorias/editar/{Id:int}"
+@attribute [Authorize(Policy = "Categorias")]
 @inject NavigationManager Nav;
 @inject ICategoriaService CategoriaService;
 

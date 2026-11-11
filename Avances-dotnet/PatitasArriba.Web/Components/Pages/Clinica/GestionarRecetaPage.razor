@@ -1,5 +1,6 @@
 @page "/recetas/nueva/{IdAtencion:int}"
 @page "/recetas/editar/{Id:int}"
+@attribute [Authorize(Policy = "Recetas")]
 @inject NavigationManager Nav;
 @inject IRecetaService RecetaService;
 @inject IAtencionService AtencionService;

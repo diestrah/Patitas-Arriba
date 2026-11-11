@@ -1,4 +1,5 @@
 @page "/mis-citas"
+@attribute [Authorize(Policy = "MisCitas")]
 @inject SesionDemo Sesion;
 @inject ICitaService CitaService;
 

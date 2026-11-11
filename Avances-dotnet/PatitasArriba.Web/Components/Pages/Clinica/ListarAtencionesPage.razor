@@ -1,4 +1,5 @@
 @page "/atenciones"
+@attribute [Authorize(Policy = "Atenciones")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject IAtencionService AtencionService;

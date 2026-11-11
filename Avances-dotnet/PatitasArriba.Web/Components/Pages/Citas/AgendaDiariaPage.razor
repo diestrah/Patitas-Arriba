@@ -1,4 +1,5 @@
 @page "/agenda"
+@attribute [Authorize(Policy = "AgendaDiaria")]
 @inject SesionDemo Sesion;
 @inject ICitaService CitaService;
 @inject IServicioService ServicioService;

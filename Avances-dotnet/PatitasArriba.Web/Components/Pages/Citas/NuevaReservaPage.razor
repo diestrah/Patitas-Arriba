@@ -1,4 +1,5 @@
 @page "/mis-citas/nueva"
+@attribute [Authorize(Policy = "MisCitas")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject ICitaService CitaService;

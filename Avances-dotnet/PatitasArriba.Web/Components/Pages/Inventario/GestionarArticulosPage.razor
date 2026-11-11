@@ -1,5 +1,6 @@
 @page "/articulos/nuevo"
 @page "/articulos/editar/{Id:int}"
+@attribute [Authorize(Policy = "Articulos")]
 @inject NavigationManager Nav;
 @inject IArticuloService ArticuloService;
 @inject ICategoriaService CategoriaService;
