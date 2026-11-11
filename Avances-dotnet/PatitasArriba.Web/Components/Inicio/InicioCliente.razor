@@ -1,0 +1,87 @@
+@inject SesionDemo Sesion;
+
+@using System.Globalization
+
+<BannerInicio Nombre="@Sesion.Nombres" Texto="Reserve una cita o revise cómo están sus mascotas.">
+    <a class="btn btn-warning btn-texto" href="mis-citas/nueva"><Icono Nombre="plus" /><span>Reservar cita</span></a>
+</BannerInicio>
+
+<section class="mb-4">
+    <h5 class="mb-2">Su próxima cita</h5>
+    @if (Proxima == null) {
+        <div class="card">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <div class="fw-bold">No tiene citas próximas</div>
+                    <div class="text-muted">Reserve una para su mascota en menos de un minuto.</div>
+                </div>
+                <a class="btn btn-primary btn-texto" href="mis-citas/nueva"><Icono Nombre="calendar" /><span>Reservar cita</span></a>
+            </div>
+        </div>
+    } else {
+        <div class="card">
+            <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                <div class="fecha-cita">
+                    <span>@Proxima.FechaHora?.ToString("MMM", Peru)</span>
+                    <b>@Proxima.FechaHora?.Day</b>
+                    <span>@Proxima.FechaHora?.ToString("HH:mm")</span>
+                </div>
+                <div class="flex-grow-1">
+                    <BadgeEstadoCita Estado="Proxima.Estado" />
+                    <div class="fs-5 fw-bold mt-1">@Proxima.NombreMascota · @Proxima.TextoServicios</div>
+                    <div class="text-muted">@Proxima.FechaHora?.ToString("dddd d 'de' MMMM", Peru) · con @string.Join(", ", Proxima.Detalles.Select(d => d.NombreVeterinario).Distinct())</div>
+                    @if (Proxima.Estado == EstadoCita.PENDIENTE) {
+                        <div class="small text-muted mt-1">Esperando aprobación de la clínica. Se le avisará cuando se confirme.</div>
+                    }
+                </div>
+                <a class="btn btn-outline-primary" href="mis-citas">Ver mis citas</a>
+            </div>
+        </div>
+    }
+</section>
+
+<section class="mb-4">
+    <h5 class="mb-2">Mis mascotas</h5>
+    <div class="row g-3">
+        @foreach (MascotaViewModel mascota in Mascotas) {
+            <div class="col-md-6 col-xl-4">
+                <TarjetaMascotaPortal Mascota="mascota" Citas="Citas" />
+            </div>
+        }
+        <div class="col-md-6 col-xl-4">
+            <a class="mascota-agregar" href="mis-mascotas/nueva">
+                <span class="mascota-agregar-mas">+</span>
+                <span>Agregar mascota</span>
+            </a>
+        </div>
+    </div>
+</section>
+
+<section>
+    <h5 class="mb-2">Próximas citas</h5>
+    <div class="card lista-citas">
+        @if (ProximasCitas.Count == 0) {
+            <div class="p-3 text-muted">No tiene citas próximas.</div>
+        }
+        @foreach (CitaViewModel cita in ProximasCitas) {
+            <FilaCitaCliente Cita="cita" />
+        }
+    </div>
+    <a class="fw-bold d-inline-block mt-2" href="mis-citas">Ver mis citas anteriores</a>
+</section>
+
+@code {
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    private List<MascotaViewModel> Mascotas { get; set; } = [];
+    private List<CitaViewModel> Citas { get; set; } = [];
+
+    private List<CitaViewModel> ProximasCitas => PortalCliente.Proximas(Citas);
+    private CitaViewModel? Proxima => ProximasCitas.FirstOrDefault();
+
+    // Al enlazar: GET /mascotas?cliente={id} y GET /citas?cliente={id}
+    protected override void OnInitialized() {
+        Mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
+        Citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
+    }
+}

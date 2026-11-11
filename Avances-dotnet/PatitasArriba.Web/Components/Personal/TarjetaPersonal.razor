@@ -1,0 +1,102 @@
+@* Tarjeta de un veterinario o de un administrador: estado de turno, datos de contacto, horarios asignados y acciones.
+   Con Colegiatura es un veterinario (muestra su colegiatura, los servicios de hoy y el enlace a sus citas). *@
+<article class="card tarjeta-persona @(Propia ? "propia" : "")">
+    <div class="d-flex align-items-center gap-3">
+        <span class="avatar-mascota" aria-hidden="true">@Iniciales</span>
+        <div>
+            <h5 class="mb-1">@Persona.NombreCompleto</h5>
+            <span class="etiqueta @Estado.Clase">@Estado.Texto</span>
+            @if (Propia) {
+                <span class="etiqueta etiqueta-mostaza">Tú (sesión activa)</span>
+            }
+        </div>
+    </div>
+
+    <div>
+        @if (Colegiatura != null) {
+            <span class="etiqueta etiqueta-verde"><Icono Nombre="id-card" />@Colegiatura</span>
+        }
+        <span class="etiqueta etiqueta-gris">DNI @Persona.Dni</span>
+    </div>
+
+    <div class="datos-contacto">
+        <div><Icono Nombre="phone" />@Persona.Telefono</div>
+        <div><Icono Nombre="mail" />@Persona.Correo</div>
+    </div>
+
+    <div>
+        @if (Horarios.Count == 0) {
+            <span class="chip-horario alerta">Sin horarios asignados</span>
+        }
+        @foreach (string horario in Horarios) {
+            <span class="chip-horario">@horario</span>
+        }
+    </div>
+
+    @if (Colegiatura != null) {
+        <div>
+            <div class="d-flex justify-content-between small fw-bold mb-1">
+                <span>Servicios de hoy</span>
+                <span>@(Hoy.Programados == 0 ? "Sin servicios" : $"{Hoy.Atendidos} de {Hoy.Programados} atendidos")</span>
+            </div>
+            <div class="barra-progreso" role="img" aria-label="@($"{PorcentajeAtendido}% atendido")">
+                <i style="@($"width:{PorcentajeAtendido}%;background:var(--pa-verde)")"></i>
+            </div>
+        </div>
+    }
+
+    <div class="pie">
+        @if (Colegiatura != null) {
+            <a class="small fw-bold" href="@($"agenda?veterinario={Uri.EscapeDataString(Persona.NombreCompleto)}")">Ver citas asignadas</a>
+        } else {
+            <span class="small text-muted">Aprueba y rechaza citas</span>
+        }
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="@($"Editar a {Persona.NombreCompleto}")" @onclick="() => OnEditar.InvokeAsync(Persona)">
+                <Icono Nombre="edit" />
+            </button>
+            @if (MotivoBloqueo != null) {
+                <span class="btn-icono-bloqueado" tabindex="0" title="@MotivoBloqueo" aria-label="@($"Eliminar no disponible: {MotivoBloqueo}")">
+                    <Icono Nombre="lock" />
+                </span>
+            } else {
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="@($"Eliminar a {Persona.NombreCompleto}")" @onclick="() => OnEliminar.InvokeAsync(Persona)">
+                    <Icono Nombre="trash" />
+                </button>
+            }
+        </div>
+    </div>
+</article>
+
+@code {
+    [Parameter, EditorRequired]
+    public PersonalViewModel Persona { get; set; } = default!;
+
+    // Solo los veterinarios tienen número de colegiatura (RN-VE-01)
+    [Parameter]
+    public string? Colegiatura { get; set; }
+
+    // Es la persona que inició sesión
+    [Parameter]
+    public bool Propia { get; set; }
+
+    // Si trae un texto, no se puede eliminar y el texto explica por qué (candado)
+    [Parameter]
+    public string? MotivoBloqueo { get; set; }
+
+    [Parameter]
+    public EventCallback<PersonalViewModel> OnEditar { get; set; }
+
+    [Parameter]
+    public EventCallback<PersonalViewModel> OnEliminar { get; set; }
+
+    private string Iniciales => (Persona.Nombres.Length > 0 && Persona.ApellidoPaterno.Length > 0)
+        ? $"{Persona.Nombres[..1]}{Persona.ApellidoPaterno[..1]}".ToUpper()
+        : "?";
+    private (string Clase, string Texto) Estado => TurnosPersonal.Estado(Persona.NombreCompleto, DateTime.Now);
+    private (int Programados, int Atendidos) Hoy => TurnosPersonal.ServiciosDeHoy(Persona.NombreCompleto);
+    private int PorcentajeAtendido => Hoy.Programados == 0 ? 0 : (int)Math.Round(100.0 * Hoy.Atendidos / Hoy.Programados);
+
+    // "Lunes 08:00 - 14:00", uno por cada horario asignado
+    private List<string> Horarios => Persona.Horarios.Where(h => h.Seleccionado).Select(h => h.Texto).ToList();
+}

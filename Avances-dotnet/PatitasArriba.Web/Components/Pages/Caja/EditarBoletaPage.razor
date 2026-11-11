@@ -1,0 +1,204 @@
+@page "/boletas/editar/{Id:int}"
+@inject NavigationManager Nav;
+
+<PageTitle>Modificar boleta</PageTitle>
+
+@if (Boleta != null) {
+    <h3 class="mb-1">Modificar boleta @Boleta.SerieCorrelativo</h3>
+    <p class="text-muted mb-3">Puede cambiar el método de pago y la venta en caja. La fecha de emisión se mantiene.</p>
+
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    <div class="row g-4">
+        <div class="col-lg-7 d-flex flex-column gap-3">
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">1</span>Cliente</div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-2">
+                        <strong>@Boleta.NombreCliente</strong> · DNI @Boleta.DniCliente<br />
+                        <span class="small">El cliente de la boleta no se puede cambiar.</span>
+                    </div>
+                    <div class="text-muted fw-bold">Fecha de emisión: <span style="color: var(--pa-texto)">@Boleta.Fecha.ToString("dd/MM/yyyy HH:mm")</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">2</span>Atenciones cobradas</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    @if (Cobradas.Count == 0) {
+                        <span class="text-muted">Esta boleta no cobra atenciones, solo venta en caja.</span>
+                    } else {
+                        @foreach (LineaBoletaViewModel linea in Cobradas) {
+                            <div class="opcion-cobro fija">
+                                <Icono Nombre="check-circle" />
+                                <span class="flex-grow-1">
+                                    <strong>@linea.Descripcion</strong>
+                                    @if (linea.Tipo == "Insumo") {
+                                        <span class="badge text-bg-light border ms-1">Cobrable</span>
+                                    }
+                                </span>
+                                <strong>S/ @linea.SubTotal.ToString("N2")</strong>
+                            </div>
+                        }
+                        <div class="alert alert-warning mb-0 small">Estas líneas no se pueden quitar: un servicio o insumo se cobra una sola vez (RN-BO-07 y RN-BO-08). Si hay un error, anule la boleta y emita otra.</div>
+                    }
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header fw-bold d-flex align-items-center"><span class="paso-num">3</span>Venta en caja</div>
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        <select class="form-select w-auto flex-grow-1" aria-label="Artículo" @bind="IdArticuloAgregar">
+                            <option value="0">Seleccione un artículo</option>
+                            @foreach (ArticuloViewModel articulo in Articulos) {
+                                <option value="@articulo.Id">@articulo.Nombre · S/ @articulo.PrecioBase.ToString("N2") (stock @articulo.StockActual)</option>
+                            }
+                        </select>
+                        <input type="number" min="1" class="form-control w-auto" style="width: 5rem !important" aria-label="Cantidad" @bind="CantidadAgregar" />
+                        <button type="button" class="btn btn-secondary btn-texto" @onclick="() => AgregarArticulo()">
+                            <Icono Nombre="plus" /><span>Agregar</span>
+                        </button>
+                    </div>
+                    @if (MensajeArticulo != null) {
+                        <div class="alert alert-warning">@MensajeArticulo</div>
+                    }
+                    @foreach (LineaBoletaViewModel linea in Vendidos) {
+                        <div class="d-flex align-items-center justify-content-between gap-2 border rounded-3 px-3 py-2 mb-2">
+                            <span><strong>@linea.Descripcion</strong> × @linea.Cantidad</span>
+                            <span class="d-flex align-items-center gap-2">
+                                <strong>S/ @linea.SubTotal.ToString("N2")</strong>
+                                @* RN-BO-01: la boleta siempre conserva al menos una línea *@
+                                <button type="button" class="btn btn-outline-danger btn-icono" title="Quitar" aria-label="@($"Quitar {linea.Descripcion}")"
+                                        disabled="@(Cobradas.Count + Vendidos.Count < 2)" @onclick="() => QuitarVenta(linea)">
+                                    <Icono Nombre="trash" />
+                                </button>
+                            </span>
+                        </div>
+                    }
+                    <div class="form-text">Al guardar, el stock se ajusta: se devuelve lo vendido antes y se descuenta lo nuevo (RN-BO-10).</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card sticky-lateral">
+                <div class="card-header fw-bold">Resumen</div>
+                <div class="card-body d-flex flex-column gap-3">
+                    <TicketBoleta Boleta="Vista" />
+                    <div>
+                        <div class="fw-bold small mb-1">Método de pago</div>
+                        <div class="seg-pago">
+                            @foreach (MetodoPago metodo in Metodos) {
+                                <button type="button" class="@(metodo == Pago ? "activo" : "")" aria-pressed="@(metodo == Pago)" @onclick="() => Pago = metodo">
+                                    @TextoEnum.De(metodo)
+                                </button>
+                            }
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-texto justify-content-center" @onclick="() => Guardar()">
+                        <Icono Nombre="save" /><span>Guardar cambios · S/ @Vista.Total.ToString("N2")</span>
+                    </button>
+                    <a class="btn btn-outline-primary" href="boletas">Cancelar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private BoletaViewModel? Boleta { get; set; }
+    private List<ArticuloViewModel> Articulos { get; set; } = [];
+    private MetodoPago[] Metodos { get; } = Enum.GetValues<MetodoPago>();
+
+    // Servicios e insumos ya cobrados (fijos) y la venta en caja (editable)
+    private List<LineaBoletaViewModel> Cobradas { get; set; } = [];
+    private List<LineaBoletaViewModel> Vendidos { get; set; } = [];
+    private Dictionary<int, int> VendidoAntes { get; set; } = [];
+    private MetodoPago Pago { get; set; }
+
+    private int IdArticuloAgregar { get; set; }
+    private int CantidadAgregar { get; set; } = 1;
+    private string? MensajeArticulo { get; set; }
+    private string? MensajeError { get; set; }
+
+    // La boleta como quedaría, para el ticket de la derecha
+    private BoletaViewModel Vista => new() {
+        Id = Boleta!.Id,
+        SerieCorrelativo = Boleta.SerieCorrelativo,
+        Fecha = Boleta.Fecha,
+        IdCliente = Boleta.IdCliente,
+        NombreCliente = Boleta.NombreCliente,
+        DniCliente = Boleta.DniCliente,
+        MetodoPago = Pago,
+        Lineas = Cobradas.Concat(Vendidos).ToList()
+    };
+
+    // Al enlazar: GET /boletas/{id}
+    protected override void OnParametersSet() {
+        Boleta = DatosEjemplo.Boletas().FirstOrDefault(b => b.Id == Id);
+        // RN-BO-12: una boleta anulada ya no se modifica
+        if (Boleta == null || !Boleta.IsActivo) {
+            Nav.NavigateTo("/boletas");
+            return;
+        }
+        Articulos = DatosEjemplo.Articulos();
+        Pago = Boleta.MetodoPago;
+        Cobradas = Boleta.Lineas.Where(l => l.Tipo != "Artículo").ToList();
+        Vendidos = Boleta.Lineas.Where(l => l.Tipo == "Artículo").Select(l => new LineaBoletaViewModel {
+            Tipo = l.Tipo,
+            IdArticulo = l.IdArticulo,
+            Descripcion = l.Descripcion,
+            Cantidad = l.Cantidad,
+            PrecioUnitario = l.PrecioUnitario
+        }).ToList();
+        VendidoAntes = Vendidos.Where(l => l.IdArticulo != null)
+            .GroupBy(l => l.IdArticulo!.Value)
+            .ToDictionary(g => g.Key, g => g.Sum(l => l.Cantidad));
+    }
+
+    private void AgregarArticulo() {
+        ArticuloViewModel? articulo = Articulos.Find(a => a.Id == IdArticuloAgregar);
+        if (articulo == null || CantidadAgregar < 1) {
+            MensajeArticulo = "Seleccione el artículo e indique una cantidad mayor a 0";
+            return;
+        }
+        // RN-BO-09 y RN-BO-10: se puede pedir el stock actual más lo que esta boleta ya vendió de ese artículo
+        int yaPedido = Vendidos.Where(l => l.IdArticulo == articulo.Id).Sum(l => l.Cantidad);
+        int disponible = articulo.StockActual + (VendidoAntes.TryGetValue(articulo.Id, out int antes) ? antes : 0);
+        if (yaPedido + CantidadAgregar > disponible) {
+            MensajeArticulo = $"Stock insuficiente de {articulo.Nombre}: quedan {disponible - yaPedido}";
+            return;
+        }
+        LineaBoletaViewModel? existente = Vendidos.Find(l => l.IdArticulo == articulo.Id);
+        if (existente != null) {
+            existente.Cantidad += CantidadAgregar;
+        } else {
+            Vendidos.Add(new LineaBoletaViewModel {
+                Tipo = "Artículo",
+                IdArticulo = articulo.Id,
+                Descripcion = articulo.Nombre,
+                Cantidad = CantidadAgregar,
+                PrecioUnitario = articulo.PrecioBase
+            });
+        }
+        MensajeArticulo = null;
+        IdArticuloAgregar = 0;
+        CantidadAgregar = 1;
+    }
+
+    private void QuitarVenta(LineaBoletaViewModel linea) {
+        Vendidos.Remove(linea);
+    }
+
+    // Sin backend: solo regresa al listado. Al enlazar: PUT /boletas/{id}; el backend devuelve al stock lo vendido
+    // antes y descuenta lo nuevo (RN-BO-10), y si algo no cumple las reglas se muestra su mensaje.
+    private void Guardar() {
+        Nav.NavigateTo("/boletas");
+    }
+}

@@ -218,6 +218,15 @@ table.quickgrid thead th { background: #f4efe6; color: #3d4a42; font-weight: 800
 table.quickgrid thead th .col-title { font-weight: 800; }
 table.quickgrid tbody td { padding-top: .6rem; padding-bottom: .6rem; border-bottom-color: #f0eadf; }
 table.quickgrid tbody tr:last-child td { border-bottom: 0; }
+/* QuickGrid alinea las celdas de una columna (Align.Right o Center) pero no su título: se alinea igual.
+   El título va a la derecha y la flecha de orden a su izquierda; el relleno derecho (14.4px) es el mismo que QuickGrid
+   pone a las celdas alineadas a la derecha, para que el título y los valores terminen en el mismo borde. */
+table.quickgrid th.col-justify-right .col-header-content { justify-content: flex-end; padding-right: 0; }
+table.quickgrid th.col-justify-right .col-title { flex-direction: row-reverse; justify-content: flex-start; padding-right: 14.4px; }
+table.quickgrid th.col-justify-center .col-header-content { justify-content: center; }
+table.quickgrid th.col-justify-center .col-title { justify-content: center; }
+/* Tabla de una sola línea por fila: el texto no se parte en varias líneas (clase tabla-una-fila) */
+table.quickgrid.tabla-una-fila th, table.quickgrid.tabla-una-fila td { white-space: nowrap; }
 
 /* ---- Barra superior ---- */
 .barra-principal { background: linear-gradient(90deg, #325642 0%, #3F6B52 60%, #4a7a5e 100%); box-shadow: 0 6px 18px rgba(31,42,36,.18); padding-top: .55rem; padding-bottom: .55rem; }
@@ -262,9 +271,14 @@ table.quickgrid tbody tr:last-child td { border-bottom: 0; }
     background: linear-gradient(120deg, #325642 0%, #3F6B52 55%, #5b8a6c 100%); box-shadow: 0 14px 34px rgba(50,86,66,.25); }
 .inicio-hero h2 { font-weight: 800; margin: .5rem 0 .35rem; font-size: 2rem; color: #fff; }
 .inicio-hero p { margin: 0; opacity: .92; max-width: 36rem; }
-.inicio-chip { display: inline-block; font-size: .82rem; font-weight: 700; background: rgba(255,255,255,.16); padding: .25rem .75rem; border-radius: 99px; }
 .inicio-hero .btn { margin-top: 1rem; }
-.inicio-dibujo { flex: none; width: 210px; max-width: 32%; }
+/* Banner de inicio (todos los roles): la imagen se recorta a la tarjeta verde (la original trae margen y sombra)
+   y su borde izquierdo se desvanece para que se funda con el degradado del banner */
+.inicio-hero { min-height: 11.5rem; }
+.inicio-hero-texto { position: relative; z-index: 1; max-width: 62%; }
+.inicio-hero-img { position: absolute; right: 0; top: 0; height: 100%; aspect-ratio: 3 / 2; overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 42%); mask-image: linear-gradient(to right, transparent 0, #000 42%); }
+.inicio-hero-img img { position: absolute; width: 112%; height: 126%; left: -6%; top: -13%; max-width: none; }
 .indicador { display: flex; flex-direction: column; gap: .2rem; height: 100%; padding: 1.1rem 1.2rem; border-radius: 1.1rem; background: #fff; border: 1px solid #ece3d2;
     box-shadow: 0 6px 18px rgba(31,42,36,.06); color: var(--pa-texto); text-decoration: none; transition: transform .15s, box-shadow .15s; }
 .indicador:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(31,42,36,.1); color: var(--pa-texto); }
@@ -286,4 +300,178 @@ table.quickgrid tbody tr:last-child td { border-bottom: 0; }
 .acceso:hover { background: var(--pa-salvia); border-color: #c6d6bb; color: var(--pa-verde-oscuro); }
 .acceso-icono { width: 32px; height: 32px; flex: none; border-radius: 10px; background: var(--pa-salvia); color: var(--pa-verde); display: grid; place-items: center; }
 .acceso-icono svg { width: 17px; height: 17px; }
-@media (max-width: 768px) { .inicio-dibujo { display: none; } .inicio-hero { padding: 1.5rem; } }
+@media (max-width: 768px) { .inicio-hero-img { display: none; } .inicio-hero-texto { max-width: 100%; } .inicio-hero { padding: 1.5rem; } }
+.inicio-hero .btn-light { color: var(--pa-verde-oscuro); font-weight: 700; border-color: transparent; }
+
+/* ============================================================================
+   ERRORES EN FORMULARIOS (igual que el login): al hacer clic y salir de un campo, o al guardar,
+   el campo con error se pinta en terracota, su etiqueta también y el mensaje sale debajo.
+   Los campos correctos quedan neutros (sin contorno verde). Ver Components/Shared/CamposPatitas.cs
+   ============================================================================ */
+.valid.modified:not([type=checkbox]), .invalid { outline: none; }
+.form-control.invalid, .form-select.invalid { border-color: var(--pa-terracota); background-color: #fdf3f1; }
+.form-control.invalid:focus, .form-select.invalid:focus { border-color: var(--pa-terracota); box-shadow: 0 0 0 .25rem rgba(181,72,58,.16); }
+div:has(> .form-control.invalid, > .form-select.invalid, > .input-group > .form-control.invalid) > .form-label { color: var(--pa-terracota-oscuro); }
+
+/* ============================================================================
+   PANTALLAS DEL ADMINISTRADOR (propuesta de diseño: inicio, agenda, inventario, caja)
+   ============================================================================ */
+.estado-por-aprobar { background: #fdf0d2; color: #7a5410; border-color: #f0d9a0; }
+.chip-cat { display: inline-block; background: #e3ecdd; color: #325642; border: 1px solid #bcd0b0; border-radius: 99px; padding: .08rem .6rem; font-size: .78rem; font-weight: 700; margin: 0 .25rem .2rem 0; }
+.sticky-lateral { position: sticky; top: 1rem; }
+.barra-progreso { height: 8px; border-radius: 99px; background: #ece3d2; overflow: hidden; }
+.barra-progreso > i { display: block; height: 100%; border-radius: 99px; }
+.fila-pendiente { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .8rem; padding: .8rem 0; border-bottom: 1px dashed #ece3d2; }
+.fila-pendiente:last-child { border-bottom: 0; }
+/* Los botones siempre van a la derecha de la fila; si el texto es largo, es el texto el que se parte en dos líneas */
+.fila-pendiente { flex-wrap: nowrap; }
+.fila-pendiente > :first-child { flex: 1 1 0; min-width: 0; }
+.fila-pendiente > :last-child { flex: none; }
+@media (max-width: 575px) { .fila-pendiente { flex-wrap: wrap; } .fila-pendiente > :first-child { flex-basis: 100%; } }
+.paso-num { width: 28px; height: 28px; border-radius: 50%; background: var(--pa-verde); color: #fff; display: inline-grid; place-items: center; font-weight: 800; font-size: .85rem; margin-right: .5rem; flex: none; }
+
+/* Stock con botones − y + (Inventario) */
+.stock-stepper { display: inline-flex; align-items: center; border: 1px solid #ddd5c6; border-radius: .7rem; overflow: hidden; background: #fff; }
+.stock-stepper button { width: 2rem; height: 2rem; border: 0; background: #f4efe6; font-weight: 800; color: var(--pa-verde-oscuro); }
+.stock-stepper button:hover { background: var(--pa-salvia); }
+.stock-stepper input { width: 3.6rem; height: 2rem; border: 0; text-align: center; font-weight: 700; -moz-appearance: textfield; }
+.stock-stepper input::-webkit-outer-spin-button, .stock-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stock-stepper.cambiado { border-color: var(--pa-mostaza); box-shadow: 0 0 0 .2rem rgba(242,179,61,.25); }
+.info-articulo { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-left: .35rem; border-radius: 50%; background: var(--pa-salvia); color: var(--pa-verde-oscuro); font-size: .7rem; font-weight: 800; cursor: help; }
+
+/* Agenda diaria: línea de tiempo por veterinario */
+.agenda-scroll { overflow-x: auto; background: #fff; border: 1px solid #ece3d2; border-radius: 1rem; box-shadow: 0 6px 18px rgba(31,42,36,.06); }
+.agenda-grid { display: grid; grid-template-columns: 64px repeat(var(--cols), minmax(200px, 1fr)); min-width: calc(64px + var(--cols) * 200px); }
+.agenda-cab { padding: .6rem .8rem; font-weight: 800; background: #faf4e8; border-bottom: 1px solid #ece3d2; border-left: 1px solid #ece3d2; }
+.agenda-cab small { display: block; color: #6b7a70; font-weight: 600; }
+.agenda-horas { position: relative; }
+.agenda-hora { position: absolute; right: .6rem; font-size: .78rem; font-weight: 700; color: #6b7a70; transform: translateY(-50%); }
+.agenda-col { position: relative; border-left: 1px solid #ece3d2; background-image: repeating-linear-gradient(to bottom, transparent 0, transparent calc(var(--hora) - 1px), #f0eadf calc(var(--hora) - 1px), #f0eadf var(--hora)); }
+.agenda-bloque { position: absolute; border-radius: .7rem; padding: .3rem .55rem; text-align: left; border: 1px solid transparent; overflow: hidden; font-size: .8rem; line-height: 1.25; cursor: pointer; box-shadow: 0 2px 6px rgba(31,42,36,.12); }
+.agenda-bloque:focus-visible { outline: 2px solid var(--pa-texto); outline-offset: 1px; }
+.agenda-bloque b { display: block; font-size: .86rem; }
+.bloque-atendido { background: var(--pa-verde); color: #fff; }
+.bloque-por-atender { background: var(--pa-salvia); color: #24402f; border-color: #bcd0b0; }
+.bloque-por-aprobar { background: #fdf0d2; color: #7a5410; border: 2px dashed #c9922e; }
+.agenda-leyenda { display: flex; flex-wrap: wrap; gap: 1.2rem; font-weight: 700; font-size: .88rem; }
+.agenda-leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: .35rem; }
+
+/* Boleta: ticket, pasos y método de pago */
+.ticket { background: #fff; border: 1px dashed #bcb29c; border-radius: .4rem; padding: 1rem 1.2rem; font-family: "Courier New", monospace; font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; max-width: 400px; margin: 0 auto; }
+.ticket-titulo { text-align: center; font-weight: 800; font-size: .95rem; letter-spacing: .5px; }
+.ticket-centro { text-align: center; }
+.ticket hr { border: 0; border-top: 1px dashed #999; margin: .2rem 0; opacity: 1; }
+.ticket-fila { display: flex; justify-content: space-between; gap: .6rem; }
+.ticket-total { font-size: 1rem; font-weight: 800; }
+.ticket-vacio { text-align: center; color: #83908a; }
+.ticket-anulada { text-align: center; font-weight: 800; color: var(--pa-terracota-oscuro); border: 2px solid var(--pa-terracota); border-radius: .3rem; padding: .1rem; }
+.opcion-cobro { display: flex; align-items: center; gap: .7rem; padding: .6rem .8rem; border: 1px solid #ece3d2; border-radius: .9rem; background: #fff; cursor: pointer; margin: 0; }
+.opcion-cobro.marcada { background: #eef4ea; border-color: #bcd0b0; }
+.opcion-cobro.fija { cursor: default; background: #eef4ea; border-color: #bcd0b0; }
+.seg-pago { display: flex; flex-wrap: wrap; gap: .4rem; }
+.seg-pago button { border: 1px solid #ddd5c6; background: #fff; border-radius: .7rem; padding: .4rem .8rem; font-weight: 700; font-size: .88rem; color: var(--pa-texto); }
+.seg-pago button:hover { background: var(--pa-salvia); }
+.seg-pago button.activo { background: var(--pa-verde); border-color: var(--pa-verde); color: #fff; }
+
+/* Reporte de agenda diaria: hoja tipo documento */
+.reporte-doc { width: 100%; max-width: 794px; margin: 0 auto; background: #fff; padding: 2.2rem 2.4rem; border-radius: .6rem; box-shadow: 0 4px 18px rgba(0,0,0,.14); display: flex; flex-direction: column; gap: 1.2rem; }
+.reporte-cab { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: .8rem; padding-bottom: 1rem; border-bottom: 3px solid var(--pa-verde); }
+.reporte-marca { display: flex; align-items: center; gap: .75rem; }
+.reporte-logo { width: 44px; height: 44px; border-radius: 12px; background: var(--pa-mostaza); color: var(--pa-verde-oscuro); display: grid; place-items: center; }
+.reporte-cajas { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: .6rem; }
+.reporte-caja { border: 1px solid #ece3d2; border-radius: .8rem; padding: .5rem .8rem; background: #faf4e8; }
+.reporte-caja strong { display: block; font-size: 1.6rem; line-height: 1.1; }
+.reporte-caja span { font-size: .78rem; font-weight: 700; }
+.reporte-caja.verde { background: #e3ecdd; border-color: #bcd0b0; color: #24402f; }
+.reporte-caja.mostaza { background: #fdf0d2; border-color: #f0d9a0; color: #7a5410; }
+.reporte-caja.terracota { background: #f6e4e0; border-color: #e3b9b1; color: #983B2F; }
+.reporte-tabla { width: 100%; border-collapse: collapse; font-size: .9rem; }
+.reporte-tabla caption { text-align: left; padding: .5rem .7rem; background: var(--pa-verde-oscuro); color: #fff; font-weight: 800; border-radius: .5rem .5rem 0 0; caption-side: top; }
+.reporte-tabla th { background: #faf4e8; font-size: .8rem; padding: .4rem .6rem; border-bottom: 1px solid #ece3d2; text-align: left; }
+.reporte-tabla td { padding: .45rem .6rem; border-bottom: 1px solid #ece3d2; }
+.reporte-pie { display: flex; justify-content: space-between; gap: .8rem; padding-top: .6rem; border-top: 1px solid #ece3d2; font-size: .8rem; color: #4f5f56; margin-top: auto; }
+@media print {
+    .reporte-doc { box-shadow: none; max-width: 100%; padding: 0; }
+    .indicador { box-shadow: none; }
+}
+
+/* ============================================================================
+   PORTAL DEL CLIENTE (inicio, mis mascotas, mis citas y reservar cita)
+   ============================================================================ */
+.avatar-mascota { width: 56px; height: 56px; border-radius: 50%; background: var(--pa-salvia); color: var(--pa-verde-oscuro); display: grid; place-items: center; font-weight: 800; font-size: 1.4rem; flex: none; border: 3px solid var(--pa-salvia-oscuro); }
+.avatar-mascota.chico { width: 42px; height: 42px; font-size: 1.05rem; border-width: 2px; }
+.avatar-mascota.grande { width: 84px; height: 84px; font-size: 2rem; }
+img.avatar-mascota { object-fit: cover; object-position: center 30%; display: block; }
+.datos-mascota { display: grid; gap: .1rem; font-size: .9rem; }
+.datos-mascota dt { color: #6b7a70; font-weight: 700; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; margin-top: .45rem; }
+.datos-mascota dd { margin: 0; font-weight: 700; }
+.mascota-agregar { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .2rem; height: 100%; min-height: 12rem; border: 1.5px dashed var(--pa-verde); border-radius: 1rem;
+    color: var(--pa-verde-oscuro); font-weight: 700; text-decoration: none; transition: background .15s; }
+.mascota-agregar:hover { background: var(--pa-salvia); color: var(--pa-verde-oscuro); }
+.mascota-agregar-mas { font-size: 2.2rem; line-height: 1; }
+.dato-fijo { background: var(--pa-salvia); border-radius: .7rem; padding: .55rem .9rem; font-weight: 700; }
+.fecha-cita { background: var(--pa-salvia); color: var(--pa-verde-oscuro); border-radius: .9rem; padding: .55rem 1rem; text-align: center; min-width: 84px; }
+.fecha-cita b { display: block; font-size: 1.9rem; line-height: 1.05; font-weight: 800; }
+.fecha-cita span { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+.lista-citas { overflow: hidden; }
+.fila-cita { display: flex; flex-wrap: wrap; align-items: center; gap: .9rem; padding: .8rem 1rem; border-top: 1px solid #ece3d2; }
+.fila-cita:first-child { border-top: 0; }
+.fecha-chip { background: var(--pa-salvia); color: var(--pa-verde-oscuro); font-weight: 800; border-radius: .6rem; padding: .3rem .7rem; min-width: 8.6rem; text-align: center; font-size: .9rem; }
+.pasos-reserva { display: flex; flex-wrap: wrap; gap: .5rem; }
+.paso-chip { padding: .3rem .9rem; border-radius: 99px; border: 1px solid #e0d8c7; font-weight: 700; font-size: .88rem; color: #6b7a70; background: #fff; }
+.paso-chip.activo { background: var(--pa-verde); border-color: var(--pa-verde); color: #fff; }
+.paso-chip.listo { color: var(--pa-verde-oscuro); border-color: var(--pa-verde); background: var(--pa-salvia); }
+.opciones-reserva { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: .6rem; }
+.opcion-tarjeta { display: flex; align-items: center; gap: .7rem; text-align: left; padding: .7rem .9rem; border: 1.5px solid #e6dfd0; border-radius: .9rem; background: #fff; color: var(--pa-texto); }
+.opcion-tarjeta small { color: #6b7a70; font-weight: 600; }
+.opcion-tarjeta:hover { background: #f7faf4; }
+.opcion-tarjeta.activa { border-color: var(--pa-verde); background: #eef4ea; }
+.horas-libres { display: flex; flex-wrap: wrap; gap: .45rem; }
+.hora-btn { border: 1.5px solid #e6dfd0; background: #fff; border-radius: .7rem; padding: .4rem .9rem; font-weight: 700; color: var(--pa-texto); }
+.hora-btn:hover:not(:disabled) { background: var(--pa-salvia); }
+.hora-btn.activa { background: var(--pa-verde); border-color: var(--pa-verde); color: #fff; }
+.hora-btn:disabled { text-decoration: line-through; opacity: .4; cursor: not-allowed; }
+.resumen-reserva { background: var(--pa-salvia); border-radius: .9rem; padding: .9rem 1rem; display: grid; gap: .2rem; }
+
+/* ============================================================================
+   PERSONAL (veterinarios, administradores y horarios de atención)
+   ============================================================================ */
+.tarjeta-persona { display: flex; flex-direction: column; gap: .7rem; padding: 1.1rem 1.2rem; border-top: 4px solid var(--pa-verde); height: 100%; }
+.tarjeta-persona.propia { border-top-color: var(--pa-mostaza); }
+.tarjeta-persona .datos-contacto { display: grid; gap: .25rem; font-size: .9rem; }
+.tarjeta-persona .datos-contacto div { display: flex; align-items: center; gap: .5rem; color: #3d4a42; overflow-wrap: anywhere; }
+.tarjeta-persona .datos-contacto svg { width: 15px; height: 15px; color: var(--pa-verde); flex: none; }
+.tarjeta-persona .pie { display: flex; justify-content: space-between; align-items: center; gap: .5rem; border-top: 1px dashed #ece3d2; padding-top: .7rem; margin-top: auto; }
+.chip-horario { display: inline-block; background: #f4efe6; border-radius: .6rem; padding: .15rem .55rem; font-size: .8rem; font-weight: 700; margin: 0 .3rem .3rem 0; }
+.chip-horario.alerta { background: #fdf0d2; color: #7a5410; }
+.etiqueta { display: inline-flex; align-items: center; gap: .3rem; border-radius: 99px; padding: .12rem .65rem; font-size: .75rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+.etiqueta svg { width: 12px; height: 12px; }
+.etiqueta-verde { background: var(--pa-salvia); color: var(--pa-verde); border-color: #bcd0b0; }
+.etiqueta-solida { background: var(--pa-verde); color: #fff; }
+.etiqueta-mostaza { background: #fdf0d2; color: #7a5410; border-color: #f0d9a0; }
+.etiqueta-gris { background: #ece9e1; color: #4a4a44; }
+.etiqueta-roja { background: #f6e4e0; color: var(--pa-terracota-oscuro); border-color: #e3b9b1; }
+
+/* Horarios: vista Semana (una tarjeta por franja, agrupadas por día) */
+.semana-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(165px, 1fr)); gap: .8rem; }
+.dia-col { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+.dia-col h6 { margin: 0; padding: 0 .2rem; font-size: .85rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: #6b7a70; display: flex; justify-content: space-between; }
+.bloque-horario { background: #fff; border: 1px solid #e6dfd1; border-top: 4px solid var(--pa-verde); border-radius: 1rem; box-shadow: 0 6px 18px rgba(31,42,36,.06); padding: .8rem; display: flex; flex-direction: column; gap: .55rem; }
+.bloque-horario.tarde { border-top-color: var(--pa-mostaza); }
+.bloque-horario.sabado { border-top-color: #8aa88f; }
+.bloque-horario .rango { font-weight: 800; font-size: 1.05rem; }
+.bloque-horario .rango small { display: block; font-size: .78rem; font-weight: 700; color: #6b7a70; }
+.persona-linea { display: flex; align-items: center; gap: .45rem; font-size: .85rem; font-weight: 600; line-height: 1.2; }
+.persona-linea .ini { width: 24px; height: 24px; border-radius: 50%; background: var(--pa-salvia); color: var(--pa-verde); display: grid; place-items: center; font-size: .68rem; font-weight: 800; flex: none; }
+.persona-linea.adm .ini { background: #fdf0d2; color: #7a5410; }
+.persona-linea small { display: block; color: #6b7a70; font-size: .72rem; font-weight: 600; }
+.bloque-horario .acciones-bloque { display: flex; gap: .4rem; margin-top: auto; }
+.dia-vacio { border: 1.5px dashed #e0d8c7; border-radius: 1rem; padding: 1rem .8rem; text-align: center; color: #6b7a70; font-size: .85rem; }
+
+/* Selector de personal en el formulario de horario */
+.selector-personal { display: flex; flex-wrap: wrap; gap: .4rem; margin-bottom: .6rem; }
+.opcion-persona { display: inline-flex; align-items: center; gap: .4rem; border: 1px solid #e0d8c7; background: #fff; color: var(--pa-texto); border-radius: 99px; padding: .25rem .8rem .25rem .3rem; font-weight: 600; font-size: .88rem; }
+.opcion-persona .ini { width: 24px; height: 24px; border-radius: 50%; background: var(--pa-salvia); color: var(--pa-verde); display: grid; place-items: center; font-size: .68rem; font-weight: 800; }
+.opcion-persona:hover { background: #f7faf4; }
+.opcion-persona.activa { background: var(--pa-salvia); border-color: var(--pa-verde); color: var(--pa-verde-oscuro); font-weight: 700; }
+.opcion-persona.activa .ini { background: var(--pa-verde); color: #fff; }

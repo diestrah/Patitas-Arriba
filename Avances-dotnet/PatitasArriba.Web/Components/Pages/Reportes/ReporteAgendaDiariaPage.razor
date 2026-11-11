@@ -1,64 +1,130 @@
 @page "/reportes/agenda-diaria"
 @inject IJSRuntime JS;
+@inject SesionDemo Sesion;
+
+@using System.Globalization
 
 <PageTitle>Reporte de agenda diaria</PageTitle>
 
-<h3 class="mb-3">Reporte de agenda diaria</h3>
+<h3 class="mb-3 no-print">Reporte de agenda diaria</h3>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3 no-print">
-    <label class="text-nowrap">Fecha:</label>
-    <input tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Generar()"><Icono Nombre="search" /><span>Generar</span></button>
-    <button tabindex="3" class="btn btn-secondary btn-texto" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
+    <label class="text-nowrap" for="rep-fecha">Fecha:</label>
+    <input id="rep-fecha" tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" @bind:after="Generar" />
+    <label class="text-nowrap ms-2" for="rep-vet">Veterinario:</label>
+    <select id="rep-vet" tabindex="2" class="form-select w-auto" @bind="FiltroVeterinario" @bind:after="Generar">
+        <option value="Todos">Todos</option>
+        @foreach (string nombre in Veterinarios) {
+            <option value="@nombre">@nombre</option>
+        }
+    </select>
+    <button tabindex="3" class="btn btn-secondary btn-texto ms-auto" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
-<div class="card">
-    <div class="card-header fw-bold">Citas pendientes del día · @Fecha.ToString("dd/MM/yyyy")</div>
-    <div class="card-body">
-        <table class="table table-sm table-bordered mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Hora</th>
-                    <th>Mascota</th>
-                    <th>Dueño</th>
-                    <th>Servicio</th>
-                    <th>Veterinario</th>
-                </tr>
-            </thead>
-            <tbody>
-                @if (Agenda.Count == 0) {
-                    <tr><td colspan="5" class="text-muted">No hay servicios programados para esta fecha.</td></tr>
-                }
-                @foreach (ItemAgendaViewModel item in Agenda) {
-                    <tr>
-                        <td>@item.FechaHora.ToString("HH:mm")</td>
-                        <td>
-                            @item.NombreMascota
-                            @if (item.EsEmergencia) {
-                                <span class="badge text-bg-danger ms-1">Emergencia</span>
-                            }
-                        </td>
-                        <td>@item.NombreCliente</td>
-                        <td>@item.NombreServicio</td>
-                        <td>@item.NombreVeterinario</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+<div class="reporte-doc">
+    <header class="reporte-cab">
+        <div class="reporte-marca">
+            <span class="reporte-logo">
+                <svg viewBox="0 0 64 64" width="24" height="24" fill="currentColor" aria-hidden="true">
+                    <ellipse cx="32" cy="42" rx="14" ry="12" />
+                    <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)" />
+                    <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)" />
+                    <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)" />
+                    <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)" />
+                </svg>
+            </span>
+            <span>
+                <strong class="fs-5" style="color: var(--pa-verde-oscuro)">Patitas Arriba</strong><br />
+                <span class="small text-muted fw-semibold">Clínica veterinaria</span>
+            </span>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold fs-5">Reporte de agenda diaria</div>
+            <div class="fw-bold" style="color: var(--pa-verde)">@TextoFecha</div>
+        </div>
+    </header>
+
+    <div class="d-flex flex-wrap gap-4 small">
+        <span><strong>Fecha:</strong> @Fecha.ToString("dd/MM/yyyy")</span>
+        <span><strong>Veterinario:</strong> @FiltroVeterinario</span>
     </div>
+
+    <div class="reporte-cajas">
+        <div class="reporte-caja"><strong>@Agenda.Count</strong><span>Servicios</span></div>
+        <div class="reporte-caja verde"><strong>@Contar(EstadoServicioAgenda.Atendido)</strong><span>Atendidos</span></div>
+        <div class="reporte-caja"><strong>@Contar(EstadoServicioAgenda.PorAtender)</strong><span>Por atender</span></div>
+        <div class="reporte-caja mostaza"><strong>@Contar(EstadoServicioAgenda.PorAprobar)</strong><span>Por aprobar</span></div>
+        <div class="reporte-caja terracota"><strong>@Agenda.Count(i => i.EsEmergencia)</strong><span>Emergencias</span></div>
+    </div>
+
+    @foreach (string veterinario in VeterinariosVisibles) {
+        List<ItemAgendaViewModel> servicios = Agenda.Where(i => i.NombreVeterinario == veterinario).ToList();
+        <table class="reporte-tabla">
+            <caption>@veterinario <span class="fw-normal" style="opacity: .85">· @(servicios.Count == 0 ? "sin servicios" : $"{servicios.Count} servicio{(servicios.Count == 1 ? "" : "s")}")</span></caption>
+            @if (servicios.Count == 0) {
+                <tbody><tr><td class="text-muted">Sin servicios programados para esta fecha.</td></tr></tbody>
+            } else {
+                <thead>
+                    <tr><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Servicio</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (ItemAgendaViewModel item in servicios) {
+                        EstadoServicioAgenda estado = AgendaTexto.De(item, Atendidos);
+                        <tr>
+                            <td class="fw-bold text-nowrap">@item.FechaHora.ToString("HH:mm") – @item.FechaHoraFin.ToString("HH:mm")</td>
+                            <td>
+                                @item.NombreMascota
+                                @if (item.EsEmergencia) {
+                                    <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                }
+                            </td>
+                            <td>@item.NombreCliente</td>
+                            <td>@item.NombreServicio</td>
+                            <td class="fw-bold">@AgendaTexto.Texto(estado)</td>
+                        </tr>
+                    }
+                </tbody>
+            }
+        </table>
+    }
+
+    <div class="text-end">
+        <span class="text-muted fw-semibold">Total del día </span><strong>@Agenda.Count servicio@(Agenda.Count == 1 ? "" : "s")</strong>
+    </div>
+
+    <footer class="reporte-pie">
+        <span>Generado por @Sesion.NombreUsuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+        <span>Página 1 de 1</span>
+    </footer>
 </div>
 
 @code {
+    private static readonly CultureInfo Peru = new("es-PE");
+
     private DateTime Fecha { get; set; } = DateTime.Today;
+    private string FiltroVeterinario { get; set; } = "Todos";
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private List<string> Veterinarios { get; set; } = [];
+
+    private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
+    private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
 
     protected override void OnInitialized() {
+        Atendidos = DatosEjemplo.DetallesAtendidos();
+        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
         Generar();
     }
 
-    // Al enlazar: GET /citas?fecha=AAAA-MM-DD (los datos de ejemplo solo traen la agenda de hoy)
+    // Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id} (el veterinario es opcional)
     private void Generar() {
-        Agenda = DatosEjemplo.AgendaDeHoy().Where(i => i.FechaHora.Date == Fecha.Date).ToList();
+        Agenda = DatosEjemplo.AgendaDelDia(Fecha)
+            .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
+            .ToList();
+    }
+
+    private int Contar(EstadoServicioAgenda estado) {
+        return Agenda.Count(i => AgendaTexto.De(i, Atendidos) == estado);
     }
 
     // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF

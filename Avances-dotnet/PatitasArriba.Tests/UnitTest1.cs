@@ -15,9 +15,9 @@ public class PruebasInterfaz : PageTest
     // Cuenta de los datos de ejemplo para cada rol: el rol ya no se elige, se deduce de la cuenta
     private static string UsuarioDelRol(string rol) => rol switch
     {
-        "ADMINISTRADOR" => "diego.lopez",
-        "VETERINARIO" => "carla.vega",
-        _ => "ana.torres"
+        "ADMINISTRADOR" => "diego.lopez@patasarriba.pe",
+        "VETERINARIO" => "carla.vega@patasarriba.pe",
+        _ => "ana.torres@gmail.com"
     };
 
     // Inicia sesion con la cuenta del rol. Blazor Server tarda un instante en enlazar los eventos,

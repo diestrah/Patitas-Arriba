@@ -11,6 +11,8 @@ import patitasarriba.bl.impl.producto.ArticuloBLImpl;
 import patitasarriba.bl.impl.producto.CategoriaBLImpl;
 import patitasarriba.bl.impl.producto.ServicioBLImpl;
 import patitasarriba.bl.impl.receta.RecetaBLImpl;
+import patitasarriba.bl.correo.CorreoService;
+import patitasarriba.bl.impl.usuario.AccesoBLImpl;
 import patitasarriba.bl.impl.usuario.AdministradorBLImpl;
 import patitasarriba.bl.impl.usuario.ClienteBLImpl;
 import patitasarriba.bl.impl.usuario.CuentaBLImpl;
@@ -61,6 +63,10 @@ public class Tester {
     private static final RecetaBL recetaBL = new RecetaBLImpl();
     private static final BoletaBL boletaBL = new BoletaBLImpl();
 
+    // Los correos no se envian: se guardan en memoria para leer el enlace y probar el flujo completo
+    private static final CorreoEnMemoria correos = new CorreoEnMemoria();
+    private static final AccesoBL accesoBL = new AccesoBLImpl(correos, "http://localhost:5118");
+
     // Una busqueda que puede lanzar NoEncontradoException (findById) o devolver null
     private interface Busqueda {
         Object buscar() throws BLException;
@@ -80,6 +86,7 @@ public class Tester {
             probarArticulo();
             probarServicio();
             probarClienteYMascota();
+            probarAcceso();
             probarFlujoClinico();
         } catch (BLException | RuntimeException ex) {
             fallas++;
@@ -220,8 +227,8 @@ public class Tester {
         verificar("el cliente ve su mascota", suyas.size() == 1 && suyas.get(0).getId() == mascota.getId());
 
         bloque("LOGIN");
-        Persona persona = cuentaBL.login(cuenta.getNombreUsuario(), clave());
-        campo("usuario", cuenta.getNombreUsuario());
+        Persona persona = cuentaBL.login(cuenta.getCorreo(), clave());
+        campo("correo", cuenta.getCorreo());
         campo("rol", persona.getClass().getSimpleName() + " (id " + persona.getId() + ")");
         verificar("el login devuelve al cliente", persona instanceof Cliente && persona.getId() == cliente.getId());
 
@@ -236,13 +243,26 @@ public class Tester {
         campo("telefono", telefonoAnterior + " -> " + clienteBL.findById(cliente.getId()).getTelefono());
         campo("peso", pesoAnterior + " kg -> " + mascotaBL.findById(mascota.getId()).getPeso() + " kg");
 
+        // Foto opcional (portal del cliente): se guarda como texto base64 y se lee igual
+        String foto = "data:image/jpeg;base64,/9j/4AAQSkZJRg==";
+        mascota.setFoto(foto);
+        mascotaBL.update(mascota);
+        campo("foto", mascotaBL.findById(mascota.getId()).getFoto() == null ? "sin foto" : "guardada");
+        verificar("la foto se guarda y se lee igual", foto.equals(mascotaBL.findById(mascota.getId()).getFoto()));
+        // El peso es opcional: 0 significa que no se registró (RN-MA-02)
+        Mascota sinPeso = nuevaMascota(cliente, "Sinpeso", 0);
+        mascotaBL.insert(sinPeso);
+        verificar("una mascota sin peso (0) se acepta", mascotaBL.findById(sinPeso.getId()).getPeso() == 0);
+        mascotaBL.delete(sinPeso.getId());
+
         listarMascotas(mascotaBL.findAll());
 
         // Reglas de negocio: se usa otra cuenta para que solo falle el dato que se quiere probar
         Cuenta cuentaAparte = nuevaCuenta("dup");
         cuentaBL.insert(cuentaAparte);
 
-        regla("Login con contraseña incorrecta", () -> cuentaBL.login(cuenta.getNombreUsuario(), "otra"));
+        regla("Login con contraseña incorrecta", () -> cuentaBL.login(cuenta.getCorreo(), "otra"));
+        regla("Login con el nombre de usuario en vez del correo", () -> cuentaBL.login(cuenta.getNombreUsuario(), clave()));
         regla("Cliente con DNI repetido '" + cliente.getDni() + "'", () -> {
             Cliente repetido = new Cliente();
             completarPersona(repetido, cuentaAparte, "1");
@@ -255,7 +275,11 @@ public class Tester {
             clienteBL.insert(invalido);
         });
         Cliente dueno = cliente;
-        regla("Mascota con peso 0", () -> mascotaBL.insert(nuevaMascota(dueno, "Sinpeso", 0)));
+        regla("Mascota con foto que no es una imagen", () -> {
+            Mascota conFotoMala = nuevaMascota(dueno, "Fotomala", 5.0);
+            conFotoMala.setFoto("no es una imagen");
+            mascotaBL.insert(conFotoMala);
+        });
         regla("Eliminar la cuenta de un cliente activo", () -> cuentaBL.delete(cuenta.getId()));
         mostrarReglas();
 
@@ -271,7 +295,7 @@ public class Tester {
         // La cuenta se da de baja junto con el cliente
         verificarEliminado(cuenta.getId(), () -> cuentaBL.findById(cuenta.getId()));
 
-        regla("Login del cliente dado de baja", () -> cuentaBL.login(cuenta.getNombreUsuario(), clave()));
+        regla("Login del cliente dado de baja", () -> cuentaBL.login(cuenta.getCorreo(), clave()));
         mostrarReglas();
     }
 
@@ -328,7 +352,7 @@ public class Tester {
         // ------------------------------------------------------------ LOGIN (RF01)
         tituloSeccion("LOGIN DEL VETERINARIO");
 
-        Persona personaVet = cuentaBL.login(cuentaVet.getNombreUsuario(), clave());
+        Persona personaVet = cuentaBL.login(cuentaVet.getCorreo(), clave());
         bloque("LOGIN");
         campo("usuario", cuentaVet.getNombreUsuario());
         campo("rol", personaVet.getClass().getSimpleName() + " (id " + personaVet.getId() + ")");
@@ -661,6 +685,135 @@ public class Tester {
         System.out.println("  Los demas datos del flujo quedan en la base como historial clinico.");
     }
 
+    // ---------------------------------------------------------------- ACCESO (RF01, RF02, RF04, RF05)
+
+    private static void probarAcceso() throws BLException {
+        tituloSeccion("ACCESO: REGISTRO, VERIFICACION Y RECUPERACION");
+
+        // ------------------------------------------------------------ Auto-registro con verificacion de correo
+        String correoNuevo = "registro" + SUFIJO + "@mail.com";
+        Cliente datos = datosCliente("2");
+        accesoBL.solicitarRegistro(datos, correoNuevo, clave());
+        String tokenRegistro = tokenDelUltimoCorreo();
+
+        bloque("REGISTRO DE UN CLIENTE");
+        campo("correo enviado a", correos.ultimo()[0]);
+        campo("asunto", correos.ultimo()[1]);
+        verificar("el correo de confirmacion llega al correo registrado", correos.ultimo()[0].equals(correoNuevo));
+        verificar("el correo trae un enlace con el token", tokenRegistro.length() == 64);
+        verificar("antes de confirmar todavia no existe el cliente", clienteBL.findByDni(datos.getDni()) == null);
+
+        regla("Ingresar antes de verificar el correo", () -> cuentaBL.login(correoNuevo, clave()));
+        regla("Confirmar con un enlace inventado", () -> accesoBL.confirmarRegistro("0".repeat(64)));
+
+        Cliente registrado = accesoBL.confirmarRegistro(tokenRegistro);
+        campo("cliente creado", registrado.getNombres() + " (id " + registrado.getId() + ")");
+        campo("correo", registrado.getCuenta().getCorreo());
+        Persona personaRegistrada = cuentaBL.login(correoNuevo, clave());
+        verificar("el cliente verificado puede ingresar", personaRegistrada instanceof Cliente
+                && personaRegistrada.getId() == registrado.getId());
+        verificar("el correo coincide con el de la cuenta", registrado.getCuenta().getCorreo().equals(correoNuevo));
+
+        regla("Confirmar dos veces el mismo enlace", () -> accesoBL.confirmarRegistro(tokenRegistro));
+        regla("Registrarse con un correo ya registrado",
+                () -> accesoBL.solicitarRegistro(datosCliente("3"), correoNuevo, clave()));
+        regla("Registrarse con un DNI ya registrado", () -> {
+            Cliente repetido = datosCliente("3");
+            repetido.setDni(datos.getDni());
+            accesoBL.solicitarRegistro(repetido, "otro" + SUFIJO + "@mail.com", clave());
+        });
+        regla("Registrarse con una contraseña de menos de 8 caracteres",
+                () -> accesoBL.solicitarRegistro(datosCliente("3"), "otro" + SUFIJO + "@mail.com", "abc"));
+        regla("Registrarse con un correo sin formato valido",
+                () -> accesoBL.solicitarRegistro(datosCliente("3"), "sin-arroba", clave()));
+        regla("Registrarse con numeros en los nombres", () -> {
+            Cliente conNumeros = datosCliente("3");
+            conNumeros.setNombres("Juan3132");
+            accesoBL.solicitarRegistro(conNumeros, "otro" + SUFIJO + "@mail.com", clave());
+        });
+        regla("Registrarse con un telefono de 8 digitos", () -> {
+            Cliente corto = datosCliente("3");
+            corto.setTelefono("12345678");
+            accesoBL.solicitarRegistro(corto, "otro" + SUFIJO + "@mail.com", clave());
+        });
+        mostrarReglas();
+
+        // ------------------------------------------------------------ Recuperar la contrasena
+        int enviadosAntes = correos.cantidad();
+        accesoBL.solicitarRecuperacion("noexiste" + SUFIJO + "@mail.com");
+        bloque("RECUPERAR CONTRASEÑA");
+        verificar("un correo que no esta registrado no genera ningun envio ni avisa", correos.cantidad() == enviadosAntes);
+
+        accesoBL.solicitarRecuperacion(correoNuevo);
+        campo("correo enviado a", correos.ultimo()[0]);
+        verificar("el correo registrado recibe el enlace", correos.cantidad() == enviadosAntes + 1
+                && correos.ultimo()[0].equals(correoNuevo));
+        String primerToken = tokenDelUltimoCorreo();
+
+        accesoBL.solicitarRecuperacion(correoNuevo);
+        String segundoToken = tokenDelUltimoCorreo();
+        regla("Usar el enlace anterior despues de pedir uno nuevo",
+                () -> accesoBL.restablecerContrasena(primerToken, "Cambio" + SUFIJO));
+        regla("Restablecer con una contraseña de menos de 8 caracteres",
+                () -> accesoBL.restablecerContrasena(segundoToken, "corta"));
+        regla("Restablecer con un enlace inventado",
+                () -> accesoBL.restablecerContrasena("0".repeat(64), "Cambio" + SUFIJO));
+
+        String claveNueva = "Nueva" + SUFIJO;
+        accesoBL.restablecerContrasena(segundoToken, claveNueva);
+        Persona conClaveNueva = cuentaBL.login(correoNuevo, claveNueva);
+        verificar("ingresa con la contraseña nueva", conClaveNueva.getId() == registrado.getId());
+        regla("Ingresar con la contraseña anterior", () -> cuentaBL.login(correoNuevo, clave()));
+        regla("Usar el mismo enlace dos veces", () -> accesoBL.restablecerContrasena(segundoToken, "Otra" + SUFIJO));
+        mostrarReglas();
+
+        // ------------------------------------------------------------ Alta hecha por un administrador
+        String correoMostrador = "mostrador" + SUFIJO + "@mail.com";
+        Cliente enMostrador = datosCliente("8");
+        accesoBL.registrarCliente(enMostrador, correoMostrador);
+        String tokenActivacion = tokenDelUltimoCorreo();
+
+        bloque("ALTA DE UN CLIENTE POR EL ADMINISTRADOR");
+        campo("cliente", enMostrador.getNombres() + " (id " + enMostrador.getId() + ")");
+        campo("asunto", correos.ultimo()[1]);
+        verificar("la persona y su cuenta se crearon juntas", enMostrador.getId() > 0 && enMostrador.getCuenta().getId() > 0);
+        regla("Ingresar antes de elegir la contraseña", () -> cuentaBL.login(correoMostrador, clave()));
+        accesoBL.restablecerContrasena(tokenActivacion, clave());
+        Persona personaMostrador = cuentaBL.login(correoMostrador, clave());
+        verificar("elige su contraseña con el enlace y entra", personaMostrador instanceof Cliente
+                && personaMostrador.getId() == enMostrador.getId());
+        regla("Registrar a otro cliente con el mismo correo", () -> accesoBL.registrarCliente(datosCliente("3"), correoMostrador));
+        regla("Registrar a un cliente con un correo sin formato valido",
+                () -> accesoBL.registrarCliente(datosCliente("3"), "sin-arroba"));
+
+        String correoVet = "vetacceso" + SUFIJO + "@mail.com";
+        Veterinario nuevoVet = new Veterinario();
+        completarDatos(nuevoVet, "9");
+        nuevoVet.setNumeroColegiatura("CMV-A" + SUFIJO);
+        accesoBL.registrarVeterinario(nuevoVet, correoVet);
+        verificar("el veterinario se crea con su cuenta", nuevoVet.getId() > 0 && nuevoVet.getCuenta().getId() > 0);
+        accesoBL.restablecerContrasena(tokenDelUltimoCorreo(), clave());
+        verificar("el veterinario elige su contraseña y entra", cuentaBL.login(correoVet, clave()) instanceof Veterinario);
+        regla("Registrar a un veterinario con la colegiatura repetida", () -> {
+            Veterinario repetido = new Veterinario();
+            completarDatos(repetido, "3");
+            repetido.setNumeroColegiatura(nuevoVet.getNumeroColegiatura());
+            accesoBL.registrarVeterinario(repetido, "vetdos" + SUFIJO + "@mail.com");
+        });
+        mostrarReglas();
+
+        // ------------------------------------------------------------ Bajas: la persona y su cuenta
+        bloque("BAJAS");
+        clienteBL.delete(registrado.getId());
+        clienteBL.delete(enMostrador.getId());
+        veterinarioBL.delete(nuevoVet.getId());
+        baja("cliente registrado por si mismo", registrado.getId(), () -> clienteBL.findById(registrado.getId()));
+        baja("cliente registrado por el administrador", enMostrador.getId(), () -> clienteBL.findById(enMostrador.getId()));
+        baja("veterinario registrado por el administrador", nuevoVet.getId(), () -> veterinarioBL.findById(nuevoVet.getId()));
+        regla("Ingresar con la cuenta de un cliente dado de baja", () -> cuentaBL.login(correoNuevo, claveNueva));
+        mostrarReglas();
+    }
+
     // ---------------------------------------------------------------- Impresion
 
     private static void tituloSeccion(String nombre) {
@@ -860,6 +1013,52 @@ public class Tester {
         servicio.setDuracionEstimada(30);
         servicio.setTipo(tipo);
         return servicio;
+    }
+
+    // Guarda los correos en vez de enviarlos
+    private static class CorreoEnMemoria implements CorreoService {
+        private final List<String[]> enviados = new ArrayList<>();
+
+        @Override
+        public void enviar(String destino, String asunto, String cuerpo) {
+            enviados.add(new String[]{destino, asunto, cuerpo});
+        }
+
+        int cantidad() {
+            return enviados.size();
+        }
+
+        // {destino, asunto, cuerpo}
+        String[] ultimo() {
+            return enviados.get(enviados.size() - 1);
+        }
+    }
+
+    // El token es lo que sigue a "token=" en el enlace del ultimo correo
+    private static String tokenDelUltimoCorreo() {
+        String cuerpo = correos.ultimo()[2];
+        int inicio = cuerpo.indexOf("token=") + "token=".length();
+        int fin = inicio;
+        while (fin < cuerpo.length() && Character.isLetterOrDigit(cuerpo.charAt(fin))) {
+            fin++;
+        }
+        return cuerpo.substring(inicio, fin);
+    }
+
+    // Datos de un cliente sin cuenta (la cuenta se crea al registrarse)
+    private static Cliente datosCliente(String digito) {
+        Cliente cliente = new Cliente();
+        completarDatos(cliente, digito);
+        return cliente;
+    }
+
+    // Igual que completarPersona pero sin cuenta; el digito distingue a cada persona
+    private static void completarDatos(Persona persona, String digito) {
+        persona.setDni(digito + numero());
+        persona.setTelefono("9" + digito + numero());
+        persona.setNombres("Nombre");
+        persona.setApellidoPaterno("Paterno");
+        persona.setApellidoMaterno("Materno");
     }
 
     private static Cuenta nuevaCuenta(String prefijo) {

@@ -116,7 +116,7 @@ public class AdministradorBLImpl implements AdministradorBL {
         }
     }
 
-    private void validar(Administrador admin) throws BLException {
+    void validar(Administrador admin) throws BLException {
         if (admin == null) {
             throw new ValidacionException("El administrador no puede ser nulo");
         }
@@ -140,7 +140,7 @@ public class AdministradorBLImpl implements AdministradorBL {
     }
 
     // dni y telefono son UNIQUE en la base
-    private void validarUnicos(Administrador admin) throws BLException {
+    void validarUnicos(Administrador admin) throws BLException {
         try {
             Administrador porDni;
             try {

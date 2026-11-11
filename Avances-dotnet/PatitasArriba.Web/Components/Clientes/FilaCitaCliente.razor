@@ -1,0 +1,66 @@
+@using System.Globalization
+
+@* Una cita en las listas del portal del cliente: fecha, mascota y servicios, veterinario, estado y, si se piden, acciones. *@
+<div class="fila-cita">
+    <span class="fecha-chip">@Cita.FechaHora?.ToString("dd MMM · HH:mm", Peru)</span>
+    <div class="flex-grow-1">
+        <strong>@Cita.NombreMascota · @Cita.TextoServicios</strong>
+        @if (Cita.EsEmergencia) {
+            <span class="badge text-bg-danger ms-1">Emergencia</span>
+        }
+        <div class="small text-muted">
+            @string.Join(", ", Cita.Detalles.Select(d => d.NombreVeterinario).Distinct())@(Cita.Estado == EstadoCita.PENDIENTE ? " · Esperando aprobación de la clínica" : "")
+        </div>
+    </div>
+    <BadgeEstadoCita Estado="Cita.Estado" />
+    @if (MostrarAcciones) {
+        @* Espacios fijos: ver | modificar | cancelar. Si una acción no aplica, queda un guion *@
+        <div class="acciones-fija">
+            <span class="slot-icono">
+                <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => OnVer.InvokeAsync(Cita)">
+                    <Icono Nombre="eye" />
+                </button>
+            </span>
+            <span class="slot-icono">
+                @if (PuedeModificarse) {
+                    <button class="btn btn-outline-primary btn-icono" title="Modificar fecha y hora" aria-label="Modificar fecha y hora" @onclick="() => OnModificar.InvokeAsync(Cita)">
+                        <Icono Nombre="edit" />
+                    </button>
+                } else {
+                    <span class="slot-guion">—</span>
+                }
+            </span>
+            <span class="slot-texto">
+                @if (PuedeModificarse) {
+                    <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => OnCancelar.InvokeAsync(Cita)">
+                        <Icono Nombre="x" /><span>Cancelar reserva</span>
+                    </button>
+                } else {
+                    <span class="slot-guion">—</span>
+                }
+            </span>
+        </div>
+    }
+</div>
+
+@code {
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    [Parameter, EditorRequired]
+    public CitaViewModel Cita { get; set; } = default!;
+
+    [Parameter]
+    public bool MostrarAcciones { get; set; }
+
+    [Parameter]
+    public EventCallback<CitaViewModel> OnVer { get; set; }
+
+    [Parameter]
+    public EventCallback<CitaViewModel> OnModificar { get; set; }
+
+    [Parameter]
+    public EventCallback<CitaViewModel> OnCancelar { get; set; }
+
+    // El cliente modifica o cancela solo citas futuras y activas. Una emergencia la registra y gestiona la clínica
+    private bool PuedeModificarse => Cita.EsModificable && !Cita.EsEmergencia && Cita.FechaHora > DateTime.Now;
+}

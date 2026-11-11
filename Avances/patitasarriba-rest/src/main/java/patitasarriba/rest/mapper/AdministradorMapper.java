@@ -88,4 +88,29 @@ public final class AdministradorMapper {
         }
         return administrador;
     }
+
+    // Alta hecha por un administrador: la cuenta no existe todavia, la crea AccesoBL junto con la persona
+    public static Administrador toModeloSinCuenta(AdministradorDTO dto) throws BLException {
+        List<Horario> horarios = new ArrayList<>();
+        for (HorarioDTO horarioDTO : dto.getHorarios()) {
+            try {
+                horarios.add(horarioBL.findById(horarioDTO.getId()));
+            } catch (NoEncontradoException e) {
+                throw new ValidacionException("No existe el horario con id " + horarioDTO.getId());
+            }
+        }
+
+        Administrador administrador = new Administrador();
+        try {
+            administrador.setDni(dto.getDni());
+            administrador.setNombres(dto.getNombres());
+            administrador.setApellidoPaterno(dto.getApellidoPaterno());
+            administrador.setApellidoMaterno(dto.getApellidoMaterno());
+            administrador.setTelefono(dto.getTelefono());
+            administrador.setHorarios(horarios);
+        } catch (IllegalArgumentException e) {
+            throw new ValidacionException("Datos del administrador invalidos: " + e.getMessage());
+        }
+        return administrador;
+    }
 }

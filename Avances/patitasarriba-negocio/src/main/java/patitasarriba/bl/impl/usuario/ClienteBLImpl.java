@@ -141,7 +141,7 @@ public class ClienteBLImpl implements ClienteBL {
         }
     }
 
-    private void validar(Cliente cliente) throws BLException {
+    void validar(Cliente cliente) throws BLException {
         if (cliente == null) {
             throw new ValidacionException("El cliente no puede ser nulo");
         }
@@ -167,7 +167,7 @@ public class ClienteBLImpl implements ClienteBL {
         }
     }
 
-    private void validarUnicos(Cliente cliente) throws BLException {
+    void validarUnicos(Cliente cliente) throws BLException {
         try {
             Cliente porDni;
             try {

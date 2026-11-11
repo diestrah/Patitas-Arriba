@@ -8,35 +8,13 @@
         }
     </div>
     <div class="card-body">
-        <ul class="list-unstyled small mb-3">
-            <li><strong>Cliente:</strong> @Boleta.NombreCliente (DNI @Boleta.DniCliente)</li>
-            <li><strong>Fecha:</strong> @Boleta.Fecha.ToString("dd/MM/yyyy HH:mm")</li>
-            <li><strong>Método de pago:</strong> @TextoEnum.De(Boleta.MetodoPago)</li>
-        </ul>
-        <table class="table table-sm">
-            <thead>
-                <tr>
-                    <th>Concepto</th>
-                    <th class="text-end">Cant.</th>
-                    <th class="text-end">P. unit.</th>
-                    <th class="text-end">Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (LineaBoletaViewModel linea in Boleta.Lineas) {
-                    <tr>
-                        <td><span class="badge text-bg-light border me-1">@linea.Tipo</span>@linea.Descripcion</td>
-                        <td class="text-end">@linea.Cantidad</td>
-                        <td class="text-end">@linea.PrecioUnitario.ToString("N2")</td>
-                        <td class="text-end">@linea.SubTotal.ToString("N2")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-        <TotalesBoleta TotalServicios="Boleta.TotalServicios" TotalArticulos="Boleta.TotalArticulos" Total="Boleta.Total" />
+        <TicketBoleta Boleta="Boleta" />
+        @if (!Boleta.IsActivo) {
+            <div class="alert alert-danger mt-3 mb-0 small">Boleta anulada: ya no se puede imprimir ni modificar. Su número queda registrado.</div>
+        }
     </div>
     @if (ChildContent != null) {
-        <div class="card-footer d-flex gap-2">
+        <div class="card-footer d-flex flex-wrap gap-2">
             @ChildContent
         </div>
     }

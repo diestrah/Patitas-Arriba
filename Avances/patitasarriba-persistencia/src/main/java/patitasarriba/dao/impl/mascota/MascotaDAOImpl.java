@@ -74,7 +74,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 throw new IllegalArgumentException("La mascota no puede ser nula");
             }
 
-            String sql = "{call insertar_mascota(?,?,?,?,?,?,?,?,?)}";
+            String sql = "{call insertar_mascota(?,?,?,?,?,?,?,?,?,?)}";
             try (CallableStatement cmd = conn.prepareCall(sql)) {
                 cmd.setInt("p_id_cliente", mascota.getCliente().getId());
                 cmd.setString("p_nombre", mascota.getNombre());
@@ -83,6 +83,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 cmd.setDate("p_fecha_nacimiento", Date.valueOf(mascota.getFechaNacimiento()));
                 cmd.setString("p_tipo_mascota", mascota.getTipoMascota().name());
                 cmd.setString("p_raza", mascota.getRaza());
+                cmd.setString("p_foto", mascota.getFoto());
                 cmd.setBoolean("p_activo", mascota.isActivo());
                 cmd.registerOutParameter("p_id", Types.INTEGER);
 
@@ -105,7 +106,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 throw new IllegalArgumentException("La mascota no puede ser nula");
             }
 
-            String sql = "{call modificar_mascota(?,?,?,?,?,?,?,?,?)}";
+            String sql = "{call modificar_mascota(?,?,?,?,?,?,?,?,?,?)}";
             try (CallableStatement cmd = conn.prepareCall(sql)) {
                 cmd.setInt("p_id_cliente", mascota.getCliente().getId());
                 cmd.setString("p_nombre", mascota.getNombre());
@@ -114,6 +115,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
                 cmd.setDate("p_fecha_nacimiento", Date.valueOf(mascota.getFechaNacimiento()));
                 cmd.setString("p_tipo_mascota", mascota.getTipoMascota().name());
                 cmd.setString("p_raza", mascota.getRaza());
+                cmd.setString("p_foto", mascota.getFoto());
                 cmd.setBoolean("p_activo", mascota.isActivo());
                 cmd.setInt("p_id", mascota.getId());
 
@@ -228,6 +230,7 @@ public class MascotaDAOImpl extends RegistroDAOImpl<Mascota> implements MascotaD
         if (raza != null) {
             mascota.setRaza(raza);
         }
+        mascota.setFoto(rs.getString("FOTO"));
 
         mascota.setCliente(new ClienteDAOImpl().findById(rs.getInt("ID_CLIENTE")));
 

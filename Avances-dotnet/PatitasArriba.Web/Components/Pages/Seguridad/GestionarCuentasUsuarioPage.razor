@@ -15,17 +15,17 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Nombre de usuario</label>
-            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.NombreUsuario" />
+            <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.NombreUsuario" />
             <ValidationMessage For="() => ViewModel.NombreUsuario" />
         </div>
         <div class="mb-3">
             <label class="form-label">Correo electrónico</label>
-            <InputText tabindex="2" type="email" class="form-control" @bind-Value="ViewModel.Correo" />
+            <PaInputText tabindex="2" type="email" class="form-control" @bind-Value="ViewModel.Correo" />
             <ValidationMessage For="() => ViewModel.Correo" />
         </div>
         <div class="mb-3">
             <label class="form-label">Nueva contraseña</label>
-            <InputText tabindex="3" type="password" class="form-control" autocomplete="new-password" @bind-Value="ViewModel.Password" />
+            <PaInputText tabindex="3" type="password" class="form-control" autocomplete="new-password" @bind-Value="ViewModel.Password" />
             <div class="form-text">Déjela vacía para mantener la contraseña actual.</div>
             <ValidationMessage For="() => ViewModel.Password" />
         </div>

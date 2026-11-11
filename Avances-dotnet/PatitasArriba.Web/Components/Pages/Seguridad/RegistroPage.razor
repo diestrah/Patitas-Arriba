@@ -1,0 +1,73 @@
+@page "/registro"
+@layout LayoutVacio
+
+<PageTitle>Crear cuenta · Patitas Arriba</PageTitle>
+
+<AccesoMarco Titulo="Crea tu cuenta" Subtitulo="Regístrate como cliente para reservar citas y ver a tus mascotas.">
+    @if (Enviado) {
+        <div class="aviso-ok">
+            <b>Revisa tu correo.</b> Te enviamos un enlace a <b>@ViewModel.Correo</b> para confirmar tu registro.
+            Es válido por 24 horas. Tu cuenta se crea cuando lo abres.
+        </div>
+        @* Sin backend no se envía ningún correo: el enlace de prueba hace de ese correo *@
+        <div class="aviso-demo">
+            Modo demostración: no se envió ningún correo.
+            <a href="verificar-correo?token=demo">Abrir el enlace del correo</a>
+        </div>
+    } else {
+        <EditForm Model="ViewModel" OnValidSubmit="Enviar">
+            <DataAnnotationsValidator />
+
+            @if (MensajeError != null) {
+                <div class="login-error">@MensajeError</div>
+            }
+
+            <div class="acceso-fila">
+                <CampoAcceso Id="dni" Etiqueta="DNI" Icono="id" Placeholder="12345678" ModoEntrada="numeric" MaxLength="8" TabIndex="1"
+                             @bind-Value="ViewModel.Dni" />
+                <CampoAcceso Id="telefono" Etiqueta="Teléfono" Icono="phone" Placeholder="987654321" ModoEntrada="numeric" MaxLength="9" TabIndex="2"
+                             Autocompletar="tel" @bind-Value="ViewModel.Telefono" />
+            </div>
+            <CampoAcceso Id="nombres" Etiqueta="Nombres" Icono="user" Placeholder="Juan Carlos" MaxLength="50" TabIndex="3"
+                         Autocompletar="given-name" @bind-Value="ViewModel.Nombres" />
+            <div class="acceso-fila">
+                <CampoAcceso Id="paterno" Etiqueta="Apellido paterno" Icono="user" Placeholder="Pérez" MaxLength="45" TabIndex="4"
+                             @bind-Value="ViewModel.ApellidoPaterno" />
+                <CampoAcceso Id="materno" Etiqueta="Apellido materno" Icono="user" Placeholder="Gómez" MaxLength="45" TabIndex="5"
+                             @bind-Value="ViewModel.ApellidoMaterno" />
+            </div>
+            <CampoAcceso Id="correo" Etiqueta="Correo electrónico" Icono="mail" Placeholder="nombre@correo.com" MaxLength="100" TabIndex="6"
+                         Autocompletar="email" ModoEntrada="email" @bind-Value="ViewModel.Correo" />
+            <CampoAcceso Id="clave" Etiqueta="Contraseña" Icono="lock" Tipo="password" Placeholder="Al menos 8 caracteres" MaxLength="64" TabIndex="7"
+                         Autocompletar="new-password" @bind-Value="ViewModel.Password" />
+            <CampoAcceso Id="confirmar" Etiqueta="Confirmar contraseña" Icono="lock" Tipo="password" Placeholder="Repite tu contraseña" MaxLength="64" TabIndex="8"
+                         Autocompletar="new-password" @bind-Value="ViewModel.ConfirmarPassword" />
+
+            <button class="login-boton" type="submit" tabindex="9">Crear cuenta</button>
+            <p class="login-registro">¿Ya tienes una cuenta? <a href="login">Inicia sesión</a></p>
+        </EditForm>
+    }
+</AccesoMarco>
+
+@code {
+    private RegistroViewModel ViewModel { get; set; } = new();
+    private string? MensajeError { get; set; }
+    private bool Enviado { get; set; }
+
+    // Sin backend: solo se comprueba contra los datos de ejemplo lo que el backend rechazaría (RN-AC-01).
+    // Al enlazar: POST /acceso/registro y mostrar el mensaje de error que devuelva
+    private void Enviar() {
+        MensajeError = null;
+        string correo = ViewModel.Correo.Trim();
+        if (DatosEjemplo.CuentasUsuario().Any(c => c.Correo.Equals(correo, StringComparison.OrdinalIgnoreCase))) {
+            MensajeError = "El correo ya está registrado";
+            return;
+        }
+        if (DatosEjemplo.Clientes().Any(c => c.Dni == ViewModel.Dni)) {
+            MensajeError = $"Ya existe un cliente con el DNI {ViewModel.Dni}";
+            return;
+        }
+        ViewModel.Correo = correo;
+        Enviado = true;
+    }
+}

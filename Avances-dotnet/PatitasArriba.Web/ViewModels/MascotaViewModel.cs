@@ -19,6 +19,9 @@ namespace PatitasArriba.Web.ViewModels {
 
         public SexoMascota Sexo { get; set; }
 
+        // Imagen opcional como texto "data:image/jpeg;base64,..." (la sube el cliente desde su portal)
+        public string? Foto { get; set; }
+
         // El backend exige un peso mayor a 0 (RN-MA-02)
         [Required(ErrorMessage = "El peso es obligatorio")]
         [Range(0.1, 150, ErrorMessage = "El peso debe estar entre 0.1 y 150 kg")]

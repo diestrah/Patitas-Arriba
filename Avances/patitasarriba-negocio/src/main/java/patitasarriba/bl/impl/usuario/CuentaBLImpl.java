@@ -70,22 +70,37 @@ public class CuentaBLImpl implements CuentaBL {
 
 
 
-    // RF01: el mensaje de error es el mismo si falla el usuario o la contrasena
     @Override
-    public Persona login(String nombreUsuario, String passwordPlana) throws BLException {
-        if (nombreUsuario == null || nombreUsuario.trim().isEmpty() ||
-                passwordPlana == null || passwordPlana.trim().isEmpty()) {
-            throw new ValidacionException("Debe ingresar el usuario y la contraseña");
+    public Cuenta findByCorreo(String correo) throws BLException {
+        if (correo == null || correo.isBlank()) {
+            throw new ValidacionException("El correo ingresado debe ser valido");
         }
 
-        Cuenta cuenta = findByNombreUsuario(nombreUsuario);
+        try {
+            // Igual que findByNombreUsuario: solo se devuelve una cuenta activa
+            Cuenta encontrado = cuentaDAO.findByCorreo(correo);
+            return encontrado != null && encontrado.isActivo() ? encontrado : null;
+        } catch (SQLException e) {
+            throw new BLException("Error al buscar la cuenta por correo", e);
+        }
+    }
+
+    // RF01: se ingresa con el correo. El mensaje de error es el mismo si falla el correo o la contrasena
+    @Override
+    public Persona login(String correo, String passwordPlana) throws BLException {
+        if (correo == null || correo.trim().isEmpty() ||
+                passwordPlana == null || passwordPlana.trim().isEmpty()) {
+            throw new ValidacionException("Debe ingresar el correo y la contraseña");
+        }
+
+        Cuenta cuenta = findByCorreo(correo);
         if (cuenta == null || !cuenta.isActivo()) {
-            throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
+            throw new CredencialesInvalidasException("Correo o contraseña incorrectos");
         }
 
         String hashIngresado = HashUtil.generarHashSHA256(passwordPlana);
         if (!cuenta.getPassword().equals(hashIngresado)) {
-            throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
+            throw new CredencialesInvalidasException("Correo o contraseña incorrectos");
         }
 
         // El rol lo da el tipo de persona duena de la cuenta
@@ -94,7 +109,7 @@ public class CuentaBLImpl implements CuentaBL {
             if (persona == null) persona = veterinarioDAO.findByCuenta(cuenta.getId());
             if (persona == null) persona = administradorDAO.findByCuenta(cuenta.getId());
             if (persona == null || !persona.isActivo()) {
-                throw new CredencialesInvalidasException("Usuario o contraseña incorrectos");
+                throw new CredencialesInvalidasException("Correo o contraseña incorrectos");
             }
             return persona;
         } catch (SQLException e) {
@@ -171,7 +186,7 @@ public class CuentaBLImpl implements CuentaBL {
         }
     }
 
-    private void validar(Cuenta cuenta) throws BLException {
+    void validar(Cuenta cuenta) throws BLException {
         if (cuenta == null) {
             throw new ValidacionException("La cuenta no puede ser nula");
         }
@@ -201,7 +216,7 @@ public class CuentaBLImpl implements CuentaBL {
     }
 
     // nombre_usuario y correo son UNIQUE en la base
-    private void validarUnicos(Cuenta cuenta) throws BLException {
+    void validarUnicos(Cuenta cuenta) throws BLException {
         try {
             // buscar_cuenta_por_nombre_usuario no filtra activo: detecta tambien cuentas dadas de baja
             Cuenta porUsuario = cuentaDAO.findByNombreUsuario(cuenta.getNombreUsuario());

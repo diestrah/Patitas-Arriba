@@ -90,4 +90,30 @@ public final class VeterinarioMapper {
         }
         return veterinario;
     }
+
+    // Alta hecha por un administrador: la cuenta no existe todavia, la crea AccesoBL junto con la persona
+    public static Veterinario toModeloSinCuenta(VeterinarioDTO dto) throws BLException {
+        List<Horario> horarios = new ArrayList<>();
+        for (HorarioDTO horarioDTO : dto.getHorarios()) {
+            try {
+                horarios.add(horarioBL.findById(horarioDTO.getId()));
+            } catch (NoEncontradoException e) {
+                throw new ValidacionException("No existe el horario con id " + horarioDTO.getId());
+            }
+        }
+
+        Veterinario veterinario = new Veterinario();
+        try {
+            veterinario.setDni(dto.getDni());
+            veterinario.setNombres(dto.getNombres());
+            veterinario.setApellidoPaterno(dto.getApellidoPaterno());
+            veterinario.setApellidoMaterno(dto.getApellidoMaterno());
+            veterinario.setTelefono(dto.getTelefono());
+            veterinario.setHorarios(horarios);
+            veterinario.setNumeroColegiatura(dto.getNumeroColegiatura());
+        } catch (IllegalArgumentException e) {
+            throw new ValidacionException("Datos del veterinario invalidos: " + e.getMessage());
+        }
+        return veterinario;
+    }
 }

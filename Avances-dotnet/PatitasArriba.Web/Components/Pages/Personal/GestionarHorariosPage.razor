@@ -4,8 +4,12 @@
 
 <PageTitle>Horarios de atención</PageTitle>
 
-<div class="col-md-8">
+<div class="col-lg-8">
     <h3 class="mb-3">@(Id == null ? "Nuevo horario" : "Editar horario")</h3>
+
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
 
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
@@ -13,31 +17,50 @@
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label class="form-label">Día</label>
-                <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.DiaSemana">
+                <PaInputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.DiaSemana">
                     @foreach (DiaSemana dia in Dias) {
                         <option value="@dia">@TextoEnum.De(dia)</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de inicio</label>
-                <InputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
+                <PaInputDate tabindex="2" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraInicio" />
                 <ValidationMessage For="() => ViewModel.HoraInicio" />
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Hora de fin</label>
-                <InputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
+                <PaInputDate tabindex="3" Type="InputDateType.Time" class="form-control" @bind-Value="ViewModel.HoraFin" />
                 <ValidationMessage For="() => ViewModel.HoraFin" />
             </div>
         </div>
 
-        @if (Id != null) {
-            <div class="mb-3">
-                <label class="form-label">Personal asignado</label>
-                <input class="form-control" value="@(ViewModel.NombresPersonal.Count == 0 ? "Nadie" : ViewModel.PersonalAsignado)" disabled />
-                <div class="form-text">Se asigna desde la ficha de cada veterinario o administrador.</div>
+        @* Se asigna aquí o desde la ficha de cada persona: es la misma relación (RN-HO-03) *@
+        <div class="mb-3">
+            <div class="form-label">
+                Personal asignado
+                <span class="text-muted fw-normal">(opcional · @Seleccionados.Count @(Seleccionados.Count == 1 ? "seleccionado" : "seleccionados"))</span>
             </div>
-        }
+            <div class="small fw-bold mb-1">Veterinarios</div>
+            <div class="selector-personal">
+                @foreach (VeterinarioViewModel veterinario in Veterinarios) {
+                    bool activo = Seleccionados.Contains(veterinario.NombreCompleto);
+                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(veterinario.NombreCompleto)">
+                        <span class="ini">@Iniciales(veterinario)</span>@veterinario.NombreCompleto@(activo ? " ✓" : "")
+                    </button>
+                }
+            </div>
+            <div class="small fw-bold mb-1">Administradores</div>
+            <div class="selector-personal">
+                @foreach (AdministradorViewModel administrador in Administradores) {
+                    bool activo = Seleccionados.Contains(administrador.NombreCompleto);
+                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(administrador.NombreCompleto)">
+                        <span class="ini">@Iniciales(administrador)</span>@administrador.NombreCompleto@(activo ? " ✓" : "")
+                    </button>
+                }
+            </div>
+            <div class="form-text">Una persona no puede tener dos turnos que se crucen el mismo día. Un horario sin veterinario no recibe citas.</div>
+        </div>
 
         <div class="d-flex gap-2">
             <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
@@ -52,10 +75,22 @@
 
     private HorarioViewModel ViewModel { get; set; } = new();
     private DiaSemana[] Dias { get; } = Enum.GetValues<DiaSemana>();
+    private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
+    private List<AdministradorViewModel> Administradores { get; set; } = [];
+    private HashSet<string> Seleccionados { get; set; } = [];
+    private string? MensajeError { get; set; }
+
+    // Al enlazar: GET /veterinarios y GET /administradores para listar al personal que se puede asignar
+    protected override void OnInitialized() {
+        Veterinarios = DatosEjemplo.Veterinarios();
+        Administradores = DatosEjemplo.Administradores();
+    }
 
     protected override void OnParametersSet() {
+        MensajeError = null;
         if (Id == null) {
             ViewModel = new HorarioViewModel();
+            Seleccionados = [];
             return;
         }
         HorarioViewModel? horario = DatosEjemplo.Horarios().FirstOrDefault(h => h.Id == Id);
@@ -64,10 +99,42 @@
             return;
         }
         ViewModel = horario;
+        Seleccionados = horario.NombresPersonal.ToHashSet();
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /horarios o PUT /horarios/{Id}
+    private static string Iniciales(PersonaViewModel persona) {
+        return (persona.Nombres.Length > 0 && persona.ApellidoPaterno.Length > 0)
+            ? $"{persona.Nombres[..1]}{persona.ApellidoPaterno[..1]}".ToUpper()
+            : "?";
+    }
+
+    private void Alternar(string nombre) {
+        if (!Seleccionados.Remove(nombre)) {
+            Seleccionados.Add(nombre);
+        }
+    }
+
+    // Una persona no puede tener dos turnos que se crucen el mismo día. Es una regla nueva que hoy valida solo el front;
+    // para que el backend también la exija habría que agregarla en HorarioBL o en la asignación (requiere la aprobación del JP).
+    private string? BuscarCruce() {
+        List<HorarioViewModel> otros = DatosEjemplo.Horarios().Where(h => h.Id != ViewModel.Id && h.DiaSemana == ViewModel.DiaSemana).ToList();
+        foreach (string nombre in Seleccionados) {
+            HorarioViewModel? cruce = otros.FirstOrDefault(h => h.NombresPersonal.Contains(nombre)
+                && h.HoraInicio < ViewModel.HoraFin && ViewModel.HoraInicio < h.HoraFin);
+            if (cruce != null) {
+                return $"{nombre} ya tiene un turno el {TextoEnum.De(ViewModel.DiaSemana).ToLower()} de {cruce.Rango} que se cruza con este. Quítelo de este horario o cambie la hora.";
+            }
+        }
+        return null;
+    }
+
+    // Sin backend: solo regresa al listado. Al enlazar: POST /horarios o PUT /horarios/{Id} y, para cada persona cuyo
+    // horario cambió, PUT /veterinarios/{id} o /administradores/{id} con su lista de horarios (la relación vive en la persona).
     private void Guardar() {
+        MensajeError = BuscarCruce();
+        if (MensajeError != null) {
+            return;
+        }
         Nav.NavigateTo("/horarios");
     }
 }

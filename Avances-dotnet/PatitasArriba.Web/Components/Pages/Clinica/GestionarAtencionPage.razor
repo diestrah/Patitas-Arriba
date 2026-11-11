@@ -24,18 +24,18 @@
     <div class="row">
         <div class="col-md-4 mb-3">
             <label class="form-label">Fecha y hora de la atención</label>
-            <InputDate tabindex="1" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+            <PaInputDate tabindex="1" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
             <ValidationMessage For="() => ViewModel.FechaHora" />
         </div>
         <div class="col-md-8 mb-3">
             <label class="form-label">Motivo de consulta @(ViewModel.EsServicioMedico ? "" : "(opcional)")</label>
-            <InputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
+            <PaInputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
             <ValidationMessage For="() => ViewModel.MotivoConsulta" />
         </div>
     </div>
     <div class="mb-3">
         <label class="form-label">Observaciones</label>
-        <InputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Observaciones" />
+        <PaInputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Observaciones" />
         <ValidationMessage For="() => ViewModel.Observaciones" />
     </div>
 

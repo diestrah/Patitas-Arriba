@@ -1,0 +1,39 @@
+@* Marco de las pantallas de acceso que no llevan la sala de perritos (registro, verificar correo, olvidé contraseña,
+   restablecer contraseña): tarjeta centrada con la marca, el título y el enlace para volver al inicio de sesión.
+   Usa los estilos de wwwroot/css/login.css. Debe usarse con @layout LayoutVacio. *@
+<div class="login-page solo">
+    <section class="form-panel">
+        <div class="login-contenedor">
+            <div class="login-tarjeta">
+                <div class="acceso-marca">
+                    <div class="logo">
+                        <svg viewBox="0 0 64 64" width="22" height="22" fill="#fff" aria-hidden="true">
+                            <ellipse cx="32" cy="42" rx="14" ry="12" />
+                            <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)" />
+                            <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)" />
+                            <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)" />
+                            <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)" />
+                        </svg>
+                    </div>
+                    <span>Patitas Arriba</span>
+                </div>
+
+                <h2>@Titulo</h2>
+                @if (!string.IsNullOrEmpty(Subtitulo)) {
+                    <p class="sub">@Subtitulo</p>
+                }
+
+                @ChildContent
+
+                <p class="acceso-pie"><a href="login">← Volver al inicio de sesión</a></p>
+            </div>
+            <p class="lema">Cuidamos a tu mejor amigo con mucho cariño <span>♥</span></p>
+        </div>
+    </section>
+</div>
+
+@code {
+    [Parameter, EditorRequired] public string Titulo { get; set; } = "";
+    [Parameter] public string? Subtitulo { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

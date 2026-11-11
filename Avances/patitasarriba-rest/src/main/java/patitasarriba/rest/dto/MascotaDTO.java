@@ -11,6 +11,8 @@ public class MascotaDTO {
     private String fechaNacimiento;
     private String raza;
     private String tipoMascota;
+    // Imagen opcional como texto "data:image/jpeg;base64,..." (vacío = sin foto)
+    private String foto;
 
     public MascotaDTO() {
     }
@@ -85,5 +87,13 @@ public class MascotaDTO {
 
     public void setTipoMascota(String tipoMascota) {
         this.tipoMascota = tipoMascota;
+    }
+
+    public String getFoto() {
+        return foto;
+    }
+
+    public void setFoto(String foto) {
+        this.foto = foto;
     }
 }
