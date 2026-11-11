@@ -5,10 +5,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Response;
-import patitasarriba.bl.AccesoBL;
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.usuario.AccesoBLImpl;
+import patitasarriba.bl.usuario.AccesoBL;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.usuario.AccesoBLImpl;
 import patitasarriba.modelo.usuario.Cliente;
 
 import java.util.Map;

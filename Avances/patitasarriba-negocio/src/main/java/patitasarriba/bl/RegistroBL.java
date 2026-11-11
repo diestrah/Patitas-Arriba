@@ -1,5 +1,7 @@
 package patitasarriba.bl;
 
+import patitasarriba.bl.excepciones.BLException;
+
 import java.util.List;
 
 public interface RegistroBL<T, ID> {

@@ -1,10 +1,10 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.CategoriaBL;
-import patitasarriba.bl.NoEncontradoException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.producto.CategoriaBLImpl;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.producto.CategoriaBL;
+import patitasarriba.bl.excepciones.NoEncontradoException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.producto.CategoriaBLImpl;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.Categoria;
 import patitasarriba.rest.dto.ArticuloDTO;

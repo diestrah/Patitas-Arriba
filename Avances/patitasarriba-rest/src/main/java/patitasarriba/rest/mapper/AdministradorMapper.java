@@ -1,12 +1,12 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.CuentaBL;
-import patitasarriba.bl.HorarioBL;
-import patitasarriba.bl.NoEncontradoException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.horario.HorarioBLImpl;
-import patitasarriba.bl.impl.usuario.CuentaBLImpl;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.usuario.CuentaBL;
+import patitasarriba.bl.horario.HorarioBL;
+import patitasarriba.bl.excepciones.NoEncontradoException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.horario.HorarioBLImpl;
+import patitasarriba.blimpl.usuario.CuentaBLImpl;
 import patitasarriba.modelo.horario.Horario;
 import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.modelo.usuario.Cuenta;

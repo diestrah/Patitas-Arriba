@@ -1,10 +1,10 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.CitaBL;
-import patitasarriba.bl.NoEncontradoException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.cita.CitaBLImpl;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.cita.CitaBL;
+import patitasarriba.bl.excepciones.NoEncontradoException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.cita.CitaBLImpl;
 import patitasarriba.modelo.boleta.Boleta;
 import patitasarriba.modelo.boleta.DetalleBoletaServicio;
 import patitasarriba.modelo.cita.DetalleCita;
