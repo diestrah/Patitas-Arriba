@@ -1,6 +1,7 @@
 @page "/cuentas-usuario"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject ICuentaService CuentaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -25,7 +26,10 @@
     <div class="alert alert-danger">@MensajeError</div>
 }
 
-@if (!Cuentas.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando cuentas...</p>
+}
+else if (!Cuentas.Any()) {
     <div class="alert alert-info">No se encontraron cuentas.</div>
 }
 else {
@@ -75,9 +79,20 @@ else {
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
     private GridSort<CuentaUsuarioViewModel> PorUsuario { get; } = GridSort<CuentaUsuarioViewModel>.ByAscending(c => c.NombreUsuario);
 
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.CuentasUsuario();
-        Filtrar();
+    private bool Cargando { get; set; } = true;
+
+    // GET /cuentas. El servicio también consulta /clientes, /veterinarios y /administradores
+    // para saber a quién pertenece cada cuenta y su rol
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todas = await CuentaService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     // Cuenta con la que se inició sesión
@@ -110,21 +125,23 @@ else {
         CuentaAEliminar = null;
     }
 
-    // Al enlazar se llamará a DELETE /cuentas/{id}. El backend no deja dar de baja una cuenta que usa
-    // una persona activa (RN-CU-06): la cuenta se da de baja junto con la persona. Aquí se simula esa respuesta.
-    private void EliminarCuenta() {
+    // DELETE /cuentas/{id}. El backend no deja dar de baja una cuenta que usa una persona activa (RN-CU-06):
+    // la cuenta se da de baja junto con la persona. En ese caso se muestra su mensaje.
+    private async Task EliminarCuenta() {
         if (CuentaAEliminar == null) {
             return;
         }
+        CuentaUsuarioViewModel cuenta = CuentaAEliminar;
+        CuentaAEliminar = null;
         MensajeExito = null;
         MensajeError = null;
-        if (!string.IsNullOrEmpty(CuentaAEliminar.NombrePersona)) {
-            MensajeError = $"No se puede eliminar la cuenta “{CuentaAEliminar.NombreUsuario}”: la usa {CuentaAEliminar.NombrePersona} ({TextoEnum.De(CuentaAEliminar.Rol).ToLower()}). Elimine a la persona y su cuenta se dará de baja con ella.";
-        } else {
-            Todas.Remove(CuentaAEliminar);
-            MensajeExito = $"Se eliminó la cuenta “{CuentaAEliminar.NombreUsuario}”.";
+        try {
+            await CuentaService.Delete(cuenta.Id);
+            Todas.Remove(cuenta);
+            MensajeExito = $"Se eliminó la cuenta “{cuenta.NombreUsuario}”.";
             Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
         }
-        CuentaAEliminar = null;
     }
 }

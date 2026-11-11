@@ -1,6 +1,9 @@
 @page "/horarios/nuevo"
 @page "/horarios/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
 
 <PageTitle>Horarios de atención</PageTitle>
 
@@ -11,6 +14,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando horario...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -43,18 +49,18 @@
             </div>
             <div class="small fw-bold mb-1">Veterinarios</div>
             <div class="selector-personal">
-                @foreach (VeterinarioViewModel veterinario in Veterinarios) {
-                    bool activo = Seleccionados.Contains(veterinario.NombreCompleto);
-                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(veterinario.NombreCompleto)">
+                @foreach (VeterinarioViewModel veterinario in Personal.Veterinarios) {
+                    bool activo = Seleccionados.Contains(veterinario);
+                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(veterinario)">
                         <span class="ini">@Iniciales(veterinario)</span>@veterinario.NombreCompleto@(activo ? " ✓" : "")
                     </button>
                 }
             </div>
             <div class="small fw-bold mb-1">Administradores</div>
             <div class="selector-personal">
-                @foreach (AdministradorViewModel administrador in Administradores) {
-                    bool activo = Seleccionados.Contains(administrador.NombreCompleto);
-                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(administrador.NombreCompleto)">
+                @foreach (AdministradorViewModel administrador in Personal.Administradores) {
+                    bool activo = Seleccionados.Contains(administrador);
+                    <button type="button" class="opcion-persona @(activo ? "activa" : "")" aria-pressed="@activo" @onclick="() => Alternar(administrador)">
                         <span class="ini">@Iniciales(administrador)</span>@administrador.NombreCompleto@(activo ? " ✓" : "")
                     </button>
                 }
@@ -63,10 +69,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="4" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="5" class="btn btn-outline-primary" href="horarios">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -75,31 +82,38 @@
 
     private HorarioViewModel ViewModel { get; set; } = new();
     private DiaSemana[] Dias { get; } = Enum.GetValues<DiaSemana>();
-    private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
-    private List<AdministradorViewModel> Administradores { get; set; } = [];
-    private HashSet<string> Seleccionados { get; set; } = [];
+    private PersonalClinica Personal { get; set; } = new();
+
+    // Personas marcadas en el formulario (son las mismas instancias de Personal.Veterinarios / Administradores)
+    private HashSet<PersonalViewModel> Seleccionados { get; set; } = [];
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    // Al enlazar: GET /veterinarios y GET /administradores para listar al personal que se puede asignar
-    protected override void OnInitialized() {
-        Veterinarios = DatosEjemplo.Veterinarios();
-        Administradores = DatosEjemplo.Administradores();
-    }
-
-    protected override void OnParametersSet() {
+    // GET /horarios, /veterinarios y /administradores: el personal que se puede asignar y quién tiene ya este horario
+    protected override async Task OnParametersSetAsync() {
         MensajeError = null;
-        if (Id == null) {
-            ViewModel = new HorarioViewModel();
-            Seleccionados = [];
-            return;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Personal = await PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            if (Id == null) {
+                ViewModel = new HorarioViewModel();
+                Seleccionados = [];
+                return;
+            }
+            HorarioViewModel? horario = Personal.Horarios.FirstOrDefault(h => h.Id == Id);
+            if (horario == null) {
+                Nav.NavigateTo("/horarios");
+                return;
+            }
+            ViewModel = horario;
+            Seleccionados = Personal.Personas.Where(p => PersonalClinica.Tiene(p, horario.Id)).ToHashSet();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        HorarioViewModel? horario = DatosEjemplo.Horarios().FirstOrDefault(h => h.Id == Id);
-        if (horario == null) {
-            Nav.NavigateTo("/horarios");
-            return;
-        }
-        ViewModel = horario;
-        Seleccionados = horario.NombresPersonal.ToHashSet();
     }
 
     private static string Iniciales(PersonaViewModel persona) {
@@ -108,33 +122,82 @@
             : "?";
     }
 
-    private void Alternar(string nombre) {
-        if (!Seleccionados.Remove(nombre)) {
-            Seleccionados.Add(nombre);
+    private void Alternar(PersonalViewModel persona) {
+        if (!Seleccionados.Remove(persona)) {
+            Seleccionados.Add(persona);
         }
     }
 
     // Una persona no puede tener dos turnos que se crucen el mismo día. Es una regla nueva que hoy valida solo el front;
     // para que el backend también la exija habría que agregarla en HorarioBL o en la asignación (requiere la aprobación del JP).
     private string? BuscarCruce() {
-        List<HorarioViewModel> otros = DatosEjemplo.Horarios().Where(h => h.Id != ViewModel.Id && h.DiaSemana == ViewModel.DiaSemana).ToList();
-        foreach (string nombre in Seleccionados) {
-            HorarioViewModel? cruce = otros.FirstOrDefault(h => h.NombresPersonal.Contains(nombre)
-                && h.HoraInicio < ViewModel.HoraFin && ViewModel.HoraInicio < h.HoraFin);
+        foreach (PersonalViewModel persona in Seleccionados) {
+            HorarioViewModel? cruce = Personal.HorariosDe(persona).FirstOrDefault(h => h.Id != ViewModel.Id
+                && h.DiaSemana == ViewModel.DiaSemana && h.HoraInicio < ViewModel.HoraFin && ViewModel.HoraInicio < h.HoraFin);
             if (cruce != null) {
-                return $"{nombre} ya tiene un turno el {TextoEnum.De(ViewModel.DiaSemana).ToLower()} de {cruce.Rango} que se cruza con este. Quítelo de este horario o cambie la hora.";
+                return $"{persona.NombreCompleto} ya tiene un turno el {TextoEnum.De(ViewModel.DiaSemana).ToLower()} de {cruce.Rango} que se cruza con este. Quítelo de este horario o cambie la hora.";
             }
         }
         return null;
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /horarios o PUT /horarios/{Id} y, para cada persona cuyo
-    // horario cambió, PUT /veterinarios/{id} o /administradores/{id} con su lista de horarios (la relación vive en la persona).
-    private void Guardar() {
+    // 1) POST /horarios o PUT /horarios/{Id}.
+    // 2) La relación vive en la persona: para cada una que se marcó o desmarcó, PUT /veterinarios/{id} o
+    //    /administradores/{id} con su lista de horarios. Son solicitudes separadas (no hay transacción entre ellas):
+    //    si alguna falla se dice a quién no se pudo asignar, y el horario ya queda guardado.
+    private async Task Guardar() {
+        if (Guardando) return;
         MensajeError = BuscarCruce();
         if (MensajeError != null) {
             return;
         }
+        Guardando = true;
+        try {
+            if (ViewModel.Id == 0) {
+                await HorarioService.Insert(ViewModel);
+            } else {
+                await HorarioService.Update(ViewModel);
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Guardando = false;
+            return;
+        }
+
+        List<string> fallidos = [];
+        foreach (PersonalViewModel persona in Personal.Personas) {
+            bool debeTener = Seleccionados.Contains(persona);
+            if (PersonalClinica.Tiene(persona, ViewModel.Id) == debeTener) {
+                continue;
+            }
+            try {
+                Asignar(persona, ViewModel.Id, debeTener);
+                if (persona is VeterinarioViewModel veterinario) {
+                    await VeterinarioService.Update(veterinario);
+                } else if (persona is AdministradorViewModel administrador) {
+                    await AdministradorService.Update(administrador);
+                }
+            } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+                Asignar(persona, ViewModel.Id, !debeTener);
+                fallidos.Add($"{persona.NombreCompleto} ({ErrorServicio.Desde(ex)})");
+            }
+        }
+        Guardando = false;
+
+        if (fallidos.Count > 0) {
+            MensajeError = $"El horario se guardó, pero no se pudo actualizar la asignación de: {string.Join("; ", fallidos)}.";
+            return;
+        }
         Nav.NavigateTo("/horarios");
+    }
+
+    // Marca o desmarca el horario en la lista de la persona (la agrega si es un horario nuevo)
+    private static void Asignar(PersonalViewModel persona, int idHorario, bool asignado) {
+        OpcionSeleccion? opcion = persona.Horarios.FirstOrDefault(h => h.Id == idHorario);
+        if (opcion == null) {
+            persona.Horarios.Add(new OpcionSeleccion { Id = idHorario, Seleccionado = asignado });
+        } else {
+            opcion.Seleccionado = asignado;
+        }
     }
 }

@@ -1,6 +1,8 @@
 @page "/veterinarios/nuevo"
 @page "/veterinarios/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IVeterinarioService VeterinarioService;
+@inject IHorarioService HorarioService;
 
 <PageTitle>Veterinarios</PageTitle>
 
@@ -11,6 +13,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando veterinario...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -68,10 +73,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="11" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="11" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="12" class="btn btn-outline-primary" href="veterinarios">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -82,24 +88,53 @@
 
     // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o colegiatura repetidos)
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
-        if (Id == null) {
-            ViewModel = new VeterinarioViewModel { Horarios = DatosEjemplo.OpcionesHorario() };
-            return;
+    // GET /horarios para las casillas y, al editar, GET /veterinarios/{Id}
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            List<HorarioViewModel> horarios = await HorarioService.FindAll();
+            VeterinarioViewModel veterinario;
+            if (Id == null) {
+                veterinario = new VeterinarioViewModel();
+            } else {
+                VeterinarioViewModel? encontrado = await VeterinarioService.FindById(Id.Value);
+                if (encontrado == null) {
+                    Nav.NavigateTo("/veterinarios");
+                    return;
+                }
+                veterinario = encontrado;
+            }
+            veterinario.Horarios = PersonalClinica.OpcionesHorario(horarios, veterinario.Horarios);
+            ViewModel = veterinario;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        VeterinarioViewModel? veterinario = DatosEjemplo.Veterinarios().FirstOrDefault(v => v.Id == Id);
-        if (veterinario == null) {
-            Nav.NavigateTo("/veterinarios");
-            return;
-        }
-        ViewModel = veterinario;
     }
 
-    // Sin backend: no se registra nada, solo se regresa al listado.
-    // Al enlazar: POST /cuentas y luego POST /veterinarios (con la cuenta y los horarios marcados);
-    // al editar: PUT /cuentas/{IdCuenta} y PUT /veterinarios/{Id}.
-    private void Guardar() {
-        Nav.NavigateTo("/veterinarios");
+    // Nuevo: POST /veterinarios/con-cuenta (crea la persona y su cuenta con solo el correo; la persona
+    // recibe un enlace para elegir su contraseña). Editar: PUT /veterinarios/{Id} con los horarios marcados.
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await VeterinarioService.Insert(ViewModel);
+            } else {
+                await VeterinarioService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/veterinarios");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }
