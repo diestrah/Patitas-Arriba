@@ -1,7 +1,7 @@
 package patitasarriba.daoimpl.boleta;
 
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.daoimpl.atencion.InsumoUtilizadoDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
@@ -11,7 +11,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-class DetalleBoletaArtDAOImpl extends RegistroDAOImpl<DetalleBoletaArticulo> implements DetalleBoletaArtDAO {
+class DetalleBoletaArtDAOImpl implements DetalleBoletaArtDAO {
     @Override
     public void insertDetalles(int idBoleta, List<DetalleBoleta> detalles) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
@@ -48,26 +48,21 @@ class DetalleBoletaArtDAOImpl extends RegistroDAOImpl<DetalleBoletaArticulo> imp
 
     @Override
     public List<DetalleBoleta> findByBoletaId(int idBoleta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            try (CallableStatement cmd = conn.prepareCall("{call listar_detalles_boleta_art_por_boleta(?)}")) {
-                cmd.setInt("p_id_boleta", idBoleta);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<DetalleBoleta> detalles = new ArrayList<>();
-                    while (rs.next()) detalles.add(mapear(rs, new DetalleBoletaArticulo()));
-                    return detalles;
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_detalles_boleta_art_por_boleta(?)}")) {
+                    cmd.setInt("p_id_boleta", idBoleta);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<DetalleBoleta> detalles = new ArrayList<>();
+                        while (rs.next()) detalles.add(mapear(rs));
+                        return detalles;
+                    }
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
-    @Override
-    protected DetalleBoletaArticulo mapear(ResultSet rs, DetalleBoletaArticulo detalle) throws SQLException {
-        super.mapear(rs, detalle);
+    protected DetalleBoletaArticulo mapear(ResultSet rs) throws SQLException {
+        DetalleBoletaArticulo detalle = new DetalleBoletaArticulo();
+        detalle.setActivo(rs.getBoolean("activo"));
         detalle.setId(rs.getInt("id_detalle_boleta_art"));
         Boleta boleta = new Boleta();
         boleta.setId(rs.getInt("id_boleta"));

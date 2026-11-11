@@ -1,8 +1,7 @@
 package patitasarriba.daoimpl.cita;
 
-import patitasarriba.dao.transacciones.TransactionsManager;
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.daoimpl.producto.ServicioDAOImpl;
 import patitasarriba.daoimpl.usuario.VeterinarioDAOImpl;
 import patitasarriba.modelo.cita.Cita;
@@ -13,7 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
+public class DetalleCitaDAOImpl {
     void insert(Connection conn, DetalleCita detalle, int idCita) throws SQLException {
         try (CallableStatement cmd = conn.prepareCall("{call insertar_detalle_cita(?,?,?,?,?,?)}")) {
             cmd.setInt("p_id_cita", idCita);
@@ -67,29 +66,30 @@ public class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
             cmd.setInt("p_id_cita", cita.getId());
             try (ResultSet rs = cmd.executeQuery()) {
                 List<DetalleCita> detalles = new ArrayList<>();
-                while (rs.next()) detalles.add(mapear(rs, new DetalleCita(), cita));
+                while (rs.next()) {
+                    DetalleCita detalle = mapear(rs);
+                    detalle.setCita(cita);
+                    detalles.add(detalle);
+                }
                 return detalles;
             }
         }
     }
 
     public DetalleCita buscarDetallePorId(int id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            try (CallableStatement cmd = conn.prepareCall("{call buscar_detalle_cita_por_id(?)}")) {
-                cmd.setInt("p_id", id);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    if (!rs.next()) return null;
-                    Cita cita = new CitaDAOImpl().buscarCabecera(conn, rs.getInt("id_cita"));
-                    if (cita == null) throw new SQLException("No existe la cita activa del detalle " + id);
-                    return mapear(rs, new DetalleCita(), cita);
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call buscar_detalle_cita_por_id(?)}")) {
+                    cmd.setInt("p_id", id);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        if (!rs.next()) return null;
+                        Cita cita = new CitaDAOImpl().buscarCabecera(conn, rs.getInt("id_cita"));
+                        if (cita == null) throw new SQLException("No existe la cita activa del detalle " + id);
+                        DetalleCita detalle = mapear(rs);
+                        detalle.setCita(cita);
+                        return detalle;
+                    }
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     // Optimizacion de ServicioBLImpl.validarSinCitas: antes esa validacion traia TODAS las citas
@@ -97,21 +97,19 @@ public class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
     // en memoria. Aqui el filtro por id_servicio lo hace la base de datos (listar_detalle_cita_por_servicio)
     // y solo se necesita saber si existe al menos una fila, por eso no se mapea a DetalleCita completos.
     public boolean existeDetalleConServicio(int idServicio) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try (CallableStatement cmd = conn.prepareCall("{call listar_detalle_cita_por_servicio(?)}")) {
-            cmd.setInt("p_id_servicio", idServicio);
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_detalle_cita_por_servicio(?)}")) {
+                    cmd.setInt("p_id_servicio", idServicio);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next();
+                    }
+                }
+            });
     }
 
-    private DetalleCita mapear(ResultSet rs, DetalleCita detalle, Cita cita) throws SQLException {
-        super.mapear(rs, detalle);
+    private DetalleCita mapear(ResultSet rs) throws SQLException {
+        DetalleCita detalle = new DetalleCita();
+        detalle.setActivo(rs.getBoolean("activo"));
         detalle.setId(rs.getInt("id_detalle_cita"));
         detalle.setObservaciones(rs.getString("observaciones"));
         var servicio = new ServicioDAOImpl().findById(rs.getInt("id_servicio"));
@@ -121,7 +119,6 @@ public class DetalleCitaDAOImpl extends RegistroDAOImpl<DetalleCita> {
         }
         detalle.setServicio(servicio);
         detalle.setVeterinario(veterinario);
-        detalle.setCita(cita);
         return detalle;
     }
 }

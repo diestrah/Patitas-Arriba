@@ -1,5 +1,7 @@
 package patitasarriba.daoimpl.boleta;
 
+import patitasarriba.daoimpl.BaseDAOImpl;
+
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -8,9 +10,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
-import conexion.DBManager;
 import patitasarriba.dao.boleta.BoletaDAO;
-import patitasarriba.daoimpl.RegistroDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.daoimpl.usuario.ClienteDAOImpl;
 import patitasarriba.modelo.boleta.Boleta;
@@ -20,51 +20,10 @@ import patitasarriba.modelo.boleta.DetalleBoletaArticulo;
 import patitasarriba.modelo.boleta.DetalleBoletaServicio;
 import patitasarriba.modelo.usuario.Cliente;
 
-public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO {
+public class BoletaDAOImpl extends BaseDAOImpl<Boleta> implements BoletaDAO {
 
     private final DetalleBoletaArtDAO detalleArtDAO = new DetalleBoletaArtDAOImpl();
     private final DetalleBoletaServDAO detalleServDAO = new DetalleBoletaServDAOImpl();
-
-    @Override
-    public List<Boleta> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_boletas()}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql); ResultSet rs = cmd.executeQuery()) {
-
-                List<Boleta> boletas = new ArrayList<>();
-                while (rs.next()) {
-                    boletas.add(mapear(rs, new Boleta()));
-                }
-                return boletas;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Boleta findById(Integer id) throws SQLException {
-        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call buscar_boleta_por_id(?)}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Boleta()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
 
     @Override
     public void insert(Boleta boleta) throws SQLException {
@@ -74,21 +33,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         }
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call insertar_boleta(?, ?, ?, ?, ?, ?, ?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_cliente", boleta.getCliente().getId());
-            cmd.setBoolean("p_activo", boleta.isActivo());
-            cmd.setObject("p_fecha", boleta.getFecha());
-            cmd.setString("p_serie_correlativo", boleta.getSerieCorrelativo());
-            cmd.setDouble("p_total", boleta.getTotal());
-            cmd.setString("p_metodo_pago", boleta.getMetodoPago().name());
-            cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            cmd.execute();
-
-            boleta.setId(cmd.getInt("p_id"));
-        }
+        ejecutarComandoInsertar(conn, boleta);
 
         // Enrutar los detalles según su tipo concreto (instanceof)
         insertarDetallesPorTipo(boleta);
@@ -99,19 +44,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         if (boleta == null) throw new IllegalArgumentException("La boleta no puede ser nula");
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call modificar_boleta(?, ?, ?, ?, ?, ?, ?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_cliente", boleta.getCliente().getId());
-            cmd.setBoolean("p_activo", boleta.isActivo());
-            cmd.setObject("p_fecha", boleta.getFecha());
-            cmd.setString("p_serie_correlativo", boleta.getSerieCorrelativo());
-            cmd.setDouble("p_total", boleta.getTotal());
-            cmd.setString("p_metodo_pago", boleta.getMetodoPago().name());
-            cmd.setInt("p_id", boleta.getId());
-
-            cmd.execute();
-        }
+        ejecutarComandoActualizar(conn, boleta);
 
         validarDetallesExistentes(boleta);
         // Desactivar ausentes y actualizar existentes conservando sus IDs.
@@ -129,11 +62,7 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
         detalleArtDAO.deleteDetallesPorBoleta(id);
         detalleServDAO.deleteDetallesPorBoleta(id);
 
-        String sql = "{call eliminar_boleta(?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", id);
-            cmd.execute();
-        }
+        ejecutarComandoEliminar(conn, id);
     }
 
     // -----------------------------------------------------------------------
@@ -180,8 +109,9 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
     // Mapea un ResultSet de BOLETA a un objeto Boleta.
     // Fusiona los detalles de ambas tablas (ART + SERV) en una sola lista.
     @Override
-    protected Boleta mapear(ResultSet rs, Boleta boleta) throws SQLException {
-        super.mapear(rs, boleta);
+    protected Boleta mapear(ResultSet rs) throws SQLException {
+        Boleta boleta = new Boleta();
+        boleta.setActivo(rs.getBoolean("activo"));
         boleta.setId(rs.getInt("ID_BOLETA"));
         boleta.setFecha(rs.getTimestamp("FECHA").toLocalDateTime());
         boleta.setTotal(rs.getDouble("TOTAL"));
@@ -218,30 +148,101 @@ public class BoletaDAOImpl extends RegistroDAOImpl<Boleta> implements BoletaDAO 
 
     @Override
     public int obtenerUltimoCorrelativo(String serie) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try (CallableStatement cmd = conn.prepareCall("{call obtener_ultimo_correlativo(?, ?)}")) {
-            cmd.setString("p_serie", serie);
-            cmd.registerOutParameter("p_ultimo", Types.INTEGER);
-            cmd.execute();
-            return cmd.getInt("p_ultimo");
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call obtener_ultimo_correlativo(?, ?)}")) {
+                    cmd.setString("p_serie", serie);
+                    cmd.registerOutParameter("p_ultimo", Types.INTEGER);
+                    cmd.execute();
+                    return cmd.getInt("p_ultimo");
+                }
+            });
     }
 
     private int buscarIdBoleta(String sql, String parametro, Object valor) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setObject(parametro, valor);
-            try (ResultSet rs = cmd.executeQuery()) {
-                return rs.next() ? rs.getInt("id_boleta") : 0;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setObject(parametro, valor);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? rs.getInt("id_boleta") : 0;
+                    }
+                }
+            });
+    }
+
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        CallableStatement cmd = conn.prepareCall("{call listar_boletas()}");
+        return cmd;
+    }
+
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call buscar_boleta_por_id(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
         }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Boleta modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call insertar_boleta(?, ?, ?, ?, ?, ?, ?)}");
+        try {
+            cmd.setInt("p_id_cliente", modelo.getCliente().getId());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.setObject("p_fecha", modelo.getFecha());
+            cmd.setString("p_serie_correlativo", modelo.getSerieCorrelativo());
+            cmd.setDouble("p_total", modelo.getTotal());
+            cmd.setString("p_metodo_pago", modelo.getMetodoPago().name());
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Boleta modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call modificar_boleta(?, ?, ?, ?, ?, ?, ?)}");
+        try {
+            cmd.setInt("p_id_cliente", modelo.getCliente().getId());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.setObject("p_fecha", modelo.getFecha());
+            cmd.setString("p_serie_correlativo", modelo.getSerieCorrelativo());
+            cmd.setDouble("p_total", modelo.getTotal());
+            cmd.setString("p_metodo_pago", modelo.getMetodoPago().name());
+            cmd.setInt("p_id", modelo.getId());
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call eliminar_boleta(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Boleta modelo) throws SQLException {
+        int id = cmd.getInt("p_id");
+        if (cmd.wasNull() || id <= 0) throw new SQLException("No se obtuvo un ID válido para Boleta.");
+        modelo.setId(id);
     }
 }

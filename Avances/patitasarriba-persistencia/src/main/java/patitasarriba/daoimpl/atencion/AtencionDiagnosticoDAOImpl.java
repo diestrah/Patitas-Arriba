@@ -1,7 +1,7 @@
 package patitasarriba.daoimpl.atencion;
 
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
@@ -16,7 +16,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 class AtencionDiagnosticoDAOImpl
-extends RegistroDAOImpl<AtencionDiagnostico>
 implements AtencionDiagnosticoDAO {
 
     @Override
@@ -56,31 +55,26 @@ implements AtencionDiagnosticoDAO {
     public List<AtencionDiagnostico> findByAtencionId(
         int idAtencion
     ) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_diagnosticos_por_atencion(?)}";
+        return ejecutarComando(conn -> {
+                String sql = "{call listar_diagnosticos_por_atencion(?)}";
 
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
 
-                cmd.setInt("p_id_atencion", idAtencion);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<AtencionDiagnostico> diagnosticos = new ArrayList<>();
-                    while (rs.next()) {
-                        diagnosticos.add(mapear(rs, new AtencionDiagnostico()));
+                    cmd.setInt("p_id_atencion", idAtencion);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<AtencionDiagnostico> diagnosticos = new ArrayList<>();
+                        while (rs.next()) {
+                            diagnosticos.add(mapear(rs));
+                        }
+                        return diagnosticos;
                     }
-                    return diagnosticos;
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
-    @Override
-    protected AtencionDiagnostico mapear(ResultSet rs,AtencionDiagnostico detalle) throws SQLException {
-        super.mapear(rs, detalle);
+    protected AtencionDiagnostico mapear(ResultSet rs) throws SQLException {
+        AtencionDiagnostico detalle = new AtencionDiagnostico();
+        detalle.setActivo(rs.getBoolean("activo"));
 
         Atencion atencion = new Atencion();
         atencion.setId(rs.getInt("id_atencion"));

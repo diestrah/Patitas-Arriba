@@ -1,150 +1,47 @@
 package patitasarriba.daoimpl.usuario;
 
-import patitasarriba.dao.transacciones.TransactionsManager;
-
-import conexion.DBManager;
 import patitasarriba.dao.usuario.CuentaDAO;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import patitasarriba.daoimpl.BaseDAOImpl;
 import patitasarriba.modelo.usuario.Cuenta;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
-public class CuentaDAOImpl extends RegistroDAOImpl<Cuenta> implements CuentaDAO {
-
-    @Override
-    public List<Cuenta> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_cuentas()}";
-            try (CallableStatement cmd = conn.prepareCall(sql);
-                ResultSet rs = cmd.executeQuery()) {
-                List<Cuenta> cuentas = new ArrayList<>();
-                while (rs.next()) {
-                    cuentas.add(mapear(rs, new Cuenta()));
-                }
-                return cuentas;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Cuenta findById(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_cuenta_por_id(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cuenta()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
+public class CuentaDAOImpl extends BaseDAOImpl<Cuenta> implements CuentaDAO {
 
     @Override
     public Cuenta findByCorreo(String correo) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (correo == null || correo.isBlank()) {
-                throw new IllegalArgumentException("El correo no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_cuenta_por_correo(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_correo", correo.trim());
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cuenta()) : null;
+        return ejecutarComando(conn -> {
+                if (correo == null || correo.isBlank()) {
+                    throw new IllegalArgumentException("El correo no puede ser nulo o vacío");
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+
+                String sql = "{call buscar_cuenta_por_correo(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_correo", correo.trim());
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
     }
 
     @Override
     public Cuenta findByNombreUsuario(String nombreUsuario) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (nombreUsuario == null || nombreUsuario.isBlank()) {
-                throw new IllegalArgumentException("El nombre de usuario no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_cuenta_por_nombre_usuario(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_nombre_usuario", nombreUsuario);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Cuenta()) : null;
+        return ejecutarComando(conn -> {
+                if (nombreUsuario == null || nombreUsuario.isBlank()) {
+                    throw new IllegalArgumentException("El nombre de usuario no puede ser nulo o vacío");
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
 
-    @Override
-    public void insert(Cuenta cuenta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (cuenta == null) {
-                throw new IllegalArgumentException("La cuenta no puede ser nula");
-            }
+                String sql = "{call buscar_cuenta_por_nombre_usuario(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_nombre_usuario", nombreUsuario);
 
-            String sql = "{call insertar_cuenta(?,?,?,?,?,?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                setParametrosComunes(cmd, cuenta);
-                cmd.registerOutParameter("p_id", Types.INTEGER);
-
-                cmd.execute();
-                cuenta.setId(cmd.getInt("p_id"));
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public void update(Cuenta cuenta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (cuenta == null) {
-                throw new IllegalArgumentException("La cuenta no puede ser nula");
-            }
-
-            String sql = "{call modificar_cuenta(?,?,?,?,?,?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                setParametrosComunes(cmd, cuenta);
-                cmd.setInt("p_id", cuenta.getId());
-
-                cmd.execute();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
     }
 
     // Los parametros que insertar_cuenta y modificar_cuenta comparten
@@ -157,34 +54,96 @@ public class CuentaDAOImpl extends RegistroDAOImpl<Cuenta> implements CuentaDAO 
     }
 
     @Override
-    public void delete(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call eliminar_cuenta(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                cmd.execute();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    protected Cuenta mapear(ResultSet rs, Cuenta cuenta) throws SQLException {
-        super.mapear(rs, cuenta);
+    protected Cuenta mapear(ResultSet rs) throws SQLException {
+        Cuenta cuenta = new Cuenta();
+        cuenta.setActivo(rs.getBoolean("activo"));
         cuenta.setId(rs.getInt("id_cuenta"));
         cuenta.setPassword(rs.getString("password"));
         cuenta.setCorreo(rs.getString("correo"));
         cuenta.setFechaCreacion(rs.getDate("fecha_creacion").toLocalDate());
         cuenta.setNombreUsuario(rs.getString("nombre_usuario"));
         return cuenta;
+    }
+
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        String sql = "{call listar_cuentas()}";
+        CallableStatement cmd = conn.prepareCall(sql);
+        return cmd;
+    }
+
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) {
+            throw new IllegalArgumentException("El id no puede ser nulo");
+        }
+
+        String sql = "{call buscar_cuenta_por_id(?)}";
+        CallableStatement cmd = conn.prepareCall(sql);
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Cuenta modelo) throws SQLException {
+        if (modelo == null) {
+            throw new IllegalArgumentException("La cuenta no puede ser nula");
+        }
+
+        String sql = "{call insertar_cuenta(?,?,?,?,?,?)}";
+        CallableStatement cmd = conn.prepareCall(sql);
+        try {
+            setParametrosComunes(cmd, modelo);
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Cuenta modelo) throws SQLException {
+        if (modelo == null) {
+            throw new IllegalArgumentException("La cuenta no puede ser nula");
+        }
+
+        String sql = "{call modificar_cuenta(?,?,?,?,?,?)}";
+        CallableStatement cmd = conn.prepareCall(sql);
+        try {
+            setParametrosComunes(cmd, modelo);
+            cmd.setInt("p_id", modelo.getId());
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) {
+            throw new IllegalArgumentException("El id no puede ser nulo");
+        }
+
+        String sql = "{call eliminar_cuenta(?)}";
+        CallableStatement cmd = conn.prepareCall(sql);
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Cuenta modelo) throws SQLException {
+        modelo.setId(cmd.getInt("p_id"));
     }
 }

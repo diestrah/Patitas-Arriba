@@ -1,6 +1,5 @@
 package patitasarriba.daoimpl;
 
-import conexion.DBManager;
 import patitasarriba.dao.ComandoDAO;
 import patitasarriba.dao.DAO;
 import patitasarriba.modelo.Registro;
@@ -24,27 +23,18 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
 
     protected abstract CallableStatement comandoListar(Connection conn) throws SQLException;
 
-    protected abstract T mapearModelo(ResultSet rs) throws SQLException;
+    protected abstract T mapear(ResultSet rs) throws SQLException;
 
     protected abstract void procesarResultadoInsertar(CallableStatement cmd, T modelo) throws SQLException;
 
-    // Es el mapeo común que tenia en RegistroDAOImpl
-    protected T mapear(ResultSet rs, T modelo) throws SQLException {
-        modelo.setActivo(rs.getBoolean("ACTIVO"));
-        return modelo;
-    }
-
     protected <R> R ejecutarComando(ComandoDAO<R> comando) throws SQLException {
-
-        try (Connection conn = DBManager.getInstance().getConnection()) {
-            return comando.ejecutar(conn);
-        }
+        return ConexionDAO.ejecutarComando(comando);
     }
 
     protected void ejecutarComandoInsertar(Connection conn, T modelo) throws SQLException {
 
         try (CallableStatement cmd = comandoInsertar(conn, modelo)) {
-            cmd.executeUpdate();
+            cmd.execute();
             procesarResultadoInsertar(cmd, modelo);
         }
     }
@@ -66,37 +56,43 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
     @Override
     public List<T> findAll() throws SQLException {
         return ejecutarComando(conn -> {
-            try (CallableStatement cmd = comandoListar(conn); ResultSet rs = cmd.executeQuery()) {
-                List<T> modelos = new ArrayList<>();
+                try (
+                CallableStatement cmd = comandoListar(conn);
+                ResultSet rs = cmd.executeQuery()
+            ) {
 
-                while (rs.next()) {
-                    modelos.add(mapearModelo(rs));
+                    List<T> modelos = new ArrayList<>();
+                    while (rs.next()) {
+                        modelos.add(mapear(rs));
+                    }
+
+                    return modelos;
                 }
-
-                return modelos;
-            }
-        });
+            });
     }
 
     @Override
     public T findById(Integer id) throws SQLException {
         return ejecutarComando(conn -> {
-            try (CallableStatement cmd = comandoBuscar(conn, id); ResultSet rs = cmd.executeQuery()) {
-                if (!rs.next()) {
-                    return null;
-                }
+                try (
+                CallableStatement cmd = comandoBuscar(conn, id);
+                ResultSet rs = cmd.executeQuery()
+            ) {
+                    if (!rs.next()) {
+                        return null;
+                    }
 
-                return mapearModelo(rs);
-            }
-        });
+                    return mapear(rs);
+                }
+            });
     }
 
     @Override
     public void insert(T modelo) throws SQLException {
         ejecutarComando(conn -> {
-            ejecutarComandoInsertar(conn, modelo);
-            return null;
-        });
+                ejecutarComandoInsertar(conn, modelo);
+                return null;
+            });
     }
 
     @Override

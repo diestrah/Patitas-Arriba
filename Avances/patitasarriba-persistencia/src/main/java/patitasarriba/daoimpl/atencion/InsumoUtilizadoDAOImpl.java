@@ -1,7 +1,7 @@
 package patitasarriba.daoimpl.atencion;
 
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
@@ -17,23 +17,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InsumoUtilizadoDAOImpl
-extends RegistroDAOImpl<InsumoUtilizado>
 implements InsumoUtilizadoDAO {
 
     public InsumoUtilizado findById(int id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            try (CallableStatement cmd = conn.prepareCall("{call buscar_insumo_utilizado_por_id(?)}")) {
-                cmd.setInt("p_id", id);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new InsumoUtilizado()) : null;
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call buscar_insumo_utilizado_por_id(?)}")) {
+                    cmd.setInt("p_id", id);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     @Override
@@ -69,26 +63,21 @@ implements InsumoUtilizadoDAO {
 
     @Override
     public List<InsumoUtilizado> findByAtencionId(int idAtencion) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_insumos_por_atencion(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
+        return ejecutarComando(conn -> {
+                String sql = "{call listar_insumos_por_atencion(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
 
-                cmd.setInt("p_id_atencion", idAtencion);
+                    cmd.setInt("p_id_atencion", idAtencion);
 
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<InsumoUtilizado> insumos = new ArrayList<>();
-                    while (rs.next()) {
-                        insumos.add(mapear(rs, new InsumoUtilizado()));
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<InsumoUtilizado> insumos = new ArrayList<>();
+                        while (rs.next()) {
+                            insumos.add(mapear(rs));
+                        }
+                        return insumos;
                     }
-                    return insumos;
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     @Override
@@ -116,9 +105,9 @@ implements InsumoUtilizadoDAO {
 
     }
 
-    @Override
-    protected InsumoUtilizado mapear(ResultSet rs, InsumoUtilizado insumo) throws SQLException {
-        super.mapear(rs, insumo);
+    protected InsumoUtilizado mapear(ResultSet rs) throws SQLException {
+        InsumoUtilizado insumo = new InsumoUtilizado();
+        insumo.setActivo(rs.getBoolean("activo"));
         insumo.setId(rs.getInt("id_insumo_utilizado"));
         insumo.setCantidadUtilizada(rs.getInt("cantidad_utilizada"));
         insumo.setEsCobrable(rs.getBoolean("es_cobrable"));

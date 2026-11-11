@@ -1,8 +1,8 @@
 package patitasarriba.daoimpl.atencion;
 
-import conexion.DBManager;
+import patitasarriba.daoimpl.BaseDAOImpl;
+
 import patitasarriba.dao.atencion.AtencionDAO;
-import patitasarriba.daoimpl.RegistroDAOImpl;
 import patitasarriba.daoimpl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
@@ -13,76 +13,24 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.List;
 
-public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements AtencionDAO {
+public class AtencionDAOImpl extends BaseDAOImpl<Atencion> implements AtencionDAO {
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
     private final InsumoUtilizadoDAO insumoUtilizadoDAO = new InsumoUtilizadoDAOImpl();
     private final AtencionDiagnosticoDAO atencionDiagnosticoDAO = new AtencionDiagnosticoDAOImpl();
 
     @Override
-    public List<Atencion> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_atenciones()}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql);
-                ResultSet rs = cmd.executeQuery()) {
-
-                List<Atencion> atenciones = new ArrayList<>();
-                while (rs.next()) {
-                    atenciones.add(mapear(rs, new Atencion()));
-                }
-                return atenciones;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Atencion findById(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_atencion_por_id(?)}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Atencion()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public Atencion findByDetalleCita(int idDetalleCita) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call buscar_atencion_por_detalle_cita(?)}";
+        return ejecutarComando(conn -> {
+                String sql = "{call buscar_atencion_por_detalle_cita(?)}";
 
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_detalle_cita", idDetalleCita);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Atencion()) : null;
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id_detalle_cita", idDetalleCita);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     // Inserta en la tabla maestra y orquesta sus 2 listas de detalle (insumos
@@ -96,19 +44,7 @@ public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements Atenci
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call insertar_atencion(?, ?, ?, ?, ?, ?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_detalle_cita", atencion.getDetalleCita().getId());
-            cmd.setObject("p_fecha_hora", atencion.getFechaHora());
-            cmd.setString("p_motivo_consulta", atencion.getMotivoConsulta());
-            cmd.setString("p_observaciones", atencion.getObservaciones());
-            cmd.setBoolean("p_activo", atencion.isActivo());
-            cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            cmd.execute();
-            atencion.setId(cmd.getInt("p_id"));
-        }
+        ejecutarComandoInsertar(conn, atencion);
 
         insumoUtilizadoDAO.insertInsumos(atencion.getId(), atencion.getInsumosUtilizados());
         atencionDiagnosticoDAO.insertDiagnosticos(atencion.getId(), atencion.getDiagnosticos());
@@ -122,18 +58,7 @@ public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements Atenci
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call modificar_atencion(?, ?, ?, ?, ?, ?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_detalle_cita", atencion.getDetalleCita().getId());
-            cmd.setObject("p_fecha_hora", atencion.getFechaHora());
-            cmd.setString("p_motivo_consulta", atencion.getMotivoConsulta());
-            cmd.setString("p_observaciones", atencion.getObservaciones());
-            cmd.setBoolean("p_activo", atencion.isActivo());
-            cmd.setInt("p_id", atencion.getId());
-
-            cmd.execute();
-        }
+        ejecutarComandoActualizar(conn, atencion);
 
         // Eliminar detalles anteriores y reinsertar
         atencionDiagnosticoDAO.deleteDiagnosticos(atencion.getId());
@@ -153,16 +78,13 @@ public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements Atenci
         insumoUtilizadoDAO.deleteInsumos(id);
         atencionDiagnosticoDAO.deleteDiagnosticos(id);
 
-        String sql = "{call eliminar_atencion(?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", id);
-            cmd.execute();
-        }
+        ejecutarComandoEliminar(conn, id);
     }
 
     @Override
-    protected Atencion mapear(ResultSet rs, Atencion atencion) throws SQLException {
-        super.mapear(rs, atencion);
+    protected Atencion mapear(ResultSet rs) throws SQLException {
+        Atencion atencion = new Atencion();
+        atencion.setActivo(rs.getBoolean("activo"));
         atencion.setId(rs.getInt("id_atencion"));
         atencion.setFechaHora(rs.getTimestamp("fecha_hora").toLocalDateTime());
         atencion.setMotivoConsulta(rs.getString("motivo_consulta"));
@@ -175,5 +97,80 @@ public class AtencionDAOImpl extends RegistroDAOImpl<Atencion> implements Atenci
         atencion.setDetalleCita(detalle);
 
         return atencion;
+    }
+
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        CallableStatement cmd = conn.prepareCall("{call listar_atenciones()}");
+        return cmd;
+    }
+
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call buscar_atencion_por_id(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Atencion modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call insertar_atencion(?, ?, ?, ?, ?, ?)}");
+        try {
+            cmd.setInt("p_id_detalle_cita", modelo.getDetalleCita().getId());
+            cmd.setObject("p_fecha_hora", modelo.getFechaHora());
+            cmd.setString("p_motivo_consulta", modelo.getMotivoConsulta());
+            cmd.setString("p_observaciones", modelo.getObservaciones());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Atencion modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call modificar_atencion(?, ?, ?, ?, ?, ?)}");
+        try {
+            cmd.setInt("p_id_detalle_cita", modelo.getDetalleCita().getId());
+            cmd.setObject("p_fecha_hora", modelo.getFechaHora());
+            cmd.setString("p_motivo_consulta", modelo.getMotivoConsulta());
+            cmd.setString("p_observaciones", modelo.getObservaciones());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.setInt("p_id", modelo.getId());
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call eliminar_atencion(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Atencion modelo) throws SQLException {
+        int id = cmd.getInt("p_id");
+        if (cmd.wasNull() || id <= 0) throw new SQLException("No se obtuvo un ID válido para Atencion.");
+        modelo.setId(id);
     }
 }

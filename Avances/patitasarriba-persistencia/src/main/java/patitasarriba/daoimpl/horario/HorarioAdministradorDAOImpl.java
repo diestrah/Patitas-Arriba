@@ -1,6 +1,7 @@
 package patitasarriba.daoimpl.horario;
 
-import conexion.DBManager;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.horario.Horario;
 import java.sql.*;
@@ -26,23 +27,18 @@ public class HorarioAdministradorDAOImpl implements HorarioAdministradorDAO {
 
     @Override
     public List<Horario> listarPorAdministrador(int idAdministrador) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            try (CallableStatement cmd = conn.prepareCall("{call listar_horarios_por_administrador(?)}")) {
-                cmd.setInt("p_id_administrador", idAdministrador);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<Horario> horarios = new ArrayList<>();
-                    while (rs.next()) {
-                        horarios.add(new HorarioDAOImpl().mapear(rs, new Horario()));
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_horarios_por_administrador(?)}")) {
+                    cmd.setInt("p_id_administrador", idAdministrador);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<Horario> horarios = new ArrayList<>();
+                        while (rs.next()) {
+                            horarios.add(new HorarioDAOImpl().mapear(rs));
+                        }
+                        return horarios;
                     }
-                    return horarios;
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     @Override

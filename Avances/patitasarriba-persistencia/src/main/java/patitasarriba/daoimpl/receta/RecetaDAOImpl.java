@@ -1,7 +1,7 @@
 package patitasarriba.daoimpl.receta;
 
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import patitasarriba.daoimpl.BaseDAOImpl;
+
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.daoimpl.atencion.AtencionDAOImpl;
 import patitasarriba.modelo.atencion.Atencion;
@@ -10,55 +10,9 @@ import patitasarriba.modelo.receta.Receta;
 import patitasarriba.dao.receta.RecetaDAO;
 
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.List;
 
-public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO {
-    @Override
-    public List<Receta> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_recetas()}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql);
-                ResultSet rs = cmd.executeQuery()) {
-
-                List<Receta> recetas = new ArrayList<>();
-                while (rs.next()) {
-                    recetas.add(mapear(rs, new Receta()));
-                }
-                return recetas;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Receta findById(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_receta_por_id(?)}";
-
-            try (CallableStatement cmd = conn.prepareCall(sql)){
-
-                cmd.setInt("p_id", id);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Receta()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
+public class RecetaDAOImpl extends BaseDAOImpl<Receta> implements RecetaDAO {
 
     @Override
     public void insert(Receta receta) throws SQLException {
@@ -71,20 +25,9 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
             throw new IllegalArgumentException("La receta debe tener una atención médica");
         }
 
-        String sql = "{call insertar_receta(?,?,?,?,?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id_atencion", receta.getAtencion().getId());
-            cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
-            cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setBoolean("p_activo", receta.isActivo());
-            cmd.registerOutParameter("p_id", Types.INTEGER);
-            cmd.execute();
-            receta.setId(cmd.getInt("p_id"));
-
-            DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
-            detalleRecetaDAO.insertarDetalles(receta.getId(), receta.getDetalles());
-        }
+        ejecutarComandoInsertar(conn, receta);
+        DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
+        detalleRecetaDAO.insertarDetalles(receta.getId(), receta.getDetalles());
     }
 
     @Override
@@ -99,21 +42,10 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
             throw new IllegalArgumentException("La receta debe tener una atención médica");
         }
 
-        String sql = "{call modificar_receta(?,?,?,?,?)}";
-
-        try (CallableStatement cmd = conn.prepareCall(sql)){
-            cmd.setInt("p_id_atencion", receta.getAtencion().getId());
-            cmd.setDate("p_fecha_emision", Date.valueOf(receta.getFechaEmision()));
-            cmd.setString("p_indicaciones_generales", receta.getIndicacionesGenerales());
-            cmd.setBoolean("p_activo", receta.isActivo());
-            cmd.setInt("p_id", receta.getId());
-
-            cmd.execute();
-
-            DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
-            detalleRecetaDAO.eliminarDetalles(receta.getId());
-            detalleRecetaDAO.insertarDetalles(receta.getId(), receta.getDetalles());
-        }
+        ejecutarComandoActualizar(conn, receta);
+        DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
+        detalleRecetaDAO.eliminarDetalles(receta.getId());
+        detalleRecetaDAO.insertarDetalles(receta.getId(), receta.getDetalles());
     }
 
     @Override
@@ -124,19 +56,15 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
 
         Connection conn = TransactionsManager.getConnection();
 
-        String sql = "{call eliminar_receta(?)}";
-
         DetalleRecetaDAO detalleRecetaDAO = new DetalleRecetaDAOImpl();
         detalleRecetaDAO.eliminarDetalles(id);
 
-        try (CallableStatement cmd = conn.prepareCall(sql)){
-            cmd.setInt("p_id", id);
-            cmd.execute();
-        }
+        ejecutarComandoEliminar(conn, id);
     }
 
-    protected Receta mapear(ResultSet rs, Receta receta) throws SQLException {
-        super.mapear(rs, receta);
+    protected Receta mapear(ResultSet rs) throws SQLException {
+        Receta receta = new Receta();
+        receta.setActivo(rs.getBoolean("activo"));
         mapearAtencion(rs, receta);
         receta.setId(rs.getInt("id_receta"));
         receta.setFechaEmision(rs.getDate("fecha_emision").toLocalDate());
@@ -158,5 +86,76 @@ public class RecetaDAOImpl extends RegistroDAOImpl<Receta> implements RecetaDAO 
         receta.setDetalles(detalles);
     }
 
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        CallableStatement cmd = conn.prepareCall("{call listar_recetas()}");
+        return cmd;
+    }
 
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call buscar_receta_por_id(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Receta modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call insertar_receta(?,?,?,?,?)}");
+        try {
+            cmd.setInt("p_id_atencion", modelo.getAtencion().getId());
+            cmd.setDate("p_fecha_emision", Date.valueOf(modelo.getFechaEmision()));
+            cmd.setString("p_indicaciones_generales", modelo.getIndicacionesGenerales());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Receta modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call modificar_receta(?,?,?,?,?)}");
+        try {
+            cmd.setInt("p_id_atencion", modelo.getAtencion().getId());
+            cmd.setDate("p_fecha_emision", Date.valueOf(modelo.getFechaEmision()));
+            cmd.setString("p_indicaciones_generales", modelo.getIndicacionesGenerales());
+            cmd.setBoolean("p_activo", modelo.isActivo());
+            cmd.setInt("p_id", modelo.getId());
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call eliminar_receta(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Receta modelo) throws SQLException {
+        int id = cmd.getInt("p_id");
+        if (cmd.wasNull() || id <= 0) throw new SQLException("No se obtuvo un ID válido para Receta.");
+        modelo.setId(id);
+    }
 }

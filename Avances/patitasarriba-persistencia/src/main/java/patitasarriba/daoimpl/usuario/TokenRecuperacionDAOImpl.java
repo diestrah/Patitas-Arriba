@@ -1,12 +1,11 @@
 package patitasarriba.daoimpl.usuario;
 
-import conexion.DBManager;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.dao.usuario.TokenRecuperacionDAO;
-import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.usuario.TokenRecuperacion;
 
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -16,83 +15,66 @@ public class TokenRecuperacionDAOImpl implements TokenRecuperacionDAO {
 
     @Override
     public void insert(TokenRecuperacion token) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (token == null) {
-                throw new IllegalArgumentException("El token no puede ser nulo");
-            }
+        ejecutarComando(conn -> {
+                if (token == null) {
+                    throw new IllegalArgumentException("El token no puede ser nulo");
+                }
 
-            String sql = "{call insertar_token_recuperacion(?,?,?,?,?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_cuenta", token.getIdCuenta());
-                cmd.setString("p_token_hash", token.getTokenHash());
-                cmd.setTimestamp("p_fecha_creacion", Timestamp.valueOf(token.getFechaCreacion()));
-                cmd.setTimestamp("p_fecha_vencimiento", Timestamp.valueOf(token.getFechaVencimiento()));
-                cmd.registerOutParameter("p_id", Types.INTEGER);
+                String sql = "{call insertar_token_recuperacion(?,?,?,?,?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id_cuenta", token.getIdCuenta());
+                    cmd.setString("p_token_hash", token.getTokenHash());
+                    cmd.setTimestamp("p_fecha_creacion", Timestamp.valueOf(token.getFechaCreacion()));
+                    cmd.setTimestamp("p_fecha_vencimiento", Timestamp.valueOf(token.getFechaVencimiento()));
+                    cmd.registerOutParameter("p_id", Types.INTEGER);
 
-                cmd.execute();
-                token.setId(cmd.getInt("p_id"));
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+                    cmd.execute();
+                    token.setId(cmd.getInt("p_id"));
+                }
+                return null;
+            });
     }
 
     @Override
     public TokenRecuperacion findByTokenHash(String tokenHash) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (tokenHash == null || tokenHash.isBlank()) {
-                throw new IllegalArgumentException("El token no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_token_recuperacion_por_token(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_token_hash", tokenHash);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs) : null;
+        return ejecutarComando(conn -> {
+                if (tokenHash == null || tokenHash.isBlank()) {
+                    throw new IllegalArgumentException("El token no puede ser nulo o vacío");
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+
+                String sql = "{call buscar_token_recuperacion_por_token(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_token_hash", tokenHash);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
     }
 
     @Override
     public void marcarUsado(int id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call marcar_token_recuperacion_usado(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-                cmd.execute();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+        ejecutarComando(conn -> {
+                String sql = "{call marcar_token_recuperacion_usado(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id", id);
+                    cmd.execute();
+                }
+                return null;
+            });
     }
 
     @Override
     public void invalidarDeCuenta(int idCuenta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call invalidar_tokens_recuperacion_de_cuenta(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_cuenta", idCuenta);
-                cmd.execute();
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+        ejecutarComando(conn -> {
+                String sql = "{call invalidar_tokens_recuperacion_de_cuenta(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id_cuenta", idCuenta);
+                    cmd.execute();
+                }
+                return null;
+            });
     }
 
     private TokenRecuperacion mapear(ResultSet rs) throws SQLException {

@@ -1,105 +1,50 @@
 package patitasarriba.daoimpl.usuario;
 
-import conexion.DBManager;
+import patitasarriba.daoimpl.BaseDAOImpl;
+
 import patitasarriba.daoimpl.horario.HorarioAdministradorDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.dao.usuario.AdministradorDAO;
-import patitasarriba.daoimpl.RegistroDAOImpl;
 import patitasarriba.modelo.usuario.Administrador;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
 
-public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> implements AdministradorDAO {
-
-    @Override
-    public List<Administrador> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_administradores()}";
-            try (CallableStatement cmd = conn.prepareCall(sql);
-                ResultSet rs = cmd.executeQuery()) {
-                List<Administrador> administradores = new ArrayList<>();
-                while (rs.next()) {
-                    administradores.add(mapear(rs, new Administrador()));
-                }
-                return administradores;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Administrador findById(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_administrador_por_id(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Administrador()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
+public class AdministradorDAOImpl extends BaseDAOImpl<Administrador> implements AdministradorDAO {
 
     @Override
     public Administrador findByDni(String dni) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (dni == null || dni.isBlank()) {
-                throw new IllegalArgumentException("El dni no puede ser nulo o vacío");
-            }
-
-            String sql = "{call buscar_administrador_por_dni(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setString("p_dni", dni);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Administrador()) : null;
+        return ejecutarComando(conn -> {
+                if (dni == null || dni.isBlank()) {
+                    throw new IllegalArgumentException("El dni no puede ser nulo o vacío");
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+
+                String sql = "{call buscar_administrador_por_dni(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_dni", dni);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
     }
 
     @Override
     public Administrador findByCuenta(Integer idCuenta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (idCuenta == null) {
-                throw new IllegalArgumentException("El id de la cuenta no puede ser nulo");
-            }
-
-            String sql = "{call buscar_administrador_por_cuenta(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_cuenta", idCuenta);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Administrador()) : null;
+        return ejecutarComando(conn -> {
+                if (idCuenta == null) {
+                    throw new IllegalArgumentException("El id de la cuenta no puede ser nulo");
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+
+                String sql = "{call buscar_administrador_por_cuenta(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id_cuenta", idCuenta);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
     }
 
     @Override
@@ -112,15 +57,8 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
                 throw new IllegalArgumentException("El administrador no puede ser nulo");
             }
 
-            String sql = "{call insertar_administrador(?,?,?,?,?,?,?,?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                setParametrosComunes(cmd, administrador);
-                cmd.registerOutParameter("p_id", Types.INTEGER);
-
-                cmd.execute();
-                administrador.setId(cmd.getInt("p_id"));
-                new HorarioAdministradorDAOImpl().insertarPorAdministrador(TransactionsManager.getConnection(), administrador.getId(), administrador.getHorarios());
-            }
+            ejecutarComandoInsertar(conn, administrador);
+            new HorarioAdministradorDAOImpl().insertarPorAdministrador(TransactionsManager.getConnection(), administrador.getId(), administrador.getHorarios());
             if (propia) TransactionsManager.commit();
         } catch (SQLException | RuntimeException ex) {
             if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
@@ -138,13 +76,7 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
                 throw new IllegalArgumentException("El administrador no puede ser nulo");
             }
 
-            String sql = "{call modificar_administrador(?,?,?,?,?,?,?,?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                setParametrosComunes(cmd, administrador);
-                cmd.setInt("p_id", administrador.getId());
-
-                cmd.execute();
-            }
+            ejecutarComandoActualizar(conn, administrador);
             new HorarioAdministradorDAOImpl().eliminarPorAdministrador(TransactionsManager.getConnection(), administrador.getId());
             new HorarioAdministradorDAOImpl().insertarPorAdministrador(TransactionsManager.getConnection(), administrador.getId(), administrador.getHorarios());
             if (propia) TransactionsManager.commit();
@@ -176,12 +108,7 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
             }
 
             new HorarioAdministradorDAOImpl().eliminarPorAdministrador(TransactionsManager.getConnection(), id);
-            String sql = "{call eliminar_administrador(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                cmd.execute();
-            }
+            ejecutarComandoEliminar(conn, id);
             if (propia) TransactionsManager.commit();
         } catch (SQLException | RuntimeException ex) {
             if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
@@ -190,8 +117,9 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
     }
 
     @Override
-    protected Administrador mapear(ResultSet rs, Administrador administrador) throws SQLException {
-        super.mapear(rs, administrador);
+    protected Administrador mapear(ResultSet rs) throws SQLException {
+        Administrador administrador = new Administrador();
+        administrador.setActivo(rs.getBoolean("activo"));
         administrador.setId(rs.getInt("id_administrador"));
         administrador.setDni(rs.getString("dni"));
         administrador.setNombres(rs.getString("nombres"));
@@ -205,5 +133,72 @@ public class AdministradorDAOImpl extends RegistroDAOImpl<Administrador> impleme
         administrador.setHorarios(new HorarioAdministradorDAOImpl().listarPorAdministrador(administrador.getId()));
 
         return administrador;
+    }
+
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        CallableStatement cmd = conn.prepareCall("{call listar_administradores()}");
+        return cmd;
+    }
+
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call buscar_administrador_por_id(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Administrador modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call insertar_administrador(?,?,?,?,?,?,?,?)}");
+        try {
+            setParametrosComunes(cmd, modelo);
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Administrador modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call modificar_administrador(?,?,?,?,?,?,?,?)}");
+        try {
+            setParametrosComunes(cmd, modelo);
+            cmd.setInt("p_id", modelo.getId());
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call eliminar_administrador(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Administrador modelo) throws SQLException {
+        int id = cmd.getInt("p_id");
+        if (cmd.wasNull() || id <= 0) throw new SQLException("No se obtuvo un ID válido para Administrador.");
+        modelo.setId(id);
     }
 }

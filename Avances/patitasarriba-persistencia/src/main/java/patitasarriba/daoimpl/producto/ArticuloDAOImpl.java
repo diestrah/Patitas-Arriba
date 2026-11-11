@@ -1,6 +1,5 @@
 package patitasarriba.daoimpl.producto;
 
-import conexion.DBManager;
 import patitasarriba.dao.producto.ArticuloDAO;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.Categoria;
@@ -14,49 +13,6 @@ import java.util.List;
 public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements ArticuloDAO {
 
     @Override
-    public List<Articulo> findAll() throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_articulo()}";
-            try (CallableStatement cmd = conn.prepareCall(sql);
-                ResultSet rs = cmd.executeQuery()) {
-                List<Articulo> articulos = new ArrayList<>();
-                while (rs.next()) {
-                    articulos.add(mapear(rs, new Articulo()));
-                }
-                return articulos;
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
-    public Articulo findById(Integer id) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            if (id == null) {
-                throw new IllegalArgumentException("El id no puede ser nulo");
-            }
-
-            String sql = "{call buscar_articulo_por_id(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                try (ResultSet rs = cmd.executeQuery()) {
-                    return rs.next() ? mapear(rs, new Articulo()) : null;
-                }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
-    }
-
-    @Override
     public void insert(Articulo articulo) throws SQLException {
         if (articulo == null) {
             throw new IllegalArgumentException("El articulo no puede ser nulo");
@@ -65,13 +21,8 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
         boolean propia = !TransactionsManager.activa();
         if (propia) TransactionsManager.iniciar();
         Connection conn = TransactionsManager.getConnection();
-        String sql = "{call insertar_articulo(?,?,?,?,?,?,?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            setParametrosComunes(cmd, articulo);
-            cmd.registerOutParameter("p_id", Types.INTEGER);
-
-            cmd.execute();
-            articulo.setId(cmd.getInt("p_id"));
+        try {
+            ejecutarComandoInsertar(conn, articulo);
             guardarCategorias(conn, articulo);
             if (propia) TransactionsManager.commit();
         } catch (SQLException | RuntimeException ex) {
@@ -102,13 +53,7 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
             throw new IllegalArgumentException("El articulo no puede ser nulo");
         }
 
-        String sql = "{call modificar_articulo(?,?,?,?,?,?,?)}";
-        try (CallableStatement cmd = conn.prepareCall(sql)) {
-            cmd.setInt("p_id", articulo.getId());
-            setParametrosComunes(cmd, articulo);
-
-            cmd.execute();
-        }
+        ejecutarComandoActualizar(conn, articulo);
         guardarCategorias(conn, articulo);
     }
 
@@ -149,12 +94,7 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
                 cmd.execute();
             }
 
-            String sql = "{call eliminar_articulo(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id", id);
-
-                cmd.execute();
-            }
+            ejecutarComandoEliminar(conn, id);
             if (propia) TransactionsManager.commit();
         } catch (SQLException | RuntimeException ex) {
             if (propia && TransactionsManager.activa()) TransactionsManager.rollback();
@@ -164,29 +104,25 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
 
     @Override
     public List<Articulo> findByCategoriaId(int idCategoria) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_articulos_por_categoria(?)}";
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
-                cmd.setInt("p_id_categoria", idCategoria);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<Articulo> articulos = new ArrayList<>();
-                    while (rs.next()) {
-                        articulos.add(mapear(rs, new Articulo()));
+        return ejecutarComando(conn -> {
+                String sql = "{call listar_articulos_por_categoria(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setInt("p_id_categoria", idCategoria);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<Articulo> articulos = new ArrayList<>();
+                        while (rs.next()) {
+                            articulos.add(mapear(rs));
+                        }
+                        return articulos;
                     }
-                    return articulos;
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
     @Override
-    protected Articulo mapear(ResultSet rs, Articulo articulo) throws SQLException {
-        super.mapear(rs, articulo);
+    protected Articulo mapear(ResultSet rs) throws SQLException {
+        Articulo articulo = new Articulo();
+        mapearProducto(rs, articulo);
         articulo.setId(rs.getInt("id_articulo"));
         articulo.setStockActual(rs.getInt("stock_actual"));
         articulo.setStockMinimo(rs.getInt("stock_minimo"));
@@ -195,5 +131,72 @@ public class ArticuloDAOImpl extends ProductoDAOImpl<Articulo> implements Articu
         articulo.setCategorias(new CategoriaDAOImpl().findByArticuloId(articulo.getId()));
 
         return articulo;
+    }
+
+    @Override
+    protected CallableStatement comandoListar(Connection conn) throws SQLException {
+        CallableStatement cmd = conn.prepareCall("{call listar_articulo()}");
+        return cmd;
+    }
+
+    @Override
+    protected CallableStatement comandoBuscar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call buscar_articulo_por_id(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoInsertar(Connection conn, Articulo modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call insertar_articulo(?,?,?,?,?,?,?)}");
+        try {
+            setParametrosComunes(cmd, modelo);
+            cmd.registerOutParameter("p_id", Types.INTEGER);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoActualizar(Connection conn, Articulo modelo) throws SQLException {
+        if (modelo == null) throw new IllegalArgumentException("El modelo no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call modificar_articulo(?,?,?,?,?,?,?)}");
+        try {
+            cmd.setInt("p_id", modelo.getId());
+            setParametrosComunes(cmd, modelo);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected CallableStatement comandoEliminar(Connection conn, Integer id) throws SQLException {
+        if (id == null) throw new IllegalArgumentException("El id no puede ser nulo");
+        CallableStatement cmd = conn.prepareCall("{call eliminar_articulo(?)}");
+        try {
+            cmd.setInt("p_id", id);
+            return cmd;
+        } catch (SQLException | RuntimeException ex) {
+            try { cmd.close(); } catch (SQLException cierre) { ex.addSuppressed(cierre); }
+            throw ex;
+        }
+    }
+
+    @Override
+    protected void procesarResultadoInsertar(CallableStatement cmd, Articulo modelo) throws SQLException {
+        int id = cmd.getInt("p_id");
+        if (cmd.wasNull() || id <= 0) throw new SQLException("No se obtuvo un ID válido para Articulo.");
+        modelo.setId(id);
     }
 }

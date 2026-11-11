@@ -1,7 +1,7 @@
 package patitasarriba.daoimpl.receta;
 
-import conexion.DBManager;
-import patitasarriba.daoimpl.RegistroDAOImpl;
+import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
+
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.modelo.receta.DetalleReceta;
@@ -10,7 +10,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DetalleRecetaDAOImpl extends RegistroDAOImpl<DetalleReceta> implements DetalleRecetaDAO {
+public class DetalleRecetaDAOImpl implements DetalleRecetaDAO {
     @Override
     public void insertarDetalles(int idReceta, List<DetalleReceta> detallesReceta) throws SQLException {
         Connection conn = TransactionsManager.getConnection();
@@ -49,30 +49,26 @@ public class DetalleRecetaDAOImpl extends RegistroDAOImpl<DetalleReceta> impleme
 
     @Override
     public List<DetalleReceta> buscarPorIdReceta(int idReceta) throws SQLException {
-        boolean cerrarConexion = !TransactionsManager.activa();
-        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
-                : TransactionsManager.getConnection();
-        try {
-            String sql = "{call listar_detalles_por_receta(?)}";
+        return ejecutarComando(conn -> {
+                String sql = "{call listar_detalles_por_receta(?)}";
 
-            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
 
-                cmd.setInt("p_id_receta", idReceta);
-                try (ResultSet rs = cmd.executeQuery()) {
-                    List<DetalleReceta> detalles = new ArrayList<>();
-                    while (rs.next()) {
-                        detalles.add(mapear(rs, new DetalleReceta()));
+                    cmd.setInt("p_id_receta", idReceta);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<DetalleReceta> detalles = new ArrayList<>();
+                        while (rs.next()) {
+                            detalles.add(mapear(rs));
+                        }
+                        return detalles;
                     }
-                    return detalles;
                 }
-            }
-        } finally {
-            if (cerrarConexion) conn.close();
-        }
+            });
     }
 
-    protected DetalleReceta mapear(ResultSet rs, DetalleReceta detalle) throws SQLException {
-        super.mapear(rs, detalle);
+    protected DetalleReceta mapear(ResultSet rs) throws SQLException {
+        DetalleReceta detalle = new DetalleReceta();
+        detalle.setActivo(rs.getBoolean("activo"));
         detalle.setId(rs.getInt("id_detalle_receta"));
         detalle.setDosis(rs.getString("dosis"));
         detalle.setFrecuencia(rs.getString("frecuencia"));
