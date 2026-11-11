@@ -11,7 +11,15 @@ public class AccesoRestService : IAccesoService {
     }
 
     public Task<string> SolicitarRegistro(RegistroViewModel registro) =>
-        Enviar("registro", RestMapper.ToDto(registro));
+        Enviar("registro", new RegistroDTO {
+            Dni = registro.Dni.Trim(),
+            Nombres = registro.Nombres.Trim(),
+            ApellidoPaterno = registro.ApellidoPaterno.Trim(),
+            ApellidoMaterno = registro.ApellidoMaterno.Trim(),
+            Telefono = registro.Telefono.Trim(),
+            Correo = registro.Correo.Trim(),
+            Password = registro.Password
+        });
 
     public Task<string> ConfirmarRegistro(string token) =>
         Enviar("registro/confirmar", new { token });
