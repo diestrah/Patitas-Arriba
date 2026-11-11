@@ -1,6 +1,8 @@
 @page "/articulos"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IArticuloService ArticuloService;
+@inject ICategoriaService CategoriaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -38,8 +40,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Articulos.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando artículos...</p>
+}
+else if (!Articulos.Any()) {
     <div class="alert alert-info">No se encontraron artículos.</div>
 }
 else {
@@ -135,6 +143,8 @@ else {
     private ArticuloViewModel? ArticuloAEliminar { get; set; }
     private ArticuloViewModel? ArticuloAActualizar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private string Filtro { get; set; } = string.Empty;
     private string CategoriaFiltro { get; set; } = string.Empty;
     private bool SoloStockBajo { get; set; }
@@ -148,10 +158,21 @@ else {
     private string CategoriaAplicada { get; set; } = string.Empty;
     private bool SoloBajoAplicado { get; set; }
 
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Articulos();
-        Categorias = DatosEjemplo.Categorias();
-        Mostrar();
+    // GET /articulos y GET /categorias (para el filtro). Solo en la pasada interactiva:
+    // así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<ArticuloViewModel>> articulos = ArticuloService.FindAll();
+            Task<List<CategoriaViewModel>> categorias = CategoriaService.FindAll();
+            Todos = await articulos;
+            Categorias = await categorias;
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void Mostrar() {
@@ -231,16 +252,26 @@ else {
         return $"El stock pasará de {ArticuloAActualizar.StockActual} a {StockMostrado(ArticuloAActualizar)} unidades.";
     }
 
-    // Sin backend se cambia en la lista. El backend no tiene un endpoint solo para el stock:
-    // al enlazar se envía PUT /articulos/{id} con el artículo completo y su nuevo stock (RN-AR-04).
-    private void ActualizarStock() {
+    // El backend no tiene un endpoint solo para el stock: se envía PUT /articulos/{id} con el artículo
+    // completo y su nuevo stock (RN-AR-04). Si falla, el artículo conserva su stock anterior.
+    private async Task ActualizarStock() {
         if (ArticuloAActualizar == null) {
             return;
         }
-        ArticuloAActualizar.StockActual = StockMostrado(ArticuloAActualizar);
-        StockPendiente.Remove(ArticuloAActualizar.Id);
-        MensajeExito = $"El stock de “{ArticuloAActualizar.Nombre}” quedó en {ArticuloAActualizar.StockActual}.";
+        ArticuloViewModel articulo = ArticuloAActualizar;
         ArticuloAActualizar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        int anterior = articulo.StockActual;
+        articulo.StockActual = StockMostrado(articulo);
+        try {
+            await ArticuloService.Update(articulo);
+            StockPendiente.Remove(articulo.Id);
+            MensajeExito = $"El stock de “{articulo.Nombre}” quedó en {articulo.StockActual}.";
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            articulo.StockActual = anterior;
+            MensajeError = ErrorServicio.Desde(ex);
+        }
         Mostrar();
     }
 
@@ -265,16 +296,24 @@ else {
         return texto;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /articulos/{id};
-    // si el backend lo rechaza (RN-AR-05), se mostrará su mensaje.
-    private void EliminarArticulo() {
+    // DELETE /articulos/{id}; si el backend lo rechaza (RN-AR-05: se usó en atenciones, recetas o boletas)
+    // se muestra su mensaje
+    private async Task EliminarArticulo() {
         if (ArticuloAEliminar == null) {
             return;
         }
-        Todos.Remove(ArticuloAEliminar);
-        StockPendiente.Remove(ArticuloAEliminar.Id);
-        MensajeExito = $"Se eliminó el artículo “{ArticuloAEliminar.Nombre}”.";
+        ArticuloViewModel articulo = ArticuloAEliminar;
         ArticuloAEliminar = null;
-        Mostrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await ArticuloService.Delete(articulo.Id);
+            Todos.Remove(articulo);
+            StockPendiente.Remove(articulo.Id);
+            MensajeExito = $"Se eliminó el artículo “{articulo.Nombre}”.";
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

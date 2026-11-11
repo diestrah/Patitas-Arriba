@@ -3,7 +3,7 @@ using Microsoft.Playwright.NUnit;
 
 namespace PatitasArriba.Tests;
 
-// Pruebas de interfaz (Lab 9): requieren que el front este corriendo en BaseUrl
+// Pruebas de interfaz (Lab 9): requieren que el front este corriendo en BaseUrl y el backend desplegado
 //   cd PatitasArriba.Web ; dotnet run --launch-profile http
 // La sesion del front es por circuito Blazor: despues de iniciar sesion hay que navegar con el menu,
 // no con GotoAsync (una URL directa abre un circuito nuevo y pierde el rol).
@@ -12,11 +12,13 @@ public class PruebasInterfaz : PageTest
 {
     private const string BaseUrl = "http://localhost:5118";
 
-    // Cuenta de los datos de ejemplo para cada rol: el rol ya no se elige, se deduce de la cuenta
+    // Cuentas de Avances/sql/datos-prueba.sql (el login es real: requiere el backend en GlassFish con esos datos).
+    // El rol no se elige, se deduce de la cuenta
+    private const string ClavePrueba = "Patitas123";
     private static string UsuarioDelRol(string rol) => rol switch
     {
-        "ADMINISTRADOR" => "diego.lopez@patasarriba.pe",
-        "VETERINARIO" => "carla.vega@patasarriba.pe",
+        "ADMINISTRADOR" => "rosa.admin@patitas.pe",
+        "VETERINARIO" => "dra.lucia@patitas.pe",
         _ => "ana.torres@gmail.com"
     };
 
@@ -30,7 +32,7 @@ public class PruebasInterfaz : PageTest
             await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             await Page.Locator("#correo").FillAsync(UsuarioDelRol(rol));
-            await Page.Locator("#clave").FillAsync("clave123");
+            await Page.Locator("#clave").FillAsync(ClavePrueba);
             await Page.GetByRole(AriaRole.Button, new() { Name = "Ingresar", Exact = true }).ClickAsync();
 
             try

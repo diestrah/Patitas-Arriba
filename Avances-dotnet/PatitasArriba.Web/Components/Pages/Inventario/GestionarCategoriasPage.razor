@@ -1,12 +1,20 @@
 @page "/categorias/nuevo"
 @page "/categorias/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject ICategoriaService CategoriaService;
 
 <PageTitle>Categorías</PageTitle>
 
 <div class="col-md-7">
     <h3 class="mb-3">@(Id == null ? "Nueva categoría" : "Editar categoría")</h3>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    @if (Cargando) {
+        <p class="text-muted">Cargando categoría...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -22,10 +30,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="4" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="5" class="btn btn-outline-primary" href="categorias">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -33,22 +42,49 @@
     public int? Id { get; set; }
 
     private CategoriaViewModel ViewModel { get; set; } = new();
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; }
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
+    // Al editar: GET /categorias/{Id}; si no existe se vuelve al listado
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
         if (Id == null) {
             ViewModel = new CategoriaViewModel();
             return;
         }
-        CategoriaViewModel? categoria = DatosEjemplo.Categorias().FirstOrDefault(c => c.Id == Id);
-        if (categoria == null) {
-            Nav.NavigateTo("/categorias");
-            return;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            CategoriaViewModel? categoria = await CategoriaService.FindById(Id.Value);
+            if (categoria == null) {
+                Nav.NavigateTo("/categorias");
+                return;
+            }
+            ViewModel = categoria;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        ViewModel = categoria;
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /categorias o PUT /categorias/{Id}
-    private void Guardar() {
-        Nav.NavigateTo("/categorias");
+    // POST /categorias o PUT /categorias/{Id}; si el backend rechaza los datos se muestra su mensaje
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await CategoriaService.Insert(ViewModel);
+            } else {
+                await CategoriaService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/categorias");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

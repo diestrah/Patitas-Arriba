@@ -7,11 +7,7 @@ public abstract class RegistroRestService<TModel, TDto> : IRegistroService<TMode
     protected string BaseUrl { get; }
     protected string RecursoUrl { get; }
     protected RegistroRestService(IConfiguration configuration, string recurso) {
-        BaseUrl = configuration["RestApiBaseUrl"]?.TrimEnd('/')
-            ?? throw new InvalidOperationException("Falta configurar RestApiBaseUrl.");
-        if (!Uri.TryCreate(BaseUrl, UriKind.Absolute, out var uri)
-            || (uri.Scheme != "http" && uri.Scheme != "https"))
-            throw new InvalidOperationException("RestApiBaseUrl debe ser una URL HTTP o HTTPS absoluta.");
+        BaseUrl = RestConfig.BaseUrl(configuration);
         RecursoUrl = $"{BaseUrl}/{recurso}";
     }
     protected abstract TModel ToViewModel(TDto dto);

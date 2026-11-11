@@ -1,5 +1,6 @@
 @page "/servicios"
 @inject NavigationManager Nav;
+@inject IServicioService ServicioService;
 @inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -28,8 +29,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Servicios.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando servicios...</p>
+}
+else if (!Servicios.Any()) {
     <div class="alert alert-info">No se encontraron servicios.</div>
 }
 else {
@@ -66,15 +73,25 @@ else {
     private IQueryable<ServicioViewModel> Servicios { get; set; } = Enumerable.Empty<ServicioViewModel>().AsQueryable();
     private ServicioViewModel? ServicioAEliminar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 7 };
+    private bool Cargando { get; set; } = true;
 
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Servicios();
-        Filtrar();
+    // GET /servicios. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todos = await ServicioService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
-    // Al enlazar: GET /servicios?nombre=...
+    // Se filtra la lista ya cargada: así se encuentran también coincidencias parciales del nombre
     private void Filtrar() {
         string texto = Filtro.Trim();
         Servicios = Todos
@@ -103,15 +120,22 @@ else {
         ServicioAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /servicios/{id};
-    // si el backend lo rechaza (RN-SE-05), se mostrará su mensaje.
-    private void EliminarServicio() {
+    // DELETE /servicios/{id}; si el backend lo rechaza (RN-SE-05: está en alguna cita) se muestra su mensaje
+    private async Task EliminarServicio() {
         if (ServicioAEliminar == null) {
             return;
         }
-        Todos.Remove(ServicioAEliminar);
-        MensajeExito = $"Se eliminó el servicio “{ServicioAEliminar.Nombre}”.";
+        ServicioViewModel servicio = ServicioAEliminar;
         ServicioAEliminar = null;
-        Filtrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await ServicioService.Delete(servicio.Id);
+            Todos.Remove(servicio);
+            MensajeExito = $"Se eliminó el servicio “{servicio.Nombre}”.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

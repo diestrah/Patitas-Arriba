@@ -1,5 +1,6 @@
 @page "/olvide-contrasena"
 @layout LayoutVacio
+@inject IAccesoService AccesoService
 
 <PageTitle>Olvidé mi contraseña · Patitas Arriba</PageTitle>
 
@@ -10,26 +11,44 @@
             Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.
             Es válido por 30 minutos y solo se puede usar una vez.
         </div>
-        <div class="aviso-demo">
-            Modo demostración: no se envió ningún correo.
-            <a href="restablecer-contrasena?token=demo">Abrir el enlace del correo</a>
-        </div>
+        <p class="login-registro"><a href="login">Volver a iniciar sesión</a></p>
     } else {
         <EditForm Model="ViewModel" OnValidSubmit="Enviar">
             <DataAnnotationsValidator />
+
+            @if (MensajeError != null) {
+                <div class="login-error">@MensajeError</div>
+            }
+
             <CampoAcceso Id="correo" Etiqueta="Correo electrónico" Icono="mail" Placeholder="nombre@correo.com" TabIndex="1"
                          Autocompletar="email" ModoEntrada="email" @bind-Value="ViewModel.Correo" />
-            <button class="login-boton" type="submit" tabindex="2">Enviar enlace</button>
+            <button class="login-boton" type="submit" tabindex="2" disabled="@Enviando">
+                @(Enviando ? "Enviando..." : "Enviar enlace")
+            </button>
+            <p class="login-registro"><a href="login">Volver a iniciar sesión</a></p>
         </EditForm>
     }
 </AccesoMarco>
 
 @code {
     private OlvideContrasenaViewModel ViewModel { get; set; } = new();
+    private string? MensajeError { get; set; }
     private bool Enviado { get; set; }
+    private bool Enviando { get; set; }
 
-    // Al enlazar: POST /acceso/recuperacion con { correo }; el backend responde siempre igual
-    private void Enviar() {
-        Enviado = true;
+    // POST /acceso/recuperacion: el backend responde igual exista o no el correo.
+    // Solo falla si el correo no es válido o si no se pudo enviar el correo / conectar.
+    private async Task Enviar() {
+        if (Enviando) return;
+        MensajeError = null;
+        Enviando = true;
+        try {
+            await AccesoService.SolicitarRecuperacion(ViewModel.Correo);
+            Enviado = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Enviando = false;
+        }
     }
 }

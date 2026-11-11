@@ -1,6 +1,8 @@
 # Clientes REST de Patitas Arriba
 
-Las 14 clases implementan las interfaces de Servicios. Comparten RegistroRestService para CRUD y usan HttpUtils para HTTP, siguiendo la separación cliente/DTO/ViewModel de los ejemplos de clase.
+Las 14 clases CRUD implementan las interfaces de Servicios. Comparten RegistroRestService para CRUD y usan HttpUtils para HTTP, siguiendo la separación cliente/DTO/ViewModel de los ejemplos de clase.
+
+AccesoRestService (IAccesoService) cubre las rutas públicas de `/acceso`: registro, confirmación del registro, recuperación y restablecimiento de contraseña. Cada método devuelve el `mensaje` del backend; los errores (por ejemplo, un token vencido) llegan como HttpRequestException con el `error` de Java.
 
 - URL base: `RestApiBaseUrl` en appsettings.json (incluye contexto y `/api/v1`).
 - Registro de dependencias: `AddPatitasRestServices()` en Program.cs.
@@ -14,12 +16,12 @@ Las 14 clases implementan las interfaces de Servicios. Comparten RegistroRestSer
 
 ## Relaciones y límites actuales del contrato Java
 
-Clientes y personal necesitan una cuenta existente. Antes de guardar, el cliente REST crea la cuenta cuando IdCuenta es cero; si ya existe, actualiza sus datos. Conserva IdCuenta si la creación de la persona falla, para permitir corregir y reintentar sin crear otra cuenta. Son solicitudes separadas: no existe atomicidad entre cuenta y persona. Para garantizarla se necesita una operación transaccional en Java.
+El alta de clientes, veterinarios y administradores usa `POST /{recurso}/con-cuenta`: Java crea la persona y su cuenta en una sola transacción con solo el correo, y envía un enlace para que la persona elija su contraseña (`/acceso/recuperacion/restablecer`).
 
 Atenciones y recetas consultan también citas para completar nombres de cliente y mascota: esos datos no están en su DTO directo. Las cuentas consultan clientes y personal para conocer su propietario y rol; una cuenta sin propietario muestra Sin asignar. Estas consultas complementarias implican peticiones adicionales.
 
 Los selectores de categorías y horarios devueltos por los mappers contienen las opciones asignadas. Al implementar las páginas de edición, se debe cargar el catálogo completo y conservar la selección por identificador.
 
-POST /login devuelve datos de sesión; este cliente no instala autenticación ni modifica automáticamente SesionDemo. Las restricciones de acceso deben completarse en la integración de las pantallas y en Java.
+POST /login (con correo y contraseña) devuelve datos de sesión, incluido el correo; este cliente no instala autenticación ni modifica automáticamente SesionDemo. Las restricciones de acceso deben completarse en la integración de las pantallas y en Java.
 
 Las pruebas RestServicesTests usan un servidor HTTP local controlado, sin tocar la base de datos ni requerir GlassFish.

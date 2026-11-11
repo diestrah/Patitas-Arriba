@@ -32,7 +32,7 @@ public class CuentaRestService : RegistroRestService<CuentaUsuarioViewModel, Cue
     public async Task<SesionViewModel> Login(string correo, string password) {
         var dto = await HttpUtils.DoPost<object, SesionDTO>($"{BaseUrl}/login", new { correo, password });
         return new SesionViewModel {
-            Id = dto.Id, IdPersona = dto.IdPersona, NombreUsuario = dto.NombreUsuario ?? "",
+            Id = dto.Id, IdPersona = dto.IdPersona, Correo = dto.Correo ?? "", NombreUsuario = dto.NombreUsuario ?? "",
             Rol = RestMapper.EnumValue<RolUsuario>(dto.Rol), Nombres = dto.Nombres ?? "",
             ApellidoPaterno = dto.ApellidoPaterno
         };

@@ -172,6 +172,17 @@ internal static class RestMapper {
         Password = m.Password
     };
 
+    // La contraseña se envía tal cual; los demás campos sin espacios sobrantes (el backend valida el formato)
+    internal static RegistroDTO ToDto(RegistroViewModel m) => new() {
+        Dni = m.Dni.Trim(),
+        Nombres = m.Nombres.Trim(),
+        ApellidoPaterno = m.ApellidoPaterno.Trim(),
+        ApellidoMaterno = m.ApellidoMaterno.Trim(),
+        Telefono = m.Telefono.Trim(),
+        Correo = m.Correo.Trim(),
+        Password = m.Password
+    };
+
     internal static MascotaViewModel ToViewModel(MascotaDTO d) => new() {
         Id = d.Id,
         IdCliente = d.Cliente?.Id ?? 0,

@@ -1,12 +1,20 @@
 @page "/servicios/nuevo"
 @page "/servicios/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IServicioService ServicioService;
 
 <PageTitle>Servicios</PageTitle>
 
 <div class="col-md-7">
     <h3 class="mb-3">@(Id == null ? "Nuevo servicio" : "Editar servicio")</h3>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    @if (Cargando) {
+        <p class="text-muted">Cargando servicio...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -43,10 +51,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="7" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="8" class="btn btn-outline-primary" href="servicios">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -55,22 +64,49 @@
 
     private ServicioViewModel ViewModel { get; set; } = new();
     private TipoServicio[] Tipos { get; } = Enum.GetValues<TipoServicio>();
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; }
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
+    // Al editar: GET /servicios/{Id}; si no existe se vuelve al listado
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
         if (Id == null) {
             ViewModel = new ServicioViewModel();
             return;
         }
-        ServicioViewModel? servicio = DatosEjemplo.Servicios().FirstOrDefault(s => s.Id == Id);
-        if (servicio == null) {
-            Nav.NavigateTo("/servicios");
-            return;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            ServicioViewModel? servicio = await ServicioService.FindById(Id.Value);
+            if (servicio == null) {
+                Nav.NavigateTo("/servicios");
+                return;
+            }
+            ViewModel = servicio;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        ViewModel = servicio;
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /servicios o PUT /servicios/{Id}
-    private void Guardar() {
-        Nav.NavigateTo("/servicios");
+    // POST /servicios o PUT /servicios/{Id}; si el backend rechaza los datos se muestra su mensaje
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await ServicioService.Insert(ViewModel);
+            } else {
+                await ServicioService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/servicios");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

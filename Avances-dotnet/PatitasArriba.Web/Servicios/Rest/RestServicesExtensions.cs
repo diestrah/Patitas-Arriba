@@ -2,6 +2,7 @@ namespace PatitasArriba.Web.Servicios.Rest;
 
 public static class RestServicesExtensions {
     public static IServiceCollection AddPatitasRestServices(this IServiceCollection services) {
+        services.AddScoped<IAccesoService, AccesoRestService>();
         services.AddScoped<IAdministradorService, AdministradorRestService>();
         services.AddScoped<IArticuloService, ArticuloRestService>();
         services.AddScoped<IAtencionService, AtencionRestService>();

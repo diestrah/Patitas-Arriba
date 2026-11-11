@@ -111,6 +111,7 @@ public class RestServicesTests {
         };
         var session = await services.GetRequiredService<ICuentaService>().Login("ana@example.com", "secret");
         Assert.That(session.Id, Is.EqualTo(10));
+        Assert.That(session.Correo, Is.EqualTo(""));
         Assert.That(session.IdPersona, Is.EqualTo(7));
         Assert.That(session.Rol, Is.EqualTo(RolUsuario.CLIENTE));
     }
@@ -212,6 +213,63 @@ public class RestServicesTests {
         Assert.ThrowsAsync<HttpRequestException>(
             async () => await services.GetRequiredService<IClienteService>().Insert(client));
         await Task.CompletedTask;
+    }
+
+    [Test]
+    public async Task LoginReadsTheAccountEmail() {
+        api.Respond = (_, _, _) => (200, "{\"id\":10,\"correo\":\"ana@example.com\",\"idPersona\":7,\"nombreUsuario\":\"ana\",\"rol\":\"CLIENTE\",\"nombres\":\"Ana\"}");
+        var session = await services.GetRequiredService<ICuentaService>().Login("ana@example.com", "secret");
+        Assert.That(session.Correo, Is.EqualTo("ana@example.com"));
+    }
+
+    [Test]
+    public async Task RegistrationPostsTrimmedDataAndReturnsBackendMessage() {
+        Dictionary<string, string>? sent = null;
+        api.Respond = (method, path, body) => {
+            Assert.That(method, Is.EqualTo("POST"));
+            Assert.That(path, Is.EqualTo("/app/api/v1/acceso/registro"));
+            sent = Read<Dictionary<string, string>>(body);
+            return (202, "{\"mensaje\":\"Te enviamos un correo para confirmar tu registro\"}");
+        };
+        var registro = new RegistroViewModel {
+            Dni = "70123456", Nombres = " Ana ", ApellidoPaterno = "Torres", ApellidoMaterno = "Lopez",
+            Telefono = "987654321", Correo = " ana@example.com ", Password = " clave123 ", ConfirmarPassword = " clave123 "
+        };
+        var mensaje = await services.GetRequiredService<IAccesoService>().SolicitarRegistro(registro);
+        Assert.That(mensaje, Is.EqualTo("Te enviamos un correo para confirmar tu registro"));
+        Assert.That(sent!["nombres"], Is.EqualTo("Ana"));
+        Assert.That(sent["correo"], Is.EqualTo("ana@example.com"));
+        Assert.That(sent["password"], Is.EqualTo(" clave123 "));
+        Assert.That(sent.ContainsKey("confirmarPassword"), Is.False);
+    }
+
+    [Test]
+    public async Task AccessRoutesSendTheExpectedBodies() {
+        var calls = new List<(string Path, Dictionary<string, string> Body)>();
+        api.Respond = (_, path, body) => {
+            calls.Add((path, Read<Dictionary<string, string>>(body)));
+            return (path.EndsWith("/confirmar") ? 201 : path.EndsWith("/restablecer") ? 200 : 202, "{\"mensaje\":\"ok\"}");
+        };
+        var acceso = services.GetRequiredService<IAccesoService>();
+        Assert.That(await acceso.ConfirmarRegistro("tok-1"), Is.EqualTo("ok"));
+        Assert.That(await acceso.SolicitarRecuperacion(" ana@example.com "), Is.EqualTo("ok"));
+        Assert.That(await acceso.RestablecerContrasena("tok-2", "NuevaClave123"), Is.EqualTo("ok"));
+        Assert.That(calls[0].Path, Is.EqualTo("/app/api/v1/acceso/registro/confirmar"));
+        Assert.That(calls[0].Body["token"], Is.EqualTo("tok-1"));
+        Assert.That(calls[1].Path, Is.EqualTo("/app/api/v1/acceso/recuperacion"));
+        Assert.That(calls[1].Body["correo"], Is.EqualTo("ana@example.com"));
+        Assert.That(calls[2].Path, Is.EqualTo("/app/api/v1/acceso/recuperacion/restablecer"));
+        Assert.That(calls[2].Body["token"], Is.EqualTo("tok-2"));
+        Assert.That(calls[2].Body["password"], Is.EqualTo("NuevaClave123"));
+    }
+
+    [Test]
+    public void ExpiredTokenKeepsBackendMessageAndStatus() {
+        api.Respond = (_, _, _) => (400, "{\"error\":\"El enlace no es válido o ya venció\"}");
+        var error = Assert.ThrowsAsync<HttpRequestException>(
+            async () => await services.GetRequiredService<IAccesoService>().ConfirmarRegistro("viejo"));
+        Assert.That(error!.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
+        Assert.That(error.Message, Is.EqualTo("El enlace no es válido o ya venció"));
     }
 
     private sealed class ApiStub : IAsyncDisposable {
