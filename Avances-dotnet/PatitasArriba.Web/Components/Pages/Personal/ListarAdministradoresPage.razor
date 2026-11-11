@@ -105,8 +105,6 @@ else {
     <Paginador State="Paginacion" />
 }
 
-<p class="text-muted small mt-3">Tu propia cuenta no se puede eliminar, y siempre debe quedar al menos un administrador (RN-AD-02). El candado explica el motivo.</p>
-
 <ConfirmarDialogo Visible="AdministradorAEliminar != null"
                   Titulo="¿Eliminar al administrador?"
                   Mensaje="@($"{AdministradorAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja.")"

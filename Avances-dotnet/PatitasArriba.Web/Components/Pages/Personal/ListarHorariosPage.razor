@@ -154,11 +154,6 @@ else {
     <Paginador State="Paginacion" />
 }
 
-<p class="text-muted small mt-3 no-print">
-    El personal se asigna al crear o editar el horario, o desde la ficha del veterinario o del administrador (RN-HO-03).
-    Un horario asignado a alguien no se puede eliminar (RN-HO-04).
-</p>
-
 <ConfirmarDialogo Visible="HorarioAEliminar != null"
                   Titulo="¿Eliminar el horario?"
                   Mensaje="@($"El horario del {TextoHorario(HorarioAEliminar)} dejará de estar disponible.")"

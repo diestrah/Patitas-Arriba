@@ -18,13 +18,21 @@
     }
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">DNI o nombre:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <div class="seg-pago ms-auto" role="group" aria-label="Vista">
+        <button type="button" tabindex="4" class="@(Vista == "tarjetas" ? "activo" : "")" aria-pressed="@(Vista == "tarjetas")" @onclick='() => Vista = "tarjetas"'>
+            <Icono Nombre="grid" /> Tarjetas
+        </button>
+        <button type="button" tabindex="5" class="@(Vista == "tabla" ? "activo" : "")" aria-pressed="@(Vista == "tabla")" @onclick='() => Vista = "tabla"'>
+            <Icono Nombre="list" /> Tabla
+        </button>
+    </div>
 </div>
 
 @if (MensajeExito != null) {
@@ -43,6 +51,50 @@ else if (!Clientes.Any()) {
 else {
     <div class="row">
         <div class="col-lg-7">
+            @if (Vista == "tarjetas") {
+                <div class="grilla-tarjetas" style="grid-template-columns: repeat(auto-fill, minmax(250px, 1fr))">
+                    @foreach (ClienteViewModel cliente in Clientes) {
+                        <article class="tarjeta-info @(ClienteSeleccionado == cliente ? "sel" : "")">
+                            <div class="tarjeta-enc">
+                                <span class="avatar-persona @Presentacion.ColorAvatar(cliente.NombreCompleto)" aria-hidden="true">@Presentacion.Iniciales(cliente.NombreCompleto)</span>
+                                <div>
+                                    <h5>@cliente.NombreCompleto</h5>
+                                    <span class="etq etq-gris">DNI @cliente.Dni</span>
+                                </div>
+                            </div>
+                            <div class="datos-contacto">
+                                <div><Icono Nombre="phone" />@cliente.Telefono</div>
+                                @if (!string.IsNullOrWhiteSpace(cliente.Correo)) {
+                                    <div><Icono Nombre="mail" />@cliente.Correo</div>
+                                }
+                            </div>
+                            <div class="d-flex flex-wrap gap-1">
+                                @foreach (MascotaViewModel mascota in MascotasDe(cliente)) {
+                                    <span class="chip-mascota"><AvatarMascota Nombre="@mascota.Nombre" Foto="@mascota.Foto" />@mascota.Nombre</span>
+                                }
+                                @if (!MascotasDe(cliente).Any()) {
+                                    <span class="text-muted small">Sin mascotas registradas</span>
+                                }
+                            </div>
+                            <div class="tarjeta-pie">
+                                <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => SeleccionarCliente(cliente)">
+                                    <Icono Nombre="eye" /><span>Ver ficha</span>
+                                </button>
+                                @if (Sesion.EsAdministrador) {
+                                    <div class="acciones">
+                                        <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCliente(cliente.Id)">
+                                            <Icono Nombre="edit" />
+                                        </button>
+                                        <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(cliente)">
+                                            <Icono Nombre="trash" />
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </article>
+                    }
+                </div>
+            } else {
             <QuickGrid Items="Clientes" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
                 <PropertyColumn Title="DNI" Property="c => c.Dni" Sortable="true" />
                 <PropertyColumn Title="Nombre completo" Property="c => c.NombreCompleto" Sortable="true" />
@@ -64,6 +116,7 @@ else {
                 </TemplateColumn>
             </QuickGrid>
             <Paginador State="Paginacion" />
+            }
         </div>
         <div class="col-lg-5">
             @if (ClienteSeleccionado == null) {
@@ -94,12 +147,18 @@ else {
     private bool CargandoMascotas { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+    private string Vista { get; set; } = "tarjetas";
+    private List<MascotaViewModel> TodasLasMascotas { get; set; } = [];
+
+    private IEnumerable<MascotaViewModel> MascotasDe(ClienteViewModel cliente) => TodasLasMascotas.Where(m => m.IdCliente == cliente.Id);
 
     // GET /clientes. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
     protected override async Task OnInitializedAsync() {
         if (!RendererInfo.IsInteractive) return;
         try {
             Todos = await ClienteService.FindAll();
+            // GET /mascotas: solo para mostrar las mascotas de cada cliente en su tarjeta
+            TodasLasMascotas = await MascotaService.FindAll();
             Filtrar();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);

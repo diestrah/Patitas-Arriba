@@ -1,6 +1,7 @@
 @page "/categorias"
 @inject NavigationManager Nav;
 @inject ICategoriaService CategoriaService;
+@inject IArticuloService ArticuloService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -27,21 +28,37 @@ else if (!Categorias.Any()) {
     <div class="alert alert-info">No hay categorías registradas.</div>
 }
 else {
-    <QuickGrid Items="Categorias" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
-        <PropertyColumn Title="Nombre" Property="c => c.Nombre" Sortable="true" />
-        <PropertyColumn Title="Descripción" Property="c => c.Descripcion" />
-        <TemplateColumn Title="Acciones" Align="Align.Center">
-            <div class="acciones">
-                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCategoria(context.Id)">
-                    <Icono Nombre="edit" />
-                </button>
-                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
-                    <Icono Nombre="trash" />
-                </button>
-            </div>
-        </TemplateColumn>
-    </QuickGrid>
-    <Paginador State="Paginacion" />
+    <div class="grilla-tarjetas">
+        @foreach (CategoriaViewModel categoria in Categorias) {
+            int cantidad = CantidadDe(categoria);
+            <article class="tarjeta-info">
+                <div class="tarjeta-enc">
+                    <span class="ico-circ @ClaseColor(categoria.Nombre)" style="width: 56px; height: 56px; border-radius: 16px"><Icono Nombre="@NombreIcono(categoria.Nombre)" /></span>
+                    <div>
+                        <h5>@categoria.Nombre</h5>
+                        <span class="etq etq-gris">@cantidad @(cantidad == 1 ? "artículo" : "artículos")</span>
+                    </div>
+                </div>
+                <p class="tarjeta-desc">@categoria.Descripcion</p>
+                <div class="tarjeta-pie">
+                    <div class="acciones ms-auto">
+                        <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCategoria(categoria.Id)">
+                            <Icono Nombre="edit" />
+                        </button>
+                        @if (cantidad > 0) {
+                            <span class="btn-icono-bloqueado" tabindex="0" title="No se puede eliminar: tiene artículos asignados (RN-CA-03)" aria-label="Eliminar no disponible: tiene artículos asignados">
+                                <Icono Nombre="lock" />
+                            </span>
+                        } else {
+                            <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(categoria)">
+                                <Icono Nombre="trash" />
+                            </button>
+                        }
+                    </div>
+                </div>
+            </article>
+        }
+    </div>
 }
 
 <ConfirmarDialogo Visible="CategoriaAEliminar != null"
@@ -55,7 +72,7 @@ else {
     private CategoriaViewModel? CategoriaAEliminar { get; set; }
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
-    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+    private List<ArticuloViewModel> Articulos { get; set; } = [];
     private bool Cargando { get; set; } = true;
 
     // GET /categorias. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
@@ -68,11 +85,38 @@ else {
         try {
             Todas = await CategoriaService.FindAll();
             Categorias = Todas.AsQueryable();
+            // GET /articulos: solo para contar cuántos tiene cada categoría y bloquear el eliminar
+            Articulos = await ArticuloService.FindAll();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);
         } finally {
             Cargando = false;
         }
+    }
+
+    private int CantidadDe(CategoriaViewModel categoria) {
+        return Articulos.Count(a => a.Categorias.Any(c => c.Seleccionado && c.Id == categoria.Id));
+    }
+
+    // Icono y color según el nombre: así se reconoce cada categoría de un vistazo
+    private static string NombreIcono(string nombre) {
+        string n = nombre.ToLowerInvariant();
+        if (n.Contains("medic") || n.Contains("farm") || n.Contains("antiparas")) return "pill";
+        if (n.Contains("vacun")) return "syringe";
+        if (n.Contains("aliment") || n.Contains("comida")) return "bowl";
+        if (n.Contains("accesor") || n.Contains("juguet")) return "tag";
+        if (n.Contains("higien") || n.Contains("limpi")) return "sparkle";
+        return "box";
+    }
+
+    private static string ClaseColor(string nombre) {
+        string n = nombre.ToLowerInvariant();
+        if (n.Contains("medic") || n.Contains("farm") || n.Contains("antiparas")) return "k-med";
+        if (n.Contains("vacun")) return "k-vac";
+        if (n.Contains("aliment") || n.Contains("comida")) return "k-ali";
+        if (n.Contains("accesor") || n.Contains("juguet")) return "k-acc";
+        if (n.Contains("higien") || n.Contains("limpi")) return "k-hig";
+        return "k-gen";
     }
 
     private void NuevaCategoria() {

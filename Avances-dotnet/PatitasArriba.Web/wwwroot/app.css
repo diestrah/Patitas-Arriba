@@ -504,3 +504,85 @@ img.avatar-mascota { object-fit: cover; object-position: center 30%; display: bl
     .form-select option:focus-visible { background: var(--pa-verde); color: #fff; outline: none; }
     .form-select option:disabled { color: #9c978c; }
 }
+
+/* ---- Escala única de botones (rediseño): misma tipografía, mismo alto y mismo radio en todo el sistema ----
+   Tamaños: S 32 px · M 38 px (por defecto) · L 46 px (solo la acción principal del inicio). Solo cambia el color. */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; height: 38px; padding: 0 1rem; font-size: .9rem; font-weight: 700; line-height: 1; border-radius: .65rem; }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn.btn-sm { height: 32px; padding: 0 .75rem; font-size: .82rem; gap: .35rem; }
+.btn.btn-lg { height: 46px; padding: 0 1.3rem; font-size: 1rem; }
+.btn.btn-icono { width: 32px; height: 32px; padding: 0; }
+.barra-principal .nav-link { height: 38px; font-size: .9rem; }
+
+/* ---- Tarjetas, etiquetas y chips del rediseño (se reutilizan en Categorías, Clientes, Mascotas, Servicios…) ---- */
+.grilla-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1rem; }
+.tarjeta-info { background: #fff; border: 1px solid #e6dfd1; border-radius: 1rem; box-shadow: 0 6px 18px rgba(31,42,36,.06); padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .65rem; }
+.tarjeta-info h5 { font-size: 1.05rem; font-weight: 800; margin: 0; line-height: 1.2; }
+.tarjeta-enc { display: flex; gap: .75rem; align-items: center; }
+.tarjeta-enc small { display: block; color: #6b7a70; font-weight: 600; }
+.tarjeta-desc { color: #4a574f; font-size: .92rem; margin: 0; }
+.tarjeta-pie { display: flex; justify-content: space-between; align-items: center; gap: .5rem; border-top: 1px dashed #ece3d2; padding-top: .65rem; margin-top: auto; }
+.etq { display: inline-flex; align-items: center; gap: .3rem; height: 24px; line-height: 1; border-radius: 99px; padding: 0 .65rem; font-size: .75rem; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+.etq-verde { background: var(--pa-salvia); color: var(--pa-verde); border-color: #bcd0b0; }
+.etq-mostaza { background: #fdf0d2; color: #7a5410; border-color: #f0d9a0; }
+.etq-rojo { background: #f6e4e0; color: var(--pa-terracota-oscuro); border-color: #e3b9b1; }
+.etq-gris { background: #ece9e1; color: #4a4a44; }
+.ico-circ { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+.ico-circ svg { width: 22px; height: 22px; }
+.k-med { background: #e3ecdd; color: #325642; } .k-vac { background: #e4e9ef; color: #3a4a5e; } .k-ali { background: #fdf0d2; color: #7a5410; }
+.k-acc { background: #efe6f0; color: #5d3f63; } .k-hig { background: #dff0f0; color: #215a5a; } .k-eme { background: #f6e4e0; color: #983B2F; }
+.k-ope { background: #e9e4f2; color: #43366b; } .k-est { background: #fbe6ee; color: #8a3358; } .k-gen { background: #ece9e1; color: #4a4a44; }
+.chips-filtro { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chips-filtro button { border: 1px solid #ddd5c6; background: #fff; color: var(--pa-texto); border-radius: 99px; padding: .28rem .8rem; font-weight: 700; font-size: .85rem; display: inline-flex; gap: .35rem; align-items: center; }
+.chips-filtro button:hover { background: var(--pa-salvia); }
+.chips-filtro button.activo { background: var(--pa-verde); border-color: var(--pa-verde); color: #fff; }
+.chips-filtro .cuenta { opacity: .65; font-weight: 600; }
+.nombre-art { display: flex; flex-direction: column; line-height: 1.25; }
+.nombre-art small { color: #6b7a70; font-weight: 600; font-size: .82rem; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---- Avatares de personas y datos de contacto en las tarjetas ---- */
+.avatar-persona { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; flex: none; border: 3px solid rgba(255,255,255,.7); box-shadow: 0 0 0 1px rgba(31,42,36,.08); }
+.avatar-persona.grande { width: 68px; height: 68px; font-size: 1.4rem; }
+.av-c0 { background: #e3ecdd; color: #325642; } .av-c1 { background: #fdf0d2; color: #7a5410; } .av-c2 { background: #f6e4e0; color: #983B2F; }
+.av-c3 { background: #e4e9ef; color: #3a4a5e; } .av-c4 { background: #efe6f0; color: #5d3f63; }
+.datos-contacto { display: grid; gap: .25rem; font-size: .9rem; color: #3d4a42; }
+.datos-contacto div { display: flex; align-items: center; gap: .5rem; }
+.datos-contacto svg { width: 15px; height: 15px; color: var(--pa-verde); flex: none; }
+.chip-mascota { display: inline-flex; align-items: center; gap: .35rem; background: #f4efe6; border-radius: 99px; padding: .1rem .6rem .1rem .1rem; font-size: .8rem; font-weight: 700; }
+.chip-mascota .avatar-mascota { width: 24px; height: 24px; font-size: .7rem; }
+.tarjeta-info.sel { outline: 2px solid var(--pa-verde); }
+.seg-pago button { white-space: nowrap; }
+.seg-pago { flex-wrap: nowrap; flex: none; }
+
+/* ---- Servicios y diagnósticos ---- */
+.precio-tarjeta { font-size: 1.4rem; font-weight: 800; color: var(--pa-verde-oscuro); }
+.lista-letras { background: #fff; border: 1px solid #ece3d2; border-radius: 1rem; overflow: hidden; box-shadow: 0 6px 18px rgba(31,42,36,.06); }
+.lista-letras .letra { background: #faf4e8; color: var(--pa-verde-oscuro); font-weight: 800; padding: .35rem 1rem; border-bottom: 1px solid #ece3d2; font-size: .85rem; letter-spacing: .06em; }
+.lista-letras .fila { display: flex; align-items: center; gap: .85rem; padding: .7rem 1rem; border-bottom: 1px solid #f0eadf; }
+.lista-letras .fila:last-child { border-bottom: 0; }
+.lista-letras .fila .crece { flex: 1; min-width: 0; }
+.lista-letras .fila .crece b { display: block; }
+.lista-letras .fila .crece span { color: #4a574f; font-size: .92rem; }
+
+/* ---- Lista de cuentas: columnas fijas para que todo quede alineado ---- */
+.lista-cuentas { background: #fff; border: 1px solid #ece3d2; border-radius: 1rem; overflow: hidden; box-shadow: 0 6px 18px rgba(31,42,36,.06); }
+.fila-cuenta { display: grid; grid-template-columns: 48px minmax(160px, 1.1fr) minmax(170px, 1fr) 130px auto; align-items: center; gap: .9rem; padding: .7rem 1rem; border-bottom: 1px solid #f0eadf; background: #fff; }
+.fila-cuenta:last-child { border-bottom: 0; }
+.fila-cuenta b { display: block; }
+.fila-cuenta .correo { color: #6b7a70; font-size: .88rem; }
+.fila-cuenta.cabecera { background: #faf4e8; padding: .5rem 1rem; font-size: .78rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: #6b7a70; }
+@media (max-width: 760px) { .fila-cuenta { grid-template-columns: 48px 1fr auto; } .fila-cuenta > :nth-child(3), .fila-cuenta > :nth-child(4) { grid-column: 2; } .fila-cuenta.cabecera { display: none; } }
+
+/* ---- Etiquetas con la misma altura (chips de colegiatura y DNI alineados) ---- */
+.etiqueta { height: 24px; line-height: 1; }
+
+/* ---- Historial clínico: resultados de búsqueda como tarjetas y atenciones en línea de tiempo ---- */
+.resultado-mascota { display: flex; align-items: center; gap: .6rem; text-align: left; background: #fff; border: 1px solid #e6dfd1; border-radius: .9rem; padding: .5rem .8rem; font-weight: 700; box-shadow: 0 4px 14px rgba(31,42,36,.05); }
+.resultado-mascota:hover { background: var(--pa-salvia); }
+.resultado-mascota.sel { outline: 2px solid var(--pa-verde); }
+.resultado-mascota small { display: block; color: #6b7a70; font-weight: 600; }
+.linea-tiempo { position: relative; display: flex; flex-direction: column; gap: .9rem; }
+.linea-tiempo::before { content: ""; position: absolute; left: 10px; top: 14px; bottom: 14px; width: 3px; margin-left: -1.5px; background: var(--pa-salvia-oscuro); border-radius: 2px; }
+.item-linea { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: .9rem; align-items: start; }
+.item-linea::before { content: ""; box-sizing: border-box; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 3px solid var(--pa-verde); justify-self: center; position: relative; z-index: 1; margin-top: 21px; }
+.item-linea > .card { margin-bottom: 0 !important; }

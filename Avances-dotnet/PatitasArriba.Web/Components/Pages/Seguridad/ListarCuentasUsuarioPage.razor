@@ -10,13 +10,21 @@
 <h3 class="mb-1">Cuentas de usuario</h3>
 <p class="text-muted small mb-3">Las cuentas se crean al registrar un cliente, un veterinario o un administrador.</p>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">Usuario o correo:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el usuario o el correo..." @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el usuario o el correo..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+<div class="chips-filtro mb-3" role="group" aria-label="Filtrar por rol">
+    @foreach (string rol in Roles) {
+        <button type="button" class="@(RolFiltro == rol ? "activo" : "")" aria-pressed="@(RolFiltro == rol)" @onclick="() => ElegirRol(rol)">
+            @rol <span class="cuenta">@CuantasDe(rol)</span>
+        </button>
+    }
 </div>
 
 @if (MensajeExito != null) {
@@ -33,35 +41,34 @@ else if (!Cuentas.Any()) {
     <div class="alert alert-info">No se encontraron cuentas.</div>
 }
 else {
-    <QuickGrid Items="Cuentas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
-        <TemplateColumn Title="Usuario" SortBy="PorUsuario">
-            @context.NombreUsuario
-            @if (EsLaSesion(context)) {
-                <span class="estado estado-pendiente mini ms-1">tú</span>
-            }
-        </TemplateColumn>
-        <PropertyColumn Title="Correo" Property="c => c.Correo" />
-        <PropertyColumn Title="Rol" Property="c => TextoEnum.De(c.Rol)" />
-        <PropertyColumn Title="Pertenece a" Property="c => c.NombrePersona" Sortable="true" />
-        <TemplateColumn Title="Acciones" Align="Align.Center">
-            <div class="acciones">
-                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCuenta(context.Id)">
-                    <Icono Nombre="edit" />
-                </button>
-                @if (EsLaSesion(context)) {
-                    @* Punto 4 del feedback: nadie puede eliminar la cuenta con la que está trabajando *@
-                    <span class="btn-icono-bloqueado" tabindex="0" title="No puede eliminar su propia cuenta mientras está en sesión" aria-label="Eliminar no disponible: es su propia cuenta">
-                        <Icono Nombre="lock" />
-                    </span>
-                } else {
-                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
-                        <Icono Nombre="trash" />
+    <div class="lista-cuentas">
+        <div class="fila-cuenta cabecera"><span></span><span>Usuario</span><span>Pertenece a</span><span>Rol</span><span>Acciones</span></div>
+        @foreach (CuentaUsuarioViewModel cuenta in Cuentas.OrderBy(c => c.NombreUsuario)) {
+            <div class="fila-cuenta">
+                <span class="avatar-persona @Presentacion.ColorAvatar(NombreVisible(cuenta))" aria-hidden="true">@Presentacion.Iniciales(NombreVisible(cuenta))</span>
+                <div>
+                    <b>@cuenta.NombreUsuario @if (EsLaSesion(cuenta)) { <span class="etq etq-verde ms-1">tú</span> }</b>
+                    <span class="correo">@cuenta.Correo</span>
+                </div>
+                <div class="text-muted">@cuenta.NombrePersona</div>
+                <span class="etq @ClaseRol(cuenta.Rol)" style="justify-self: start">@TextoEnum.De(cuenta.Rol)</span>
+                <div class="acciones">
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarCuenta(cuenta.Id)">
+                        <Icono Nombre="edit" />
                     </button>
-                }
+                    @if (EsLaSesion(cuenta)) {
+                        <span class="btn-icono-bloqueado" tabindex="0" title="No puede eliminar su propia cuenta mientras está en sesión" aria-label="Eliminar no disponible: es su propia cuenta">
+                            <Icono Nombre="lock" />
+                        </span>
+                    } else {
+                        <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(cuenta)">
+                            <Icono Nombre="trash" />
+                        </button>
+                    }
+                </div>
             </div>
-        </TemplateColumn>
-    </QuickGrid>
-    <Paginador State="Paginacion" />
+        }
+    </div>
 }
 
 <ConfirmarDialogo Visible="CuentaAEliminar != null"
@@ -76,8 +83,30 @@ else {
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
-    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
-    private GridSort<CuentaUsuarioViewModel> PorUsuario { get; } = GridSort<CuentaUsuarioViewModel>.ByAscending(c => c.NombreUsuario);
+    private static readonly string[] Roles = ["Todos", "Administradores", "Veterinarios", "Clientes"];
+    private string RolFiltro { get; set; } = "Todos";
+
+    private bool EsDeRol(CuentaUsuarioViewModel c, string rol) => rol switch {
+        "Administradores" => c.Rol == RolUsuario.ADMINISTRADOR,
+        "Veterinarios" => c.Rol == RolUsuario.VETERINARIO,
+        "Clientes" => c.Rol == RolUsuario.CLIENTE,
+        _ => true
+    };
+
+    private int CuantasDe(string rol) => Todas.Count(c => EsDeRol(c, rol));
+
+    private void ElegirRol(string rol) {
+        RolFiltro = rol;
+        Filtrar();
+    }
+
+    private static string NombreVisible(CuentaUsuarioViewModel c) => string.IsNullOrWhiteSpace(c.NombrePersona) ? c.NombreUsuario : c.NombrePersona;
+
+    private static string ClaseRol(RolUsuario? rol) => rol switch {
+        RolUsuario.ADMINISTRADOR => "etq-mostaza",
+        RolUsuario.VETERINARIO => "etq-verde",
+        _ => "etq-gris"
+    };
 
     private bool Cargando { get; set; } = true;
 
@@ -103,8 +132,9 @@ else {
     private void Filtrar() {
         string texto = Filtro.Trim();
         Cuentas = Todas
-            .Where(c => c.NombreUsuario.Contains(texto, StringComparison.OrdinalIgnoreCase)
-                     || c.Correo.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .Where(c => EsDeRol(c, RolFiltro)
+                     && (c.NombreUsuario.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                         || c.Correo.Contains(texto, StringComparison.OrdinalIgnoreCase)))
             .AsQueryable();
     }
 

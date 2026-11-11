@@ -119,8 +119,6 @@ else {
     <Paginador State="Paginacion" />
 }
 
-<p class="text-muted small mt-3">Los horarios se asignan desde la ficha de cada veterinario. Un veterinario con citas asignadas no se puede eliminar (RN-VE-03).</p>
-
 <ConfirmarDialogo Visible="VeterinarioAEliminar != null"
                   Titulo="¿Eliminar al veterinario?"
                   Mensaje="@($"{VeterinarioAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja. No se puede si está asignado a alguna cita.")"

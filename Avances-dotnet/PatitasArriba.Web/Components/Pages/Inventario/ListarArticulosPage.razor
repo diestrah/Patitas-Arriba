@@ -20,13 +20,6 @@
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Buscar artículo..." aria-label="Buscar artículo" @bind="Filtro" />
-    <label class="text-nowrap" for="filtro-categoria">Categoría:</label>
-    <select id="filtro-categoria" tabindex="2" class="form-select w-auto" @bind="CategoriaFiltro">
-        <option value="">Todas</option>
-        @foreach (CategoriaViewModel categoria in Categorias) {
-            <option value="@categoria.Nombre">@categoria.Nombre</option>
-        }
-    </select>
     <div class="form-check mb-0 text-nowrap">
         <input id="filtro-bajo" tabindex="3" type="checkbox" class="form-check-input" @bind="SoloStockBajo" />
         <label class="form-check-label" for="filtro-bajo">Solo stock bajo</label>
@@ -35,6 +28,13 @@
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="5" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+<div class="chips-filtro mb-3" role="group" aria-label="Filtrar por categoría">
+    <button type="button" class="@(CategoriaFiltro == "" ? "activo" : "")" aria-pressed="@(CategoriaFiltro == "")" @onclick='() => ElegirCategoria("")'>Todas</button>
+    @foreach (CategoriaViewModel categoria in Categorias) {
+        <button type="button" class="@(CategoriaFiltro == categoria.Nombre ? "activo" : "")" aria-pressed="@(CategoriaFiltro == categoria.Nombre)" @onclick="() => ElegirCategoria(categoria.Nombre)">@categoria.Nombre</button>
+    }
 </div>
 
 @if (MensajeExito != null) {
@@ -53,8 +53,12 @@ else if (!Articulos.Any()) {
 else {
     <QuickGrid Items="Articulos" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
         <TemplateColumn Title="Artículo" SortBy="GridSort<ArticuloViewModel>.ByAscending(a => a.Nombre)">
-            @context.Nombre
-            <span class="info-articulo" tabindex="0" title="@(string.IsNullOrWhiteSpace(context.Descripcion) ? "Sin descripción." : context.Descripcion)" aria-label="@($"Descripción de {context.Nombre}")">i</span>
+            <div class="nombre-art">
+                <b>@context.Nombre</b>
+                @if (!string.IsNullOrWhiteSpace(context.Descripcion)) {
+                    <small title="@context.Descripcion">@context.Descripcion</small>
+                }
+            </div>
         </TemplateColumn>
         <TemplateColumn Title="Categorías">
             @foreach (OpcionSeleccion categoria in context.Categorias.Where(c => c.Seleccionado)) {
@@ -88,7 +92,7 @@ else {
                 <div class="small text-muted">mín. @context.StockMinimo</div>
             }
         </TemplateColumn>
-        @* El stock bajo se marca con color, no con otro botón *@
+        @* El estado se dice con una etiqueta con texto, no con el color de fondo de la fila *@
         <TemplateColumn Title="Estado">
             @if (context.StockBajo) {
                 <span class="estado estado-rechazado">Stock bajo</span>
@@ -115,13 +119,6 @@ else {
         }
     </QuickGrid>
     <Paginador State="Paginacion" />
-}
-
-@if (Sesion.EsAdministrador) {
-    <div class="alert alert-info mt-3 small">
-        Cambie el stock con − y +, o escriba el número. Aparecen ✓ y ✕ solo en la fila que cambió; al guardar se pide confirmación.
-        Un artículo usado en atenciones, recetas o boletas no se puede eliminar (RN-AR-05): el sistema lo avisa al intentarlo.
-    </div>
 }
 
 <ConfirmarDialogo Visible="ArticuloAEliminar != null"
@@ -181,6 +178,11 @@ else {
             .Where(a => CategoriaAplicada == "" || a.Categorias.Any(c => c.Seleccionado && c.Texto == CategoriaAplicada))
             .Where(a => !SoloBajoAplicado || a.StockBajo)
             .AsQueryable();
+    }
+
+    private void ElegirCategoria(string nombre) {
+        CategoriaFiltro = nombre;
+        Filtrar();
     }
 
     private void Filtrar() {
