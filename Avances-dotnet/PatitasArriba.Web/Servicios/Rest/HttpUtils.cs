@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace PatitasArriba.Web.Servicios.Rest;
+namespace PatitasArriba.Web.Servicios.Reste;
 
 public static class HttpUtils {
     private static readonly HttpClient http = new();
