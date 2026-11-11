@@ -16,6 +16,10 @@
       "name": "Autenticacion"
     },
     {
+      "name": "Acceso",
+      "description": "Rutas publicas (sin sesion): registro de clientes con verificacion de correo y recuperacion de contrasena"
+    },
+    {
       "name": "Cuentas"
     },
     {
@@ -66,13 +70,17 @@
         ],
         "summary": "Iniciar sesion",
         "operationId": "login",
-        "description": "La cuenta debe estar activa y pertenecer a una persona activa. Usuarios de prueba (password Patitas123): rosa.admin (ADMINISTRADOR), ana.torres (CLIENTE), dra.lucia (VETERINARIO)",
+        "description": "Se inicia sesion con el CORREO de la cuenta (no con el nombre de usuario). La cuenta debe estar activa y pertenecer a una persona activa. Cuentas de datos-prueba.sql (password Patitas123): rosa.admin@patitas.pe (ADMINISTRADOR), ana.torres@gmail.com (CLIENTE), dra.lucia@patitas.pe (VETERINARIO)",
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/LoginRequest"
+              },
+              "example": {
+                "correo": "rosa.admin@patitas.pe",
+                "password": "Patitas123"
               }
             }
           }
@@ -89,7 +97,7 @@
             }
           },
           "400": {
-            "description": "Falta el usuario o la contrasena",
+            "description": "Falta el correo o la contrasena",
             "content": {
               "application/json": {
                 "schema": {
@@ -99,7 +107,7 @@
             }
           },
           "401": {
-            "description": "Usuario o contrasena incorrectos (mismo mensaje en ambos casos)",
+            "description": "Correo o contrasena incorrectos (mismo mensaje en ambos casos)",
             "content": {
               "application/json": {
                 "schema": {
@@ -110,6 +118,233 @@
           },
           "500": {
             "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acceso/registro": {
+      "post": {
+        "tags": [
+          "Acceso"
+        ],
+        "summary": "Solicitar registro de cliente",
+        "operationId": "solicitarRegistro",
+        "description": "Todavia no crea la cuenta: envia un correo con un enlace de confirmacion que vale 24 horas.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistroRequest"
+              },
+              "example": {
+                "dni": "70123456",
+                "nombres": "Ana Maria",
+                "apellidoPaterno": "Torres",
+                "apellidoMaterno": "Lopez",
+                "telefono": "987654321",
+                "correo": "ana.torres@correo.com",
+                "password": "Patitas123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Correo de confirmacion enviado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acceso/registro/confirmar": {
+      "post": {
+        "tags": [
+          "Acceso"
+        ],
+        "summary": "Confirmar registro",
+        "operationId": "confirmarRegistro",
+        "description": "Recibe el token del enlace del correo y crea la cuenta y el cliente.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenRequest"
+              },
+              "example": {
+                "token": "3f9c2a7e-..."
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta y cliente creados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token invalido o vencido, o datos invalidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acceso/recuperacion": {
+      "post": {
+        "tags": [
+          "Acceso"
+        ],
+        "summary": "Solicitar recuperacion de contrasena",
+        "operationId": "solicitarRecuperacion",
+        "description": "Siempre responde 202 igual, exista o no el correo, para no revelar que cuentas hay. El enlace vale 30 minutos y es de un solo uso.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorreoRequest"
+              },
+              "example": {
+                "correo": "ana.torres@correo.com"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Solicitud recibida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acceso/recuperacion/restablecer": {
+      "post": {
+        "tags": [
+          "Acceso"
+        ],
+        "summary": "Restablecer contrasena",
+        "operationId": "restablecerContrasena",
+        "description": "Tambien se usa para activar las cuentas creadas por un administrador (con-cuenta), cuyo enlace vale 48 horas.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RestablecerRequest"
+              },
+              "example": {
+                "token": "3f9c2a7e-...",
+                "password": "NuevaClave123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contrasena actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Mensaje"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Token invalido, vencido o ya usado, o contrasena invalida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
             "content": {
               "application/json": {
                 "schema": {
@@ -676,6 +911,76 @@
         }
       }
     },
+    "/clientes/con-cuenta": {
+      "post": {
+        "tags": [
+          "Clientes"
+        ],
+        "summary": "Crear cliente con su cuenta",
+        "operationId": "crearClienteConCuenta",
+        "description": "Alta hecha por un administrador: crea la persona y su cuenta en una sola transaccion y envia al correo un enlace para que elija su contrasena (POST /acceso/recuperacion/restablecer).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClienteConCuentaRequest"
+              },
+              "example": {
+                "cuenta": {
+                  "correo": "ana.torres@correo.com"
+                },
+                "dni": "70123456",
+                "nombres": "Ana Maria",
+                "apellidoPaterno": "Torres",
+                "apellidoMaterno": "Lopez",
+                "telefono": "987654321"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cliente"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/administradores": {
       "get": {
         "tags": [
@@ -950,6 +1255,81 @@
           },
           "500": {
             "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/administradores/con-cuenta": {
+      "post": {
+        "tags": [
+          "Administradores"
+        ],
+        "summary": "Crear administrador con su cuenta",
+        "operationId": "crearAdministradorConCuenta",
+        "description": "Alta hecha por un administrador: crea la persona y su cuenta en una sola transaccion y envia al correo un enlace para que elija su contrasena (POST /acceso/recuperacion/restablecer).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdministradorConCuentaRequest"
+              },
+              "example": {
+                "cuenta": {
+                  "correo": "rosa.admin@correo.com"
+                },
+                "dni": "70123457",
+                "nombres": "Rosa",
+                "apellidoPaterno": "Quispe",
+                "apellidoMaterno": "Mamani",
+                "telefono": "987654322",
+                "horarios": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Administrador"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
             "content": {
               "application/json": {
                 "schema": {
@@ -1237,6 +1617,82 @@
           },
           "500": {
             "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/veterinarios/con-cuenta": {
+      "post": {
+        "tags": [
+          "Veterinarios"
+        ],
+        "summary": "Crear veterinario con su cuenta",
+        "operationId": "crearVeterinarioConCuenta",
+        "description": "Alta hecha por un administrador: crea la persona y su cuenta en una sola transaccion y envia al correo un enlace para que elija su contrasena (POST /acceso/recuperacion/restablecer).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VeterinarioConCuentaRequest"
+              },
+              "example": {
+                "cuenta": {
+                  "correo": "lucia.vet@correo.com"
+                },
+                "dni": "70123458",
+                "nombres": "Lucia",
+                "apellidoPaterno": "Ramos",
+                "apellidoMaterno": "Diaz",
+                "telefono": "987654323",
+                "numeroColegiatura": "CMVP-1234",
+                "horarios": [
+                  {
+                    "id": 1
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado. La cabecera Location tiene la URL del nuevo registro",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Veterinario"
+                }
+              }
+            },
+            "headers": {
+              "Location": {
+                "schema": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos invalidos o regla de negocio incumplida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos o al enviar el correo",
             "content": {
               "application/json": {
                 "schema": {
@@ -4024,13 +4480,14 @@
       "LoginRequest": {
         "type": "object",
         "required": [
-          "nombreUsuario",
+          "correo",
           "password"
         ],
         "properties": {
-          "nombreUsuario": {
+          "correo": {
             "type": "string",
-            "example": "rosa.admin"
+            "format": "email",
+            "example": "rosa.admin@patitas.pe"
           },
           "password": {
             "type": "string",
@@ -4047,6 +4504,11 @@
             "type": "integer",
             "description": "Id de la cuenta",
             "example": 1
+          },
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "rosa.admin@patitas.pe"
           },
           "nombreUsuario": {
             "type": "string",
@@ -4366,7 +4828,6 @@
           "cliente",
           "nombre",
           "sexo",
-          "peso",
           "tipoMascota"
         ],
         "properties": {
@@ -4405,7 +4866,7 @@
             "type": "number",
             "format": "double",
             "example": 8.5,
-            "description": "Mayor a 0"
+            "description": "Opcional. 0 significa que no se registro; no puede ser negativo"
           },
           "fechaNacimiento": {
             "type": "string",
@@ -4415,6 +4876,12 @@
           "raza": {
             "type": "string",
             "example": "Mestizo"
+          },
+          "foto": {
+            "type": "string",
+            "nullable": true,
+            "description": "Opcional. Imagen como texto data:image/jpeg;base64,...; vacio o null = sin foto",
+            "example": "data:image/jpeg;base64,/9j/4AAQSkZJRg..."
           },
           "tipoMascota": {
             "$ref": "#/components/schemas/TipoMascota"
@@ -5200,6 +5667,286 @@
           "ESTETICA",
           "EMERGENCIA"
         ]
+      },
+      "Mensaje": {
+        "type": "object",
+        "properties": {
+          "mensaje": {
+            "type": "string",
+            "example": "Te enviamos un correo para confirmar tu registro"
+          }
+        }
+      },
+      "RegistroRequest": {
+        "type": "object",
+        "required": [
+          "dni",
+          "nombres",
+          "apellidoPaterno",
+          "apellidoMaterno",
+          "telefono",
+          "correo",
+          "password"
+        ],
+        "properties": {
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "description": "Solo letras y espacios",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "description": "Solo letras y espacios",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "description": "Solo letras y espacios",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "pattern": "^\\d{9}$",
+            "example": "987654321"
+          },
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "ana.torres@correo.com"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "example": "Patitas123"
+          }
+        }
+      },
+      "TokenRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del enlace enviado por correo",
+            "example": "3f9c2a7e-..."
+          }
+        }
+      },
+      "CorreoRequest": {
+        "type": "object",
+        "required": [
+          "correo"
+        ],
+        "properties": {
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "ana.torres@correo.com"
+          }
+        }
+      },
+      "RestablecerRequest": {
+        "type": "object",
+        "required": [
+          "token",
+          "password"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Token del enlace enviado por correo (un solo uso)",
+            "example": "3f9c2a7e-..."
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "minLength": 8,
+            "example": "NuevaClave123"
+          }
+        }
+      },
+      "ClienteConCuentaRequest": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno"
+        ],
+        "properties": {
+          "cuenta": {
+            "type": "object",
+            "description": "Solo el correo: la cuenta se crea en la misma transaccion y la persona elige su contrasena con el enlace que recibe por correo",
+            "required": [
+              "correo"
+            ],
+            "properties": {
+              "correo": {
+                "type": "string",
+                "format": "email",
+                "example": "ana.torres@correo.com"
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          }
+        }
+      },
+      "AdministradorConCuentaRequest": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno"
+        ],
+        "properties": {
+          "cuenta": {
+            "type": "object",
+            "description": "Solo el correo: la cuenta se crea en la misma transaccion y la persona elige su contrasena con el enlace que recibe por correo",
+            "required": [
+              "correo"
+            ],
+            "properties": {
+              "correo": {
+                "type": "string",
+                "format": "email",
+                "example": "ana.torres@correo.com"
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          },
+          "horarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Horario existente",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          }
+        }
+      },
+      "VeterinarioConCuentaRequest": {
+        "type": "object",
+        "required": [
+          "cuenta",
+          "dni",
+          "nombres",
+          "apellidoPaterno",
+          "numeroColegiatura"
+        ],
+        "properties": {
+          "cuenta": {
+            "type": "object",
+            "description": "Solo el correo: la cuenta se crea en la misma transaccion y la persona elige su contrasena con el enlace que recibe por correo",
+            "required": [
+              "correo"
+            ],
+            "properties": {
+              "correo": {
+                "type": "string",
+                "format": "email",
+                "example": "ana.torres@correo.com"
+              }
+            }
+          },
+          "dni": {
+            "type": "string",
+            "pattern": "^\\d{8}$",
+            "example": "70123456"
+          },
+          "nombres": {
+            "type": "string",
+            "example": "Ana Maria"
+          },
+          "apellidoPaterno": {
+            "type": "string",
+            "example": "Torres"
+          },
+          "apellidoMaterno": {
+            "type": "string",
+            "example": "Lopez"
+          },
+          "telefono": {
+            "type": "string",
+            "example": "987654321"
+          },
+          "numeroColegiatura": {
+            "type": "string",
+            "example": "CMVP-1234"
+          },
+          "horarios": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "description": "Horario existente",
+              "required": [
+                "id"
+              ],
+              "properties": {
+                "id": {
+                  "type": "integer",
+                  "example": 1
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
