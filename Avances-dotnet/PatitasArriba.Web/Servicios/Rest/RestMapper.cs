@@ -2,7 +2,7 @@ using System.Globalization;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 internal static class RestMapper {
     internal static T EnumValue<T>(string? value) where T : struct, Enum =>
@@ -56,7 +56,7 @@ internal static class RestMapper {
         Nombre = m.Nombre,
         Descripcion = m.Descripcion,
         Tipo = m.TipoServicio.ToString(),
-        DuracionEstimada = m.DuracionEstimada ?? 0
+        DuracionEstimada = m.DuracionEstimada
     };
 
     internal static ArticuloViewModel ToViewModel(ArticuloDTO d) => new() {
@@ -104,7 +104,7 @@ internal static class RestMapper {
     };
     internal static ClienteDTO ToDto(ClienteViewModel m) => new() {
         Id = m.Id,
-        Cuenta = new CuentaDTO { Id = m.IdCuenta },
+        Cuenta = new CuentaDTO { Id = m.IdCuenta, Correo = m.Correo },
         Dni = m.Dni,
         Nombres = m.Nombres,
         ApellidoPaterno = m.ApellidoPaterno,
@@ -126,7 +126,7 @@ internal static class RestMapper {
     };
     internal static AdministradorDTO ToDto(AdministradorViewModel m) => new() {
         Id = m.Id,
-        Cuenta = new CuentaDTO { Id = m.IdCuenta },
+        Cuenta = new CuentaDTO { Id = m.IdCuenta, Correo = m.Correo },
         Dni = m.Dni,
         Nombres = m.Nombres,
         ApellidoPaterno = m.ApellidoPaterno,
@@ -150,7 +150,7 @@ internal static class RestMapper {
     };
     internal static VeterinarioDTO ToDto(VeterinarioViewModel m) => new() {
         Id = m.Id,
-        Cuenta = new CuentaDTO { Id = m.IdCuenta },
+        Cuenta = new CuentaDTO { Id = m.IdCuenta, Correo = m.Correo },
         Dni = m.Dni,
         Nombres = m.Nombres,
         ApellidoPaterno = m.ApellidoPaterno,

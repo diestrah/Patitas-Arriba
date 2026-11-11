@@ -4,6 +4,6 @@ namespace PatitasArriba.Web.Servicios;
 
 public interface ICuentaService : IRegistroService<CuentaUsuarioViewModel>{
     Task<CuentaUsuarioViewModel> FindByNombreUsuario(string NombreUsuario);
-    Task<SesionViewModel> Login(String NombreUsuario, String Password);
+    Task<SesionViewModel> Login(string correo, string password);
 }
 

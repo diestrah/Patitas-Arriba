@@ -1,4 +1,4 @@
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public static class RestServicesExtensions {
     public static IServiceCollection AddPatitasRestServices(this IServiceCollection services) {

@@ -3,7 +3,7 @@ using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 using PatitasArriba.Web.Servicios.Rest;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class MascotaRestService : RegistroRestService<MascotaViewModel, MascotaDTO>, IMascotaService {
     public MascotaRestService(IConfiguration configuration) : base(configuration, "mascotas") { }

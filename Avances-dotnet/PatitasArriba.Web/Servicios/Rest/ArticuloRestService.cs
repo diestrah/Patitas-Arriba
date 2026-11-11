@@ -3,7 +3,7 @@ using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 using PatitasArriba.Web.Servicios.Rest;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class ArticuloRestService : RegistroRestService<ArticuloViewModel, ArticuloDTO>, IArticuloService {
     public ArticuloRestService(IConfiguration configuration) : base(configuration, "articulos") { }

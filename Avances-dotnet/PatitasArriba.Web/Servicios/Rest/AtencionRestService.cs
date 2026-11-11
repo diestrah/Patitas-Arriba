@@ -2,7 +2,7 @@ using System.Net;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class AtencionRestService : RegistroRestService<AtencionViewModel, AtencionDTO>, IAtencionService {
     public AtencionRestService(IConfiguration configuration) : base(configuration, "atenciones") { }

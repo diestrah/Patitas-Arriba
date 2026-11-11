@@ -3,7 +3,7 @@ using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 using PatitasArriba.Web.Servicios.Rest;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class DiagnosticoRestService : RegistroRestService<DiagnosticoViewModel, DiagnosticoDTO>, IDiagnosticoService {
     public DiagnosticoRestService(IConfiguration configuration) : base(configuration, "diagnosticos") { }

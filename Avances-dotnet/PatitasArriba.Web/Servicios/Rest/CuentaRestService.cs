@@ -2,7 +2,7 @@ using System.Net;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class CuentaRestService : RegistroRestService<CuentaUsuarioViewModel, CuentaDTO>, ICuentaService {
     public CuentaRestService(IConfiguration configuration) : base(configuration, "cuentas") { }
@@ -29,8 +29,8 @@ public class CuentaRestService : RegistroRestService<CuentaUsuarioViewModel, Cue
         }
         return Task.FromResult(modelo);
     }
-    public async Task<SesionViewModel> Login(string nombreUsuario, string password) {
-        var dto = await HttpUtils.DoPost<object, SesionDTO>($"{BaseUrl}/login", new { nombreUsuario, password });
+    public async Task<SesionViewModel> Login(string correo, string password) {
+        var dto = await HttpUtils.DoPost<object, SesionDTO>($"{BaseUrl}/login", new { correo, password });
         return new SesionViewModel {
             Id = dto.Id, IdPersona = dto.IdPersona, NombreUsuario = dto.NombreUsuario ?? "",
             Rol = RestMapper.EnumValue<RolUsuario>(dto.Rol), Nombres = dto.Nombres ?? "",

@@ -7,7 +7,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PatitasArriba.Web.Servicios;
-using PatitasArriba.Web.Servicios.Reste;
+using PatitasArriba.Web.Servicios.Rest;
 using PatitasArriba.Web.ViewModels;
 
 namespace PatitasArriba.Tests;
@@ -104,13 +104,20 @@ public class RestServicesTests {
         api.Respond = (method, path, body) => {
             Assert.That(method, Is.EqualTo("POST"));
             Assert.That(path, Does.EndWith("/login"));
-            Assert.That(Read<Dictionary<string, string>>(body)["nombreUsuario"], Is.EqualTo("ana"));
+            Assert.That(Read<Dictionary<string, string>>(body)["correo"], Is.EqualTo("ana@example.com"));
             return (200, "{\"id\":10,\"idPersona\":7,\"nombreUsuario\":\"ana\",\"rol\":\"CLIENTE\",\"nombres\":\"Ana\"}");
         };
-        var session = await services.GetRequiredService<ICuentaService>().Login("ana", "secret");
+        var session = await services.GetRequiredService<ICuentaService>().Login("ana@example.com", "secret");
         Assert.That(session.Id, Is.EqualTo(10));
         Assert.That(session.IdPersona, Is.EqualTo(7));
         Assert.That(session.Rol, Is.EqualTo(RolUsuario.CLIENTE));
+    }
+
+    [Test]
+    public async Task ServiceWithoutDurationReadsAsNull() {
+        api.Respond = (_, _, _) => (200, "[{\"id\":8,\"nombre\":\"Atención de emergencia\",\"precioBase\":150,\"tipo\":\"EMERGENCIA\",\"duracionEstimada\":null}]");
+        var servicios = await services.GetRequiredService<IServicioService>().FindAll();
+        Assert.That(servicios.Single().DuracionEstimada, Is.Null);
     }
 
     [Test]
@@ -175,24 +182,30 @@ public class RestServicesTests {
     }
 
     [Test]
-    public async Task PersonRetryReusesAccountWhenPersonValidationFails() {
-        var accountsCreated = 0;
-        api.Respond = (method, path, body) => {
-            if (path.EndsWith("/cuentas") && method == "POST") {
-                accountsCreated++;
-                return (201, "{\"id\":20}");
-            }
-            if (path.EndsWith("/cuentas/20")) return (200, body);
-            var dto = Read<PatitasArriba.Web.DTOs.ClienteDTO>(body);
-            Assert.That(dto.Cuenta!.Id, Is.EqualTo(20));
-            return (400, "{\"error\":\"DNI inválido\"}");
+    public async Task PersonInsertCreatesTheAccountWithOnlyTheEmail() {
+        string? method = null, path = null;
+        PatitasArriba.Web.DTOs.ClienteDTO? sent = null;
+        api.Respond = (m, p, body) => {
+            method = m;
+            path = p;
+            sent = Read<PatitasArriba.Web.DTOs.ClienteDTO>(body);
+            return (201, "{\"id\":5,\"cuenta\":{\"id\":20,\"correo\":\"ana@example.com\"}}");
         };
-        var client = new ClienteViewModel { NombreUsuario = "ana", Correo = "ana@example.com", Password = "secret" };
-        var service = services.GetRequiredService<IClienteService>();
-        Assert.ThrowsAsync<HttpRequestException>(async () => await service.Insert(client));
-        Assert.That(client.IdCuenta, Is.EqualTo(20));
-        Assert.ThrowsAsync<HttpRequestException>(async () => await service.Insert(client));
-        Assert.That(accountsCreated, Is.EqualTo(1));
+        var client = new ClienteViewModel { Correo = "ana@example.com", Dni = "12345678", Nombres = "Ana" };
+        await services.GetRequiredService<IClienteService>().Insert(client);
+        Assert.That(method, Is.EqualTo("POST"));
+        Assert.That(path, Does.EndWith("/clientes/con-cuenta"));
+        Assert.That(sent!.Cuenta!.Correo, Is.EqualTo("ana@example.com"));
+        Assert.That(sent.Cuenta.Password, Is.Null);
+        Assert.That(client.Id, Is.EqualTo(5));
+    }
+
+    [Test]
+    public async Task PersonInsertPropagatesTheValidationError() {
+        api.Respond = (_, _, _) => (400, "{\"error\":\"DNI inválido\"}");
+        var client = new ClienteViewModel { Correo = "ana@example.com" };
+        Assert.ThrowsAsync<HttpRequestException>(
+            async () => await services.GetRequiredService<IClienteService>().Insert(client));
         await Task.CompletedTask;
     }
 

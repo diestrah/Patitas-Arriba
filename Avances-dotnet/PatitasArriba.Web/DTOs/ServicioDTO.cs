@@ -7,6 +7,6 @@ public class ServicioDTO {
     public double PrecioBase { get; set; }
     public string? Descripcion { get; set; }
     public string? Tipo { get; set; }
-    public int DuracionEstimada { get; set; }
+    public int? DuracionEstimada { get; set; }
 }
 

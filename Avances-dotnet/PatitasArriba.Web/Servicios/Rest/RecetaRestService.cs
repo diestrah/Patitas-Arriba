@@ -2,7 +2,7 @@ using System.Net;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class RecetaRestService : RegistroRestService<RecetaViewModel, RecetaDTO>, IRecetaService {
     public RecetaRestService(IConfiguration configuration) : base(configuration, "recetas") { }

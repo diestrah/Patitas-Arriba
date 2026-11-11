@@ -3,7 +3,7 @@ using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 using PatitasArriba.Web.Servicios.Rest;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class HorarioRestService : RegistroRestService<HorarioViewModel, HorarioDTO>, IHorarioService {
     public HorarioRestService(IConfiguration configuration) : base(configuration, "horarios") { }

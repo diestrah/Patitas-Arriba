@@ -1,6 +1,6 @@
 using System.Net;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public abstract class RegistroRestService<TModel, TDto> : IRegistroService<TModel>
     where TModel : class where TDto : class {
@@ -21,6 +21,7 @@ public abstract class RegistroRestService<TModel, TDto> : IRegistroService<TMode
     protected virtual Task<TModel> ConvertAsync(TDto dto) => Task.FromResult(ToViewModel(dto));
     protected virtual Task PrepareRead() => Task.CompletedTask;
     protected virtual Task BeforeSave(TModel modelo) => Task.CompletedTask;
+    protected virtual string InsertUrl => RecursoUrl;
 
     public virtual Task<List<TModel>> FindAll() => FindList(RecursoUrl);
     protected async Task<List<TModel>> FindList(string url) {
@@ -45,7 +46,7 @@ public abstract class RegistroRestService<TModel, TDto> : IRegistroService<TMode
     }
     public virtual async Task Insert(TModel modelo) {
         await BeforeSave(modelo);
-        var resultado = await HttpUtils.DoPost<TDto, TDto>(RecursoUrl, ToDto(modelo));
+        var resultado = await HttpUtils.DoPost<TDto, TDto>(InsertUrl, ToDto(modelo));
         SetId(modelo, resultado);
     }
     public virtual async Task Update(TModel modelo) {

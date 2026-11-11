@@ -1,4 +1,4 @@
-using PatitasArriba.Web.Servicios.Reste;
+using PatitasArriba.Web.Servicios.Rest;
 using PatitasArriba.Web.Components;
 using PatitasArriba.Web.Seguridad;
 

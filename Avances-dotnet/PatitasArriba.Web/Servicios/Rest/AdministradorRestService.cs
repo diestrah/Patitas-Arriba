@@ -2,7 +2,7 @@ using System.Net;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
 
-namespace PatitasArriba.Web.Servicios.Reste;
+namespace PatitasArriba.Web.Servicios.Rest;
 
 public class AdministradorRestService : RegistroRestService<AdministradorViewModel, AdministradorDTO>, IAdministradorService {
     public AdministradorRestService(IConfiguration configuration) : base(configuration, "administradores") { }
@@ -14,16 +14,7 @@ public class AdministradorRestService : RegistroRestService<AdministradorViewMod
         try { return await FindOne("dni", valor); }
         catch (HttpRequestException ex) when (ex.StatusCode == HttpStatusCode.NotFound) { return null; }
     }
-    // Java requiere una cuenta existente; conservamos el id para no duplicarla si se reintenta.
-    // Son dos solicitudes HTTP: Java no ofrece una transacción conjunta cuenta + persona.
-    protected override async Task BeforeSave(AdministradorViewModel modelo) {
-        var cuenta = new CuentaDTO { Id = modelo.IdCuenta, NombreUsuario = modelo.NombreUsuario,
-            Correo = modelo.Correo, Password = modelo.Password };
-        if (modelo.IdCuenta == 0) {
-            var creada = await HttpUtils.DoPost<CuentaDTO, CuentaDTO>($"{BaseUrl}/cuentas", cuenta);
-            modelo.IdCuenta = creada.Id;
-        } else {
-            await HttpUtils.DoPut<CuentaDTO, CuentaDTO>($"{BaseUrl}/cuentas/{modelo.IdCuenta}", cuenta);
-        }
-    }
+    // El administrador solo escribe el correo: Java crea la persona y su cuenta en una sola transacción (RN-AC-07)
+    // y la persona elige su contraseña con el enlace que recibe por correo. Al modificar solo viaja el id de la cuenta.
+    protected override string InsertUrl => $"{RecursoUrl}/con-cuenta";
 }
