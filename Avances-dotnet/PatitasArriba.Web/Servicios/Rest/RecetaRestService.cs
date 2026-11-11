@@ -1,7 +1,6 @@
 using System.Net;
 using PatitasArriba.Web.DTOs;
 using PatitasArriba.Web.ViewModels;
-using PatitasArriba.Web.Servicios.Rest;
 
 namespace PatitasArriba.Web.Servicios.Reste;
 
