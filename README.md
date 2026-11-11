@@ -11,7 +11,6 @@ Repositorio del trabajo de aplicación (TA) del curso **Programación 3**.
 | [`Avances/`](Avances/) | Backend en **Java** (Maven multimódulo) y servicios REST. |
 | [`Avances/sql/`](Avances/sql/) | Script de creación de la base de datos MySQL, stored procedures, datos iniciales/de prueba y diagrama físico. |
 | [`Avances-dotnet/`](Avances-dotnet/) | Frontend en **Blazor (.NET 10)** y sus pruebas con Playwright + NUnit. |
-| `SQL/` | Respaldo antiguo del diagrama físico. |
 
 ### Módulos del backend (`Avances/`)
 
