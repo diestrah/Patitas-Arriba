@@ -280,7 +280,7 @@ Una boleta puede combinar tres tipos de línea:
 |---|---|
 | RN-BO-01 | Toda boleta tiene cliente, fecha, método de pago, número y al menos una línea. |
 | RN-BO-02 | Métodos de pago: **Efectivo, Tarjeta de crédito, Tarjeta de débito, Yape**. |
-| RN-BO-03 | El número tiene el formato `B001-000123` y es único, incluso frente a boletas anuladas. **[BD]** |
+| RN-BO-03 | El número tiene el formato `B001-000123` y es único, incluso frente a boletas anuladas. **[BD]** Si la boleta se registra sin número, el sistema le asigna el siguiente de la serie `B001`, contando también las anuladas. |
 | RN-BO-04 | Si la boleta cobra servicios o insumos, el cliente debe ser **el dueño de la mascota** atendida. |
 | RN-BO-05 | **Los precios los fija el sistema**: el precio unitario es el precio base del servicio o artículo en el catálogo, que debe estar activo. Subtotal = precio × cantidad; el total es la suma de los subtotales. |
 | RN-BO-06 | Toda cantidad es de al menos 1; un servicio se cobra con cantidad 1. |
