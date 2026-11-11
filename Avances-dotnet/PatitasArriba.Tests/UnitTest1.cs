@@ -23,7 +23,7 @@ public class PruebasInterfaz : PageTest
     };
 
     // Inicia sesion con la cuenta del rol. Blazor Server tarda un instante en enlazar los eventos,
-    // por eso se reintenta si todavia no aparece el saludo.
+    // por eso se reintenta si todavia no aparece el usuario en la barra superior.
     private async Task IniciarSesionAsync(string rol)
     {
         for (int intento = 0; intento < 3; intento++)
@@ -37,7 +37,7 @@ public class PruebasInterfaz : PageTest
 
             try
             {
-                await Expect(Page.GetByText("Bienvenido,")).ToBeVisibleAsync(new() { Timeout = 15000 });
+                await Expect(Page.Locator(".usuario-barra")).ToBeVisibleAsync(new() { Timeout = 15000 });
                 return;
             }
             catch (Exception)
@@ -107,7 +107,7 @@ public class PruebasInterfaz : PageTest
     {
         await Page.GotoAsync($"{BaseUrl}/clientes");
 
-        await Expect(Page).ToHaveURLAsync($"{BaseUrl}/login");
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/login"));
     }
 
     // Seguridad: el cliente no entra por URL a pantallas de otros roles
@@ -131,7 +131,7 @@ public class PruebasInterfaz : PageTest
 
         await Page.ReloadAsync();
 
-        await Expect(Page.GetByText("Bienvenido,")).ToBeVisibleAsync();
+        await Expect(Page.Locator(".usuario-barra")).ToBeVisibleAsync();
         await Expect(GrupoDelMenu("Personal")).ToBeVisibleAsync();
     }
 }

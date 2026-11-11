@@ -21,7 +21,7 @@ public static class SeguridadExtensions {
         services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
             .AddCookie(opciones => {
                 opciones.LoginPath = "/login";
-                opciones.AccessDeniedPath = "/login";
+                opciones.AccessDeniedPath = "/acceso-denegado";
                 opciones.ExpireTimeSpan = TimeSpan.FromHours(8);
             });
 

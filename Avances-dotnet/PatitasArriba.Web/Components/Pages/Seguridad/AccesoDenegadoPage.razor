@@ -1,0 +1,9 @@
+@page "/acceso-denegado"
+@attribute [Authorize]
+
+<PageTitle>Acceso denegado</PageTitle>
+
+@* Abrir por URL una página de otro rol termina aquí (AccessDeniedPath en Seguridad/SeguridadExtensions.cs).
+   Navegando dentro de la aplicación, el mismo mensaje lo muestra Routes.razor *@
+<div class="alert alert-danger">No tiene permisos para acceder a esta página.</div>
+<a class="btn btn-outline-primary" href="">Volver al inicio</a>
