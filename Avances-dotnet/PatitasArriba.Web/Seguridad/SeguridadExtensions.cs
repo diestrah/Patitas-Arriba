@@ -38,7 +38,8 @@ public static class SeguridadExtensions {
 
     public static void MapSesionEndpoints(this IEndpointRouteBuilder app) {
         app.MapPost("/cuenta/login", IniciarSesion);
-        app.MapPost("/cuenta/logout", CerrarSesion);
+        // Con solo HttpContext de parámetro se tomaría como RequestDelegate y se perdería la redirección
+        app.MapPost("/cuenta/logout", (Delegate)CerrarSesion);
     }
 
     // POST /login en el backend: valida la contraseña y deduce el rol de la cuenta.

@@ -1,6 +1,15 @@
 ﻿<Router AppAssembly="typeof(Program).Assembly" NotFoundPage="typeof(Pages.NotFound)">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+        @* Cada página declara su permiso con @attribute [Authorize(Policy = "...")] (políticas en Seguridad/SeguridadExtensions.cs) *@
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                @if (context.User.Identity?.IsAuthenticated != true) {
+                    <RedirectToLogin />
+                } else {
+                    <div class="alert alert-danger">No tiene permisos para acceder a esta página.</div>
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
 </Router>
