@@ -1,3 +1,4 @@
+using PatitasArriba.Web.Servicios.Reste;
 using PatitasArriba.Web.Components;
 using PatitasArriba.Web.Seguridad;
 
@@ -9,6 +10,8 @@ builder.Services.AddRazorComponents()
 
 // Mientras no se enlaza con el backend: sesión simulada para mostrar el menú de cada rol
 builder.Services.AddScoped<SesionDemo>();
+
+builder.Services.AddPatitasRestServices();
 
 var app = builder.Build();
 
