@@ -69,22 +69,6 @@
                 </button>
 
                 <p class="login-registro">¿No tienes una cuenta? <a href="registro" tabindex="5">Crea una</a></p>
-
-                <div class="login-ayuda">
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
-                    <span>No eliges tu rol: el sistema lo detecta según tu cuenta.</span>
-                </div>
-
-
-                @* Cuentas de Avances/sql/datos-prueba.sql (contraseña Patitas123): solo existen si se cargó ese script *@
-                <div class="login-demo">
-                    Cuentas de prueba (contraseña Patitas123):
-                    <div class="chips">
-                        <button type="button" class="chip" @onclick='() => Rellenar("rosa.admin@patitas.pe")'><b>rosa.admin@patitas.pe</b> · Administradora</button>
-                        <button type="button" class="chip" @onclick='() => Rellenar("dra.lucia@patitas.pe")'><b>dra.lucia@patitas.pe</b> · Veterinaria</button>
-                        <button type="button" class="chip" @onclick='() => Rellenar("ana.torres@gmail.com")'><b>ana.torres@gmail.com</b> · Cliente</button>
-                    </div>
-                </div>
             </EditForm>
             <p class="lema">Cuidamos a tu mejor amigo con mucho cariño <span>♥</span></p>
         </div>
@@ -116,11 +100,6 @@
         }
     }
 
-    private void Rellenar(string correo) {
-        ViewModel.Correo = correo;
-        ViewModel.Password = "Patitas123";
-        MensajeError = null;
-    }
 
     // POST /login: el backend valida la contraseña y deduce el rol de la cuenta.
     // Si las credenciales fallan el mensaje es siempre el mismo, sin decir si falló el correo o la contraseña (RN-CU-05)

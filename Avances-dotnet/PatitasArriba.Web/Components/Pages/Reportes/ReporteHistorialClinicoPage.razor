@@ -26,14 +26,13 @@
         @if (Resultados.Count == 0) {
             <div class="alert alert-warning mb-0">No se encontró ninguna mascota con “@TextoBuscado”.</div>
         } else {
-            <p class="small text-muted mb-2">Elija la mascota para ver su historial clínico:</p>
             <div class="d-flex flex-wrap gap-2">
                 @foreach (MascotaViewModel resultado in Resultados) {
-                    <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-2 text-start" @onclick="() => Elegir(resultado.Id)">
+                    <button type="button" class="resultado-mascota @(IdMascota == resultado.Id ? "sel" : "")" aria-pressed="@(IdMascota == resultado.Id)" @onclick="() => Elegir(resultado.Id)">
                         <AvatarMascota Nombre="@resultado.Nombre" Foto="@resultado.Foto" Tamano="chico" />
                         <span>
-                            <strong>@resultado.Nombre</strong>
-                            <span class="d-block small">@resultado.NombreDueno</span>
+                            @resultado.Nombre
+                            <small>@resultado.NombreDueno</small>
                         </span>
                     </button>
                 }
@@ -66,8 +65,10 @@ else {
                 <div class="alert alert-info">La mascota todavía no tiene atenciones registradas.</div>
             }
 
+            <div class="linea-tiempo">
             @foreach (AtencionViewModel atencion in Historial) {
                 RecetaViewModel? receta = RecetasPorAtencion.GetValueOrDefault(atencion.Id);
+                <div class="item-linea">
                 <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between">
                         <span class="fw-bold">@(atencion.FechaHora?.ToString("dd/MM/yyyy HH:mm")) · @atencion.NombreServicio</span>
@@ -91,7 +92,9 @@ else {
                         }
                     </div>
                 </div>
+                </div>
             }
+            </div>
         </div>
     </div>
 }
@@ -121,7 +124,11 @@ else {
     // Con una mascota elegida: GET /mascotas/{id}, su historial (GET /atenciones?mascota={id}) y las recetas
     // (GET /recetas) para mostrar la de cada atención
     protected override async Task OnParametersSetAsync() {
-        Resultados = null;
+        // Si se llegó eligiendo una mascota de los resultados, esos resultados se conservan: así el flujo es el mismo
+        // se encuentre una mascota o varias
+        if (IdMascota == null || Resultados == null || !Resultados.Any(r => r.Id == IdMascota)) {
+            Resultados = null;
+        }
         MensajeError = null;
         if (IdMascota == null) {
             Mascota = null;

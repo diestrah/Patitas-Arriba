@@ -17,13 +17,29 @@
     }
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <div class="seg-pago ms-auto" role="group" aria-label="Vista">
+        <button type="button" tabindex="4" class="@(Vista == "tarjetas" ? "activo" : "")" aria-pressed="@(Vista == "tarjetas")" @onclick='() => Vista = "tarjetas"'>
+            <Icono Nombre="grid" /> Tarjetas
+        </button>
+        <button type="button" tabindex="5" class="@(Vista == "tabla" ? "activo" : "")" aria-pressed="@(Vista == "tabla")" @onclick='() => Vista = "tabla"'>
+            <Icono Nombre="list" /> Tabla
+        </button>
+    </div>
+</div>
+
+<div class="chips-filtro mb-3" role="group" aria-label="Filtrar por tipo">
+    @foreach (string tipo in new[] { "Todas", "Perros", "Gatos" }) {
+        <button type="button" class="@(TipoFiltro == tipo ? "activo" : "")" aria-pressed="@(TipoFiltro == tipo)" @onclick="() => ElegirTipo(tipo)">
+            @tipo <span class="cuenta">@CuantasDe(tipo)</span>
+        </button>
+    }
 </div>
 
 @if (MensajeExito != null) {
@@ -38,6 +54,51 @@
 }
 else if (!Mascotas.Any()) {
     <div class="alert alert-info">No se encontraron mascotas.</div>
+}
+else if (Vista == "tarjetas") {
+    <div class="grilla-tarjetas" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr))">
+        @foreach (MascotaViewModel mascota in Mascotas) {
+            <article class="tarjeta-info">
+                <div class="tarjeta-enc">
+                    <AvatarMascota Nombre="@mascota.Nombre" Foto="@mascota.Foto" Tamano="grande" />
+                    <div>
+                        <h5>@mascota.Nombre</h5>
+                        <small>@TextoEnum.De(mascota.TipoMascota)@(string.IsNullOrWhiteSpace(mascota.Raza) ? "" : $" · {mascota.Raza}")</small>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-1">
+                    <span class="etq @(mascota.Sexo == SexoMascota.MACHO ? "etq-verde" : "etq-mostaza")">@TextoEnum.De(mascota.Sexo)</span>
+                    @if (mascota.FechaNacimiento != null) {
+                        <span class="etq etq-gris">@Edad(mascota.FechaNacimiento.Value)</span>
+                    }
+                    @if (mascota.Peso != null) {
+                        <span class="etq etq-gris">@mascota.Peso.Value.ToString("N1") kg</span>
+                    }
+                </div>
+                <div class="datos-contacto">
+                    <div><Icono Nombre="user" />@mascota.NombreDueno</div>
+                    @if (mascota.FechaNacimiento != null) {
+                        <div><Icono Nombre="calendar" />Nació el @mascota.FechaNacimiento.Value.ToString("dd/MM/yyyy")</div>
+                    }
+                </div>
+                <div class="tarjeta-pie">
+                    <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => VerHistorial(mascota.Id)">
+                        <Icono Nombre="clipboard" /><span>Historial</span>
+                    </button>
+                    @if (Sesion.EsAdministrador) {
+                        <div class="acciones">
+                            <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarMascota(mascota.Id)">
+                                <Icono Nombre="edit" />
+                            </button>
+                            <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(mascota)">
+                                <Icono Nombre="trash" />
+                            </button>
+                        </div>
+                    }
+                </div>
+            </article>
+        }
+    </div>
 }
 else {
     <QuickGrid Items="Mascotas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
@@ -88,6 +149,27 @@ else {
     private bool Cargando { get; set; } = true;
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+    private string Vista { get; set; } = "tarjetas";
+    private string TipoFiltro { get; set; } = "Todas";
+
+    private bool EsDeTipo(MascotaViewModel m, string tipo) =>
+        tipo == "Todas" || (tipo == "Perros" && m.TipoMascota == TipoMascota.PERRO) || (tipo == "Gatos" && m.TipoMascota == TipoMascota.GATO);
+
+    private int CuantasDe(string tipo) => Todas.Count(m => EsDeTipo(m, tipo));
+
+    private void ElegirTipo(string tipo) {
+        TipoFiltro = tipo;
+        Filtrar();
+    }
+
+    // "5 años", "8 meses": para leer la edad de un vistazo
+    private static string Edad(DateOnly nacimiento) {
+        DateOnly hoy = DateOnly.FromDateTime(DateTime.Today);
+        int meses = (hoy.Year - nacimiento.Year) * 12 + hoy.Month - nacimiento.Month - (hoy.Day < nacimiento.Day ? 1 : 0);
+        if (meses < 12) return meses <= 1 ? "1 mes" : $"{Math.Max(meses, 0)} meses";
+        int años = meses / 12;
+        return años == 1 ? "1 año" : $"{años} años";
+    }
 
     // GET /mascotas (cada una trae a su dueño). Solo en la pasada interactiva: así el prerenderizado no repite la consulta
     protected override async Task OnInitializedAsync() {
@@ -105,8 +187,9 @@ else {
     private void Filtrar() {
         string texto = Filtro.Trim();
         Mascotas = Todas
-            .Where(m => m.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
-                     || m.NombreDueno.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .Where(m => EsDeTipo(m, TipoFiltro)
+                     && (m.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                         || m.NombreDueno.Contains(texto, StringComparison.OrdinalIgnoreCase)))
             .AsQueryable();
     }
 

@@ -107,10 +107,10 @@ else {
                                 <span class="slot-guion">—</span>
                             }
                         </span>
-                        <span class="slot-texto">
+                        <span class="slot-icono">
                             @if (context.IsActivo) {
-                                <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
-                                    <Icono Nombre="ban" /><span>Anular</span>
+                                <button class="btn btn-outline-danger btn-icono" title="Anular boleta" aria-label="Anular boleta" @onclick="() => PedirAnulacion(context)">
+                                    <Icono Nombre="ban" />
                                 </button>
                             } else {
                                 <span class="slot-guion">—</span>
