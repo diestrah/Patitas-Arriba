@@ -1,4 +1,10 @@
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IServicioService ServicioService;
+@inject IAtencionService AtencionService;
+@inject IRecetaService RecetaService;
+@inject IVeterinarioService VeterinarioService;
+@inject IHorarioService HorarioService;
 
 @* Inicio del veterinario: mismo formato que el del administrador y el del cliente (banner, indicadores y tarjetas).
    Muestra su siguiente paciente, su agenda de hoy y las atenciones que ya registró hoy (con su receta). *@
@@ -10,6 +16,13 @@
     </div>
 </BannerInicio>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando su agenda de hoy...</p>
+} else {
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
         <a class="indicador indicador-verde" href="mi-agenda">
@@ -144,7 +157,7 @@
                     <p class="text-muted my-2">Todavía no registra atenciones hoy.</p>
                 }
                 @foreach (AtencionViewModel atencion in AtencionesHoy) {
-                    RecetaViewModel? receta = DatosEjemplo.RecetaDeAtencion(atencion.Id);
+                    RecetaViewModel? receta = RecetasPorAtencion.GetValueOrDefault(atencion.Id);
                     <div class="fila-pendiente">
                         <div>
                             <strong>@atencion.NombreMascota</strong> · @atencion.NombreServicio
@@ -167,12 +180,19 @@
         </div>
     </div>
 </div>
+}
 
 @code {
     private List<ItemAgendaViewModel> AgendaHoy { get; set; } = [];
     private List<AtencionViewModel> AtencionesHoy { get; set; } = [];
     private HashSet<int> Atendidos { get; set; } = [];
     private Dictionary<int, string?> Fotos { get; set; } = [];
+    private Dictionary<int, RecetaViewModel> RecetasPorAtencion { get; set; } = [];
+
+    // Los horarios completos del veterinario que inició sesión, para saber si está de turno
+    private List<HorarioViewModel> MisHorarios { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
 
     private List<ItemAgendaViewModel> PorAtender => AgendaHoy.Where(i => AgendaVeterinario.EsPorAtender(i, Atendidos)).ToList();
     private int AtendidosHoy => AgendaHoy.Count(i => Atendidos.Contains(i.IdDetalleCita));
@@ -193,6 +213,9 @@
     // Resumen en una frase: lo que tiene pendiente hoy y su turno (RN-HO-03)
     private string Resumen {
         get {
+            if (Cargando) {
+                return "Preparando su agenda de hoy...";
+            }
             int porAtender = PorAtender.Count;
             int emergencias = PorAtender.Count(i => i.EsEmergencia);
             string texto = porAtender == 0
@@ -206,25 +229,48 @@
     private string TextoTurno {
         get {
             DateTime ahora = DateTime.Now;
-            HorarioViewModel? turno = TurnosPersonal.EnTurno(Sesion.NombreUsuario, ahora);
+            HorarioViewModel? turno = TurnosPersonal.EnTurno(MisHorarios, ahora);
             if (turno != null) {
                 return $"Está en turno hasta las {turno.HoraFin:HH:mm}.";
             }
-            (DateTime Inicio, HorarioViewModel Horario)? proximo = TurnosPersonal.ProximoTurno(Sesion.NombreUsuario, ahora);
+            (DateTime Inicio, HorarioViewModel Horario)? proximo = TurnosPersonal.ProximoTurno(MisHorarios, ahora);
             return proximo == null ? "No tiene horarios asignados." : $"Su próximo turno: {TurnosPersonal.TextoMomento(proximo.Value.Inicio, ahora)}.";
         }
     }
 
-    // Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id}, GET /atenciones y GET /recetas?atencion={id}
-    protected override void OnInitialized() {
-        List<AtencionViewModel> atenciones = DatosEjemplo.Atenciones();
-        Atendidos = atenciones.Select(a => a.IdDetalleCita).ToHashSet();
-        Fotos = DatosEjemplo.Mascotas().ToDictionary(m => m.Id, m => m.Foto);
-        AgendaHoy = AgendaVeterinario.DelDia(Sesion.NombreUsuario, DateTime.Today);
-        AtencionesHoy = atenciones
-            .Where(a => a.NombreVeterinario == Sesion.NombreUsuario && a.FechaHora?.Date == DateTime.Today)
-            .OrderBy(a => a.FechaHora)
-            .ToList();
+    // GET /citas?fecha=hoy&veterinario={id} y /servicios (su agenda de hoy), GET /atenciones (lo atendido y sus
+    // atenciones de hoy), GET /recetas, y su ficha con sus horarios (GET /veterinarios/{id} y /horarios).
+    // Solo en la pasada interactiva: así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            int yo = Sesion.IdPersona;
+            Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today), yo);
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<List<AtencionViewModel>> atenciones = AtencionService.FindAll();
+            Task<List<RecetaViewModel>> recetas = RecetaService.FindAll();
+            Task<VeterinarioViewModel?> ficha = VeterinarioService.FindById(yo);
+            Task<List<HorarioViewModel>> horarios = HorarioService.FindAll();
+
+            List<CitaViewModel> citasDeHoy = await citas;
+            List<AtencionViewModel> todas = await atenciones;
+            AgendaHoy = AgendaVeterinario.DelVeterinario(yo, AgendaClinica.DelDia(DateTime.Today, citasDeHoy, await servicios));
+            Fotos = citasDeHoy.GroupBy(c => c.IdMascota).ToDictionary(g => g.Key, g => g.First().FotoMascota);
+            Atendidos = todas.Select(a => a.IdDetalleCita).ToHashSet();
+            AtencionesHoy = todas
+                .Where(a => a.IdVeterinario == yo && a.FechaHora?.Date == DateTime.Today)
+                .OrderBy(a => a.FechaHora)
+                .ToList();
+            RecetasPorAtencion = (await recetas).GroupBy(r => r.IdAtencion).ToDictionary(g => g.Key, g => g.First());
+
+            VeterinarioViewModel? veterinario = await ficha;
+            HashSet<int> suyos = veterinario?.Horarios.Where(h => h.Seleccionado).Select(h => h.Id).ToHashSet() ?? [];
+            MisHorarios = (await horarios).Where(h => suyos.Contains(h.Id)).ToList();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private string? Foto(int idMascota) => Fotos.GetValueOrDefault(idMascota);

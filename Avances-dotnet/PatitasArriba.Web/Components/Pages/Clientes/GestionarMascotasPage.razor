@@ -1,12 +1,21 @@
 @page "/mascotas/nuevo"
 @page "/mascotas/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IMascotaService MascotaService;
+@inject IClienteService ClienteService;
 
 <PageTitle>Mascotas</PageTitle>
 
 <div class="col-md-7">
     <h3 class="mb-3">@(Id == null ? "Nueva mascota" : "Editar mascota")</h3>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    @if (Cargando) {
+        <p class="text-muted">Cargando mascota...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -62,10 +71,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="9" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="9" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="10" class="btn btn-outline-primary" href="mascotas">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -76,26 +86,51 @@
     private List<ClienteViewModel> Clientes { get; set; } = [];
     private TipoMascota[] Tipos { get; } = Enum.GetValues<TipoMascota>();
     private SexoMascota[] Sexos { get; } = Enum.GetValues<SexoMascota>();
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnInitialized() {
-        Clientes = DatosEjemplo.Clientes();
+    // GET /clientes para elegir al dueño y, al editar, GET /mascotas/{Id}.
+    // Al editar se conservan los datos que este formulario no muestra (la foto que subió el cliente).
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Clientes = (await ClienteService.FindAll()).OrderBy(c => c.NombreCompleto).ToList();
+            if (Id == null) {
+                ViewModel = new MascotaViewModel();
+                return;
+            }
+            MascotaViewModel? mascota = await MascotaService.FindById(Id.Value);
+            if (mascota == null) {
+                Nav.NavigateTo("/mascotas");
+                return;
+            }
+            ViewModel = mascota;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
-    protected override void OnParametersSet() {
-        if (Id == null) {
-            ViewModel = new MascotaViewModel();
-            return;
-        }
-        MascotaViewModel? mascota = DatosEjemplo.Mascotas().FirstOrDefault(m => m.Id == Id);
-        if (mascota == null) {
+    // POST /mascotas o PUT /mascotas/{Id}; si el backend rechaza los datos se muestra su mensaje
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await MascotaService.Insert(ViewModel);
+            } else {
+                await MascotaService.Update(ViewModel);
+            }
             Nav.NavigateTo("/mascotas");
-            return;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
         }
-        ViewModel = mascota;
-    }
-
-    // Sin backend: solo regresa al listado. Al enlazar: POST /mascotas o PUT /mascotas/{Id}
-    private void Guardar() {
-        Nav.NavigateTo("/mascotas");
     }
 }

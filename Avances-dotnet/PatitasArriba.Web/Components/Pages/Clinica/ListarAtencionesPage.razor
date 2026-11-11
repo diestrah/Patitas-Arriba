@@ -1,6 +1,9 @@
 @page "/atenciones"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IAtencionService AtencionService;
+@inject IRecetaService RecetaService;
+@inject IBoletaService BoletaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -25,8 +28,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Atenciones.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando atenciones...</p>
+}
+else if (!Atenciones.Any()) {
     <div class="alert alert-info">No se encontraron atenciones.</div>
 }
 else {
@@ -144,6 +153,8 @@ else {
     private AtencionViewModel? AtencionAAnular { get; set; }
     private HashSet<int> InsumosCobrados { get; set; } = [];
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     // Filtros: se aplican al presionar "Filtrar". Por defecto el veterinario ve las suyas
@@ -151,12 +162,32 @@ else {
     private DateTime? FechaFiltro { get; set; }
     private bool SoloMias { get; set; } = true;
 
-    // Al enlazar: GET /atenciones y GET /recetas?atencion={id}
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.Atenciones().OrderByDescending(a => a.FechaHora).ToList();
-        Recetas = DatosEjemplo.Recetas();
-        InsumosCobrados = DatosEjemplo.InsumosCobrados();
-        Filtrar();
+    // GET /atenciones y GET /recetas (para "Ver receta" o "Emitir receta"). Las boletas (GET /boletas) solo
+    // sirven para avisar de antemano que una atención con insumos ya cobrados no se puede anular; si no cargan,
+    // la pantalla funciona igual y el backend decide al anular.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<AtencionViewModel>> atenciones = AtencionService.FindAll();
+            Task<List<RecetaViewModel>> recetas = RecetaService.FindAll();
+            Todas = (await atenciones).OrderByDescending(a => a.FechaHora).ToList();
+            Recetas = await recetas;
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Cargando = false;
+            return;
+        }
+        Cargando = false;
+        try {
+            InsumosCobrados = (await BoletaService.FindAll())
+                .SelectMany(b => b.Lineas)
+                .Where(l => l.IdInsumoUtilizado != null)
+                .Select(l => l.IdInsumoUtilizado!.Value)
+                .ToHashSet();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            InsumosCobrados = [];
+        }
     }
 
     private void Filtrar() {
@@ -165,7 +196,7 @@ else {
             .Where(a => a.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
                      || a.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
             .Where(a => FechaFiltro == null || a.FechaHora?.Date == FechaFiltro.Value.Date)
-            .Where(a => !SoloMias || a.NombreVeterinario == Sesion.NombreUsuario)
+            .Where(a => !SoloMias || a.IdVeterinario == Sesion.IdPersona)
             .AsQueryable();
     }
 
@@ -209,14 +240,26 @@ else {
         AtencionAAnular = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /atenciones/{id}
-    private void AnularAtencion() {
+    // DELETE /atenciones/{id}: sus insumos vuelven al stock. Si el backend lo rechaza (tiene receta o insumos
+    // ya cobrados) se muestra su mensaje
+    private async Task AnularAtencion() {
         if (AtencionAAnular == null) {
             return;
         }
-        Todas.Remove(AtencionAAnular);
-        MensajeExito = $"Se anuló la atención de {AtencionAAnular.NombreMascota} ({AtencionAAnular.NombreServicio}).";
+        AtencionViewModel atencion = AtencionAAnular;
         AtencionAAnular = null;
-        Filtrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await AtencionService.Delete(atencion.Id);
+            Todas.Remove(atencion);
+            if (AtencionSeleccionada == atencion) {
+                AtencionSeleccionada = null;
+            }
+            MensajeExito = $"Se anuló la atención de {atencion.NombreMascota} ({atencion.NombreServicio}).";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

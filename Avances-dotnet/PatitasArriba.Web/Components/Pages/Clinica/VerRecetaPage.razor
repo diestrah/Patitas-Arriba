@@ -1,6 +1,7 @@
 @page "/recetas/{Id:int}"
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
+@inject IRecetaService RecetaService;
 
 <PageTitle>Receta médica</PageTitle>
 
@@ -10,7 +11,13 @@
     <button class="btn btn-secondary btn-texto" @onclick="() => Imprimir()" disabled="@(Receta == null)"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
-@if (Receta == null) {
+@if (Cargando) {
+    <p class="text-muted">Cargando la receta...</p>
+}
+else if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+else if (Receta == null) {
     <div class="alert alert-warning">No se encontró la receta.</div>
 }
 else {
@@ -55,9 +62,21 @@ else {
     public int Id { get; set; }
 
     private RecetaViewModel? Receta { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
 
-    protected override void OnParametersSet() {
-        Receta = DatosEjemplo.Recetas().FirstOrDefault(r => r.Id == Id);
+    // GET /recetas/{Id} (null si no existe)
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Receta = await RecetaService.FindById(Id);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF.

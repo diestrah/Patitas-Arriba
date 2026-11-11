@@ -1,4 +1,6 @@
 @inject SesionDemo Sesion;
+@inject IMascotaService MascotaService;
+@inject ICitaService CitaService;
 
 @using System.Globalization
 
@@ -6,6 +8,13 @@
     <a class="btn btn-warning btn-texto" href="mis-citas/nueva"><Icono Nombre="plus" /><span>Reservar cita</span></a>
 </BannerInicio>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando sus mascotas y citas...</p>
+} else {
 <section class="mb-4">
     <h5 class="mb-2">Su próxima cita</h5>
     @if (Proxima == null) {
@@ -69,19 +78,32 @@
     </div>
     <a class="fw-bold d-inline-block mt-2" href="mis-citas">Ver mis citas anteriores</a>
 </section>
+}
 
 @code {
     private static readonly CultureInfo Peru = new("es-PE");
 
     private List<MascotaViewModel> Mascotas { get; set; } = [];
     private List<CitaViewModel> Citas { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
 
     private List<CitaViewModel> ProximasCitas => PortalCliente.Proximas(Citas);
     private CitaViewModel? Proxima => ProximasCitas.FirstOrDefault();
 
-    // Al enlazar: GET /mascotas?cliente={id} y GET /citas?cliente={id}
-    protected override void OnInitialized() {
-        Mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
-        Citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
+    // GET /mascotas?cliente={id} y GET /citas?cliente={id} del cliente que inició sesión (los mismos datos
+    // que "Mis mascotas"). Solo en la pasada interactiva: así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<MascotaViewModel>> mascotas = MascotaService.FindByCliente(Sesion.IdPersona);
+            Task<List<CitaViewModel>> citas = CitaService.FindByCliente(Sesion.IdPersona);
+            Mascotas = await mascotas;
+            Citas = await citas;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 }

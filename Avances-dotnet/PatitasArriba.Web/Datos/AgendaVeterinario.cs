@@ -2,11 +2,11 @@ using PatitasArriba.Web.ViewModels;
 
 namespace PatitasArriba.Web.Datos {
     // Agenda del veterinario que usan su inicio, Mi agenda y Registrar atención: qué servicios tiene y cuáles puede atender.
-    // Al enlazar: la agenda sale de GET /citas?fecha=AAAA-MM-DD&veterinario={id} y lo ya atendido de GET /atenciones.
+    // La agenda sale de GET /citas?fecha=AAAA-MM-DD&veterinario={id} (AgendaClinica.DelDia) y lo ya atendido de GET /atenciones.
     public static class AgendaVeterinario {
-        // Servicios de un día asignados al veterinario (las citas rechazadas y canceladas no ocupan agenda)
-        public static List<ItemAgendaViewModel> DelDia(string nombreVeterinario, DateTime fecha) {
-            return DatosEjemplo.AgendaDelDia(fecha).Where(i => i.NombreVeterinario == nombreVeterinario).ToList();
+        // Servicios de la agenda asignados al veterinario (una cita puede tener servicios de otros veterinarios)
+        public static List<ItemAgendaViewModel> DelVeterinario(int idVeterinario, IEnumerable<ItemAgendaViewModel> agenda) {
+            return agenda.Where(i => i.IdVeterinario == idVeterinario).ToList();
         }
 
         // Le falta atenderse y su cita lo permite: aprobada, o pendiente si es emergencia (RN-AT-04)

@@ -1,6 +1,10 @@
 @page "/reportes/agenda-diaria"
 @inject IJSRuntime JS;
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IServicioService ServicioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAtencionService AtencionService;
 
 @using System.Globalization
 
@@ -18,9 +22,16 @@
             <option value="@nombre">@nombre</option>
         }
     </select>
-    <button tabindex="3" class="btn btn-secondary btn-texto ms-auto" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
+    <button tabindex="3" class="btn btn-secondary btn-texto ms-auto" disabled="@Cargando" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger no-print">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted no-print">Generando el reporte...</p>
+} else {
 <div class="reporte-doc">
     <header class="reporte-cab">
         <div class="reporte-marca">
@@ -97,6 +108,7 @@
         <span>Página 1 de 1</span>
     </footer>
 </div>
+}
 
 @code {
     private static readonly CultureInfo Peru = new("es-PE");
@@ -110,17 +122,47 @@
     private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
     private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
 
-    protected override void OnInitialized() {
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
-        Generar();
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+
+    // GET /veterinarios (secciones del reporte), /servicios (duración) y /atenciones (lo ya atendido);
+    // luego el reporte del día. Solo en la pasada interactiva: así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
+            Servicios = await servicios;
+            Atendidos = (await atenciones).Keys.ToHashSet();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Cargando = false;
+            return;
+        }
+        await Generar();
     }
 
-    // Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id} (el veterinario es opcional)
-    private void Generar() {
-        Agenda = DatosEjemplo.AgendaDelDia(Fecha)
-            .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
-            .ToList();
+    // GET /citas?fecha=AAAA-MM-DD del día elegido; el filtro de veterinario se aplica sobre esa agenda
+    private async Task Generar() {
+        Cargando = true;
+        MensajeError = null;
+        DateTime fecha = Fecha;
+        try {
+            List<CitaViewModel> citas = await CitaService.FindByFecha(DateOnly.FromDateTime(fecha));
+            // Si mientras tanto se eligió otra fecha, esta respuesta ya no corresponde
+            if (fecha != Fecha) return;
+            Agenda = AgendaClinica.DelDia(fecha, citas, Servicios)
+                .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
+                .ToList();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Agenda = [];
+        } finally {
+            if (fecha == Fecha) Cargando = false;
+        }
     }
 
     private int Contar(EstadoServicioAgenda estado) {

@@ -1,5 +1,11 @@
 @page "/boletas/nueva"
 @inject NavigationManager Nav;
+@inject IBoletaService BoletaService;
+@inject IClienteService ClienteService;
+@inject IArticuloService ArticuloService;
+@inject ICitaService CitaService;
+@inject IAtencionService AtencionService;
+@inject IServicioService ServicioService;
 
 <PageTitle>Nueva boleta</PageTitle>
 
@@ -24,8 +30,8 @@
                     <div class="input-group">
                         <input id="dni-buscar" tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
                                @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
-                        <button tabindex="2" type="button" class="btn btn-primary btn-texto" @onclick="() => BuscarCliente()">
-                            <Icono Nombre="search" /><span>Buscar</span>
+                        <button tabindex="2" type="button" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => BuscarCliente()">
+                            <Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span>
                         </button>
                     </div>
                     @if (MensajeCliente != null) {
@@ -122,8 +128,8 @@
                         </div>
                     </div>
                     <ValidationMessage For="() => ViewModel.Lineas" />
-                    <button tabindex="4" type="button" class="btn btn-primary btn-texto justify-content-center" @onclick="() => Emitir()">
-                        <Icono Nombre="file-text" /><span>Generar boleta · S/ @ViewModel.Total.ToString("N2")</span>
+                    <button tabindex="4" type="button" class="btn btn-primary btn-texto justify-content-center" disabled="@Guardando" @onclick="() => Emitir()">
+                        <Icono Nombre="file-text" /><span>@(Guardando ? "Generando..." : $"Generar boleta · S/ {ViewModel.Total:N2}")</span>
                     </button>
                     <a tabindex="5" class="btn btn-outline-primary" href="boletas">Cancelar</a>
                 </div>
@@ -151,47 +157,72 @@
 
     // Mensaje del backend cuando rechace la boleta
     private string? MensajeError { get; set; }
+    private bool Buscando { get; set; }
+    private bool Guardando { get; set; }
+
+    // El número (B001-000123) lo asigna el backend al emitir (RN-BO-03): así no se repite aunque haya anuladas
+    private const string NumeroAlEmitir = "N.° al emitir";
 
     protected override void OnInitialized() {
-        Articulos = DatosEjemplo.Articulos();
-        ViewModel.SerieCorrelativo = DatosEjemplo.SiguienteNumeroBoleta();
+        ViewModel.SerieCorrelativo = NumeroAlEmitir;
         Contexto = new EditContext(ViewModel);
     }
 
-    private void TeclaEnDni(KeyboardEventArgs e) {
-        if (e.Key == "Enter") {
-            BuscarCliente();
+    // GET /articulos para la venta en caja. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Articulos = (await ArticuloService.FindAll()).OrderBy(a => a.Nombre).ToList();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
         }
     }
 
-    // Busca al cliente por DNI y carga SOLO lo que ese cliente tiene pendiente de cobro (RN-BO-04)
-    private void BuscarCliente() {
+    private async Task TeclaEnDni(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            await BuscarCliente();
+        }
+    }
+
+    // Busca al cliente por DNI (GET /clientes?dni=...) y carga SOLO lo que ese cliente tiene pendiente de cobro (RN-BO-04)
+    private async Task BuscarCliente() {
+        if (Buscando) return;
         MensajeCliente = null;
         string dni = DniBuscar.Trim();
         if (dni.Length != 8 || !dni.All(char.IsDigit)) {
             MensajeCliente = "El DNI debe tener 8 dígitos";
             return;
         }
-        ClienteViewModel? cliente = DatosEjemplo.ClientePorDni(dni);
-        if (cliente == null) {
-            MensajeCliente = $"No hay un cliente activo con el DNI {dni}. Regístrelo primero en Clientes.";
-            return;
-        }
-        ViewModel.IdCliente = cliente.Id;
-        ViewModel.NombreCliente = cliente.NombreCompleto;
-        ViewModel.DniCliente = cliente.Dni;
+        Buscando = true;
+        try {
+            ClienteViewModel? cliente = await ClienteService.FindByDni(dni);
+            if (cliente == null) {
+                MensajeCliente = $"No hay un cliente activo con el DNI {dni}. Regístrelo primero en Clientes.";
+                return;
+            }
+            List<LineaBoletaViewModel> pendientes = await CobrosPendientes.DelCliente(cliente.Id,
+                CitaService, AtencionService, BoletaService, ServicioService);
 
-        // Al cambiar de cliente se descartan los pendientes del anterior (los vendidos en caja se mantienen)
-        foreach (LineaBoletaViewModel linea in Pendientes) {
-            ViewModel.Lineas.Remove(linea);
+            ViewModel.IdCliente = cliente.Id;
+            ViewModel.NombreCliente = cliente.NombreCompleto;
+            ViewModel.DniCliente = cliente.Dni;
+
+            // Al cambiar de cliente se descartan los pendientes del anterior (los vendidos en caja se mantienen)
+            foreach (LineaBoletaViewModel linea in Pendientes) {
+                ViewModel.Lineas.Remove(linea);
+            }
+            Marcadas.Clear();
+            Pendientes = pendientes;
+            foreach (LineaBoletaViewModel linea in Pendientes) {
+                Marcadas.Add(linea);
+                ViewModel.Lineas.Add(linea);
+            }
+            Contexto.NotifyValidationStateChanged();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeCliente = ErrorServicio.Desde(ex);
+        } finally {
+            Buscando = false;
         }
-        Marcadas.Clear();
-        Pendientes = DatosEjemplo.PendientesDeCobro(cliente.Id);
-        foreach (LineaBoletaViewModel linea in Pendientes) {
-            Marcadas.Add(linea);
-            ViewModel.Lineas.Add(linea);
-        }
-        Contexto.NotifyValidationStateChanged();
     }
 
     private void Marcar(LineaBoletaViewModel linea, bool marcada) {
@@ -235,11 +266,24 @@
         ViewModel.Lineas.Remove(linea);
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /boletas con detallesServicio (IdDetalleCita)
-    // y detallesArticulo (IdArticulo y, si es insumo, IdInsumoUtilizado); el backend fija los precios.
-    private void Emitir() {
-        if (Contexto.Validate()) {
+    // POST /boletas con detallesServicio (IdDetalleCita) y detallesArticulo (IdArticulo y, si es insumo,
+    // IdInsumoUtilizado). El backend asigna el número, fija los precios, recalcula el total y descuenta el stock
+    // de lo vendido en caja; si algo no cumple sus reglas se muestra su mensaje.
+    private async Task Emitir() {
+        if (Guardando || !Contexto.Validate()) {
+            return;
+        }
+        MensajeError = null;
+        Guardando = true;
+        ViewModel.Fecha = DateTime.Now;
+        try {
+            await BoletaService.Insert(ViewModel);
             Nav.NavigateTo("/boletas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            ViewModel.SerieCorrelativo = NumeroAlEmitir;
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
         }
     }
 }

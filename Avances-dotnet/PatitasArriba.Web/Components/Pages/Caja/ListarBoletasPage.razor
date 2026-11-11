@@ -1,6 +1,7 @@
 @page "/boletas"
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
+@inject IBoletaService BoletaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -62,8 +63,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success no-print">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger no-print">@MensajeError</div>
+}
 
-@if (!Boletas.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando boletas...</p>
+}
+else if (!Boletas.Any()) {
     <div class="alert alert-info">No se encontraron boletas.</div>
 }
 else {
@@ -171,6 +178,8 @@ else {
     private BoletaViewModel? BoletaSeleccionada { get; set; }
     private BoletaViewModel? BoletaAAnular { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private string Filtro { get; set; } = string.Empty;
     private string EstadoFiltro { get; set; } = string.Empty;
     private string PagoFiltro { get; set; } = string.Empty;
@@ -180,7 +189,7 @@ else {
     private string Actualizado { get; set; } = DateTime.Now.ToString("HH:mm");
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
-    // Lo cobrado se calcula con las boletas emitidas. Al enlazar: GET /boletas (no hay consulta por fechas)
+    // Lo cobrado se calcula con las boletas emitidas de GET /boletas (no hay consulta por fechas)
     private double CobradoHoy => Cobrado(DateTime.Today, DateTime.Today);
     private double CobradoSemana => Cobrado(LunesDeEstaSemana, LunesDeEstaSemana.AddDays(6));
     private List<BoletaViewModel> EmitidasDelMes => Todas
@@ -190,9 +199,19 @@ else {
     private int BoletasMes => EmitidasDelMes.Count;
     private static DateTime LunesDeEstaSemana => DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
 
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.Boletas();
-        Mostrar();
+    // GET /boletas. El backend solo devuelve las boletas activas: una anulada aparece como "Anulada" solo
+    // en esta sesión, justo después de anularla. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todas = await BoletaService.FindAll();
+            Actualizado = DateTime.Now.ToString("HH:mm");
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private double Cobrado(DateTime desde, DateTime hasta) {
@@ -253,16 +272,25 @@ else {
         BoletaAAnular = null;
     }
 
-    // Sin backend se marca como anulada en la lista. Al enlazar: DELETE /boletas/{id} (RN-BO-11)
-    private void AnularBoleta() {
+    // DELETE /boletas/{id} (RN-BO-11): el backend la anula y devuelve al stock lo vendido en caja.
+    // Si lo rechaza se muestra su mensaje
+    private async Task AnularBoleta() {
         if (BoletaAAnular == null) {
             return;
         }
-        BoletaAAnular.IsActivo = false;
-        MensajeExito = $"Se anuló la boleta {BoletaAAnular.SerieCorrelativo}.";
-        BoletaSeleccionada = BoletaAAnular;
+        BoletaViewModel boleta = BoletaAAnular;
         BoletaAAnular = null;
-        Actualizado = DateTime.Now.ToString("HH:mm");
-        Mostrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await BoletaService.Delete(boleta.Id);
+            boleta.IsActivo = false;
+            MensajeExito = $"Se anuló la boleta {boleta.SerieCorrelativo}.";
+            BoletaSeleccionada = boleta;
+            Actualizado = DateTime.Now.ToString("HH:mm");
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

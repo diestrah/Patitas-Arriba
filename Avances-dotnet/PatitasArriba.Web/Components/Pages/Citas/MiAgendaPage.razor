@@ -1,6 +1,9 @@
 @page "/mi-agenda"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IServicioService ServicioService;
+@inject IAtencionService AtencionService;
 
 @using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -27,8 +30,17 @@
     <button class="btn btn-outline-primary" @onclick="() => IrAHoy()">Hoy</button>
 </div>
 
-@if (Lista.Count == 0) {
-    <div class="alert alert-info">No tiene servicios programados para este día.</div>
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando su agenda...</p>
+}
+else if (Lista.Count == 0) {
+    @if (MensajeError == null) {
+        <div class="alert alert-info">No tiene servicios programados para este día.</div>
+    }
 }
 else {
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
@@ -111,8 +123,12 @@ else {
 @code {
     private static readonly CultureInfo Peru = new("es-PE");
 
-    // Agenda del veterinario que inició sesión. Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id}
+    // Agenda del veterinario que inició sesión: GET /citas?fecha=AAAA-MM-DD&veterinario={id}
     private List<ItemAgendaViewModel> Lista { get; set; } = [];
+    private List<CitaViewModel> Citas { get; set; } = [];
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private IQueryable<ItemAgendaViewModel> Agenda { get; set; } = Enumerable.Empty<ItemAgendaViewModel>().AsQueryable();
     private DateTime Fecha { get; set; } = DateTime.Today;
     private CitaViewModel? CitaSeleccionada { get; set; }
@@ -124,26 +140,61 @@ else {
 
     private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
 
-    protected override void OnInitialized() {
-        Atenciones = DatosEjemplo.Atenciones().ToDictionary(a => a.IdDetalleCita, a => a.Id);
-        Atendidos = Atenciones.Keys.ToHashSet();
-        Fotos = DatosEjemplo.Mascotas().ToDictionary(m => m.Id, m => m.Foto);
-        Cargar();
+    // GET /servicios (duración de cada servicio) y GET /atenciones (para "Atender" o "Editar atención");
+    // luego la agenda del día
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        if (Sesion.Rol != RolUsuario.VETERINARIO) {
+            MensajeError = "Inicie sesión con una cuenta de veterinario para ver su agenda.";
+            Cargando = false;
+            return;
+        }
+        try {
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Servicios = await servicios;
+            Atenciones = await atenciones;
+            Atendidos = Atenciones.Keys.ToHashSet();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Cargando = false;
+            return;
+        }
+        await Cargar();
     }
 
-    private void Cargar() {
-        Lista = AgendaVeterinario.DelDia(Sesion.NombreUsuario, Fecha);
-        Agenda = Lista.AsQueryable();
+    // GET /citas?fecha=AAAA-MM-DD&veterinario={id}. Una cita puede tener servicios de otros veterinarios:
+    // en la lista solo quedan los suyos
+    private async Task Cargar() {
+        if (Sesion.Rol != RolUsuario.VETERINARIO) return;
+        Cargando = true;
+        MensajeError = null;
+        DateTime fecha = Fecha;
+        try {
+            List<CitaViewModel> citas = await CitaService.FindByFecha(DateOnly.FromDateTime(fecha), Sesion.IdPersona);
+            // Si mientras tanto se cambió de día, esta respuesta ya no corresponde
+            if (fecha != Fecha) return;
+            Citas = citas;
+            Fotos = citas.GroupBy(c => c.IdMascota).ToDictionary(g => g.Key, g => g.First().FotoMascota);
+            Lista = AgendaVeterinario.DelVeterinario(Sesion.IdPersona, AgendaClinica.DelDia(fecha, citas, Servicios));
+            Agenda = Lista.AsQueryable();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Lista = [];
+            Agenda = Lista.AsQueryable();
+        } finally {
+            if (fecha == Fecha) Cargando = false;
+        }
     }
 
-    private void CambiarDia(int dias) {
+    private Task CambiarDia(int dias) {
         Fecha = Fecha.AddDays(dias);
-        Cargar();
+        return Cargar();
     }
 
-    private void IrAHoy() {
+    private Task IrAHoy() {
         Fecha = DateTime.Today;
-        Cargar();
+        return Cargar();
     }
 
     private int Contar(EstadoServicioAgenda estado) => Lista.Count(i => AgendaTexto.De(i, Atendidos) == estado);
@@ -153,7 +204,7 @@ else {
     private string? Foto(int idMascota) => Fotos.GetValueOrDefault(idMascota);
 
     private void VerCita(int idCita) {
-        CitaSeleccionada = DatosEjemplo.Citas().FirstOrDefault(c => c.Id == idCita);
+        CitaSeleccionada = Citas.FirstOrDefault(c => c.Id == idCita);
     }
 
     private void Atender(int idDetalleCita) {

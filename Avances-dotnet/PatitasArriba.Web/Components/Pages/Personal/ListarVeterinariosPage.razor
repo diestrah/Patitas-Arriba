@@ -163,9 +163,9 @@ else {
         }
         try {
             Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today));
-            Task<List<AtencionViewModel>> atenciones = AtencionService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
             CitasDeHoy = await citas;
-            Atendidos = (await atenciones).Select(a => a.IdDetalleCita).ToHashSet();
+            Atendidos = (await atenciones).Keys.ToHashSet();
             AgendaDisponible = true;
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             AgendaDisponible = false;

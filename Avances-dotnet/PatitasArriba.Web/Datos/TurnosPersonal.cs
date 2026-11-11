@@ -89,14 +89,5 @@ namespace PatitasArriba.Web.Datos {
                 .ToList();
             return (suyos.Count, suyos.Count(d => detallesAtendidos.Contains(d.Id)));
         }
-
-        // ---------------------------------------------------------------- Con datos de ejemplo
-        // Solo para InicioVeterinario, que todavía no está enlazado (módulo 7): busca a la persona por su nombre
-        // en DatosEjemplo. Se eliminan al enlazar esa pantalla.
-        public static HorarioViewModel? EnTurno(string nombre, DateTime ahora) =>
-            EnTurno(DatosEjemplo.Horarios().Where(h => h.NombresPersonal.Contains(nombre)), ahora);
-
-        public static (DateTime Inicio, HorarioViewModel Horario)? ProximoTurno(string nombre, DateTime ahora) =>
-            ProximoTurno(DatosEjemplo.Horarios().Where(h => h.NombresPersonal.Contains(nombre)), ahora);
     }
 }

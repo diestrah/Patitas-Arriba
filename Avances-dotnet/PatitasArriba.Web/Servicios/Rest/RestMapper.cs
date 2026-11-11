@@ -230,6 +230,7 @@ internal static class RestMapper {
         Estado = EnumValue<EstadoCita>(d.Estado),
         IdMascota = d.Mascota?.Id ?? 0,
         NombreMascota = d.Mascota?.Nombre ?? "",
+        FotoMascota = d.Mascota?.Foto,
         IdCliente = d.Mascota?.Cliente?.Id ?? 0,
         NombreCliente = Nombre(d.Mascota?.Cliente),
         IdAdministrador = d.Administrador?.Id,
@@ -252,6 +253,7 @@ internal static class RestMapper {
         IdDetalleCita = d.DetalleCita?.Id ?? 0,
         NombreServicio = d.DetalleCita?.Servicio?.Nombre ?? "",
         TipoServicio = EnumValue<TipoServicio>(d.DetalleCita?.Servicio?.Tipo),
+        IdVeterinario = d.DetalleCita?.Veterinario?.Id ?? 0,
         NombreVeterinario = Nombre(d.DetalleCita?.Veterinario),
         FechaHora = DateTimeValue(d.FechaHora),
         MotivoConsulta = d.MotivoConsulta,
@@ -272,6 +274,7 @@ internal static class RestMapper {
     internal static RecetaViewModel ToViewModel(RecetaDTO d) => new() {
         Id = d.Id,
         IdAtencion = d.Atencion?.Id ?? 0,
+        IdVeterinario = d.Atencion?.DetalleCita?.Veterinario?.Id ?? 0,
         NombreVeterinario = Nombre(d.Atencion?.DetalleCita?.Veterinario),
         NumeroColegiatura = d.Atencion?.DetalleCita?.Veterinario?.NumeroColegiatura ?? "",
         Diagnostico = string.Join(", ", d.Atencion?.Diagnosticos.Select(x => x.Diagnostico?.NombreEnfermedad) ?? []),

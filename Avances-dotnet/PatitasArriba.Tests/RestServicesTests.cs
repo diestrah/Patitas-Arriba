@@ -188,6 +188,55 @@ public class RestServicesTests {
     }
 
     [Test]
+    public async Task PendingChargesListOnlyAttendedServicesAndChargeableSuppliesNotYetBilled() {
+        var vet = new { id = 3, nombres = "Luis" };
+        var consulta = new { id = 11, servicio = new { id = 2, nombre = "Consulta", tipo = "CONSULTA_MEDICA" }, veterinario = vet };
+        var corte = new { id = 12, servicio = new { id = 4, nombre = "Corte", tipo = "ESTETICA" }, veterinario = vet };
+        var vacuna = new { id = 13, servicio = new { id = 5, nombre = "Vacuna", tipo = "VACUNACION" }, veterinario = vet };
+        var cita = new { id = 4, fechaHora = "2026-11-10T10:00:00", estado = "APROBADO",
+            mascota = new { id = 8, nombre = "Michi", cliente = new { id = 7, nombres = "Ana" } },
+            detalles = new[] { consulta, corte, vacuna } };
+        var ajena = new { id = 5, fechaHora = "2026-11-10T11:00:00", estado = "APROBADO",
+            mascota = new { id = 9, nombre = "Rocky", cliente = new { id = 99, nombres = "Otro" } },
+            detalles = new[] { new { id = 20, servicio = new { id = 2, nombre = "Consulta", tipo = "CONSULTA_MEDICA" }, veterinario = vet } } };
+        object Insumo(int id, int articulo, double precio, bool cobrable) => new {
+            id, articulo = new { id = articulo, nombre = $"Articulo {articulo}", precioBase = precio }, cantidadUtilizada = 2, esCobrable = cobrable };
+        object Atencion(int id, object detalle, params object[] insumos) => new {
+            id, detalleCita = detalle, fechaHora = "2026-11-10T10:30:00", diagnosticos = Array.Empty<object>(), insumosUtilizados = insumos };
+        api.Respond = (_, path, _) => {
+            object payload =
+                path.EndsWith("/citas?cliente=7") ? new[] { cita }
+                : path.EndsWith("/citas") ? new object[] { cita, ajena }
+                // Consulta (con un insumo cobrable y otro no) y Corte atendidos; la Vacuna no; la de otro cliente tampoco cuenta
+                : path.EndsWith("/atenciones") ? new[] {
+                    Atencion(1, consulta, Insumo(31, 6, 18.0, true), Insumo(32, 7, 4.0, false)),
+                    Atencion(2, corte, Insumo(33, 6, 18.0, true)),
+                    Atencion(3, ajena.detalles[0]) }
+                // El Corte y su insumo ya se cobraron en una boleta activa
+                : path.EndsWith("/boletas") ? new[] { new { id = 40, activo = true, fecha = "2026-11-10T12:00:00", metodoPago = "YAPE",
+                    cliente = new { id = 7 },
+                    detallesServicio = new[] { new { detalleCita = new { id = 12 }, cantidad = 1, precioUnitario = 50.0 } },
+                    detallesArticulo = new[] { new { articulo = new { id = 6 }, insumoUtilizado = new { id = 33 }, cantidad = 2, precioUnitario = 18.0 } } } }
+                : new[] { new { id = 2, nombre = "Consulta", tipo = "CONSULTA_MEDICA", precioBase = 60.0 },
+                          new { id = 4, nombre = "Corte", tipo = "ESTETICA", precioBase = 50.0 },
+                          new { id = 5, nombre = "Vacuna", tipo = "VACUNACION", precioBase = 45.0 } };
+            return (200, JsonSerializer.Serialize(payload, json));
+        };
+        var pendientes = await CobrosPendientes.DelCliente(7, services.GetRequiredService<ICitaService>(),
+            services.GetRequiredService<IAtencionService>(), services.GetRequiredService<IBoletaService>(),
+            services.GetRequiredService<IServicioService>());
+        Assert.That(pendientes.Count, Is.EqualTo(2));
+        var servicio = pendientes.Single(l => l.Tipo == "Servicio");
+        Assert.That(servicio.IdDetalleCita, Is.EqualTo(11));
+        Assert.That(servicio.PrecioUnitario, Is.EqualTo(60.0));
+        Assert.That(servicio.Descripcion, Is.EqualTo("Consulta · Michi"));
+        var insumo = pendientes.Single(l => l.Tipo == "Insumo");
+        Assert.That(insumo.IdInsumoUtilizado, Is.EqualTo(31));
+        Assert.That(insumo.IdArticulo, Is.EqualTo(6));
+        Assert.That(insumo.SubTotal, Is.EqualTo(36.0));
+    }
+
+    [Test]
     public async Task PersonInsertCreatesTheAccountWithOnlyTheEmail() {
         string? method = null, path = null;
         PatitasArriba.Web.DTOs.ClienteDTO? sent = null;

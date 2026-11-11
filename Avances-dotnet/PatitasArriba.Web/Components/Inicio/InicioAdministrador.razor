@@ -1,4 +1,10 @@
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IArticuloService ArticuloService;
+@inject IAtencionService AtencionService;
+@inject IVeterinarioService VeterinarioService;
+@inject IBoletaService BoletaService;
+@inject IServicioService ServicioService;
 
 @using System.Globalization
 
@@ -11,6 +17,13 @@
     </div>
 </BannerInicio>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando el resumen del día...</p>
+} else {
 <div class="row g-3 mb-4">
     <div class="col-sm-6 col-xl-3">
         <a class="indicador indicador-verde" href="agenda">
@@ -160,6 +173,7 @@
         </div>
     </div>
 </div>
+}
 
 <ConfirmarDialogo Visible="CitaARechazar != null"
                   Titulo="¿Rechazar la cita?"
@@ -182,19 +196,27 @@
     private string FiltroVeterinario { get; set; } = "Todos";
     private CitaViewModel? CitaARechazar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private List<ServicioViewModel> Servicios { get; set; } = [];
 
+    // Servicios programados para hoy (se recalcula al cargar y al aprobar o rechazar)
+    private List<ItemAgendaViewModel> AgendaHoy { get; set; } = [];
 
     private List<CitaViewModel> PorAprobar => Citas.Where(c => c.Estado == EstadoCita.PENDIENTE).OrderBy(c => c.FechaHora).ToList();
     private List<ArticuloViewModel> StockBajo => Articulos.Where(a => a.StockBajo).ToList();
-    private int CitasDeHoy => DatosEjemplo.AgendaDelDia(DateTime.Today, Citas).Select(i => i.IdCita).Distinct().Count();
+    private int CitasDeHoy => AgendaHoy.Select(i => i.IdCita).Distinct().Count();
 
-    private List<ItemAgendaViewModel> AgendaFiltrada => DatosEjemplo.AgendaDelDia(DateTime.Today, Citas)
+    private List<ItemAgendaViewModel> AgendaFiltrada => AgendaHoy
         .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
         .ToList();
 
     // Resumen en una frase: lo que el administrador debe atender primero
     private string Resumen {
         get {
+            if (Cargando) {
+                return "Preparando el resumen del día...";
+            }
             int emergencias = PorAprobar.Count(c => c.EsEmergencia);
             string citas = $"Hoy tiene {PorAprobar.Count} cita{(PorAprobar.Count == 1 ? "" : "s")} por aprobar";
             if (emergencias > 0) {
@@ -204,17 +226,35 @@
         }
     }
 
-    // Al enlazar: GET /citas, GET /articulos, GET /boletas y GET /veterinarios
-    protected override void OnInitialized() {
-        Citas = DatosEjemplo.Citas();
-        Articulos = DatosEjemplo.Articulos();
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
+    // GET /citas (por aprobar y agenda de hoy), /servicios (duración en la agenda), /atenciones (lo ya atendido),
+    // /articulos (stock bajo), /veterinarios (filtro de la agenda) y /boletas (lo cobrado hoy), en paralelo.
+    // Solo en la pasada interactiva: así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<CitaViewModel>> citas = CitaService.FindAll();
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<List<ArticuloViewModel>> articulos = ArticuloService.FindAll();
+            Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
+            Task<List<BoletaViewModel>> boletas = BoletaService.FindAll();
 
-        // Lo cobrado hoy: solo boletas emitidas (las anuladas no cuentan)
-        List<BoletaViewModel> deHoy = DatosEjemplo.Boletas().Where(b => b.IsActivo && b.Fecha.Date == DateTime.Today).ToList();
-        BoletasHoy = deHoy.Count;
-        CobradoHoy = deHoy.Sum(b => b.Total);
+            Citas = await citas;
+            Servicios = await servicios;
+            Atendidos = (await atenciones).Keys.ToHashSet();
+            Articulos = await articulos;
+            Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
+            AgendaHoy = AgendaClinica.DelDia(DateTime.Today, Citas, Servicios);
+
+            // Lo cobrado hoy: solo boletas emitidas (las anuladas no cuentan)
+            List<BoletaViewModel> deHoy = (await boletas).Where(b => b.IsActivo && b.Fecha.Date == DateTime.Today).ToList();
+            BoletasHoy = deHoy.Count;
+            CobradoHoy = deHoy.Sum(b => b.Total);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private static int PorcentajeStock(ArticuloViewModel articulo) {
@@ -231,24 +271,30 @@
         return fecha.Value.Date == DateTime.Today.AddDays(1) ? "Mañana" : fecha.Value.ToString("ddd d MMM", Peru);
     }
 
-    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
-    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
-    private void Aprobar(CitaViewModel cita) {
-        cita.Estado = EstadoCita.APROBADO;
-        cita.IdAdministrador = Sesion.IdPersona;
-        cita.NombreAdministrador = Sesion.NombreUsuario;
-        MensajeExito = $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\" en la agenda.";
+    // PUT /citas/{id} con el nuevo estado y el administrador que decide (RN-CI-09);
+    // si el backend lo rechaza, la cita queda como estaba y se muestra su mensaje.
+    private async Task CambiarEstado(CitaViewModel cita, EstadoCita estado, string mensaje) {
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await CitaService.CambiarEstado(cita, estado, Sesion.IdPersona, Sesion.NombreUsuario);
+            MensajeExito = mensaje;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+        AgendaHoy = AgendaClinica.DelDia(DateTime.Today, Citas, Servicios);
     }
 
-    private void Rechazar() {
+    private Task Aprobar(CitaViewModel cita) =>
+        CambiarEstado(cita, EstadoCita.APROBADO, $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\" en la agenda.");
+
+    private async Task Rechazar() {
         if (CitaARechazar == null) {
             return;
         }
-        CitaARechazar.Estado = EstadoCita.RECHAZADO;
-        CitaARechazar.IdAdministrador = Sesion.IdPersona;
-        CitaARechazar.NombreAdministrador = Sesion.NombreUsuario;
-        MensajeExito = $"Se rechazó la cita de {CitaARechazar.NombreMascota}.";
+        CitaViewModel cita = CitaARechazar;
         CitaARechazar = null;
+        await CambiarEstado(cita, EstadoCita.RECHAZADO, $"Se rechazó la cita de {cita.NombreMascota}.");
     }
 
     private void CancelarRechazo() {

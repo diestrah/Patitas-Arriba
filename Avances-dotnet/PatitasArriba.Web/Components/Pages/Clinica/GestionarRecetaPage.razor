@@ -1,11 +1,21 @@
 @page "/recetas/nueva/{IdAtencion:int}"
 @page "/recetas/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IRecetaService RecetaService;
+@inject IAtencionService AtencionService;
+@inject IArticuloService ArticuloService;
 
 <PageTitle>Receta médica</PageTitle>
 
 <h3 class="mb-3">@(Id == null ? "Nueva receta médica" : $"Editar receta N.° {Id}")</h3>
 
+@if (MensajeGuardar != null) {
+    <div class="alert alert-danger">@MensajeGuardar</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando la receta...</p>
+} else if (Listo) {
 <div class="card mb-4">
     <div class="card-body">
         <div class="row">
@@ -116,10 +126,11 @@
     </div>
 
     <div class="d-flex gap-2">
-        <button tabindex="3" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+        <button tabindex="3" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
         <a tabindex="4" class="btn btn-outline-primary" href="recetas">Cancelar</a>
     </div>
 </EditForm>
+}
 
 @code {
     // Nueva: la receta se emite para una atención médica
@@ -140,35 +151,55 @@
     private int DiasAgregar { get; set; } = 5;
     private int CantidadAgregar { get; set; } = 1;
 
-    protected override void OnInitialized() {
-        Medicamentos = DatosEjemplo.Medicamentos();
-    }
+    // Mensaje del backend al guardar (MensajeError es el aviso al agregar un medicamento)
+    private string? MensajeGuardar { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
+    private bool Listo { get; set; }
 
-    protected override void OnParametersSet() {
-        if (Id != null) {
-            RecetaViewModel? receta = DatosEjemplo.Recetas().FirstOrDefault(r => r.Id == Id);
-            if (receta == null) {
-                Nav.NavigateTo("/recetas");
-                return;
+    // GET /articulos (los medicamentos son los artículos de la categoría "Medicamentos") y la receta (GET /recetas/{Id})
+    // o la atención para la que se emite (GET /atenciones/{IdAtencion})
+    protected override async Task OnParametersSetAsync() {
+        MensajeGuardar = null;
+        Cargando = true;
+        Listo = false;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Medicamentos = (await ArticuloService.FindAll())
+                .Where(a => a.Categorias.Any(c => c.Seleccionado && c.Texto == "Medicamentos"))
+                .OrderBy(a => a.Nombre)
+                .ToList();
+
+            if (Id != null) {
+                RecetaViewModel? receta = await RecetaService.FindById(Id.Value);
+                if (receta == null) {
+                    Nav.NavigateTo("/recetas");
+                    return;
+                }
+                ViewModel = receta;
+            } else {
+                AtencionViewModel? atencion = await AtencionService.FindById(IdAtencion!.Value);
+                // RN-RE-02: no se emiten recetas en servicios estéticos
+                if (atencion == null || !atencion.EsServicioMedico) {
+                    Nav.NavigateTo("/atenciones");
+                    return;
+                }
+                ViewModel = new RecetaViewModel {
+                    IdAtencion = atencion.Id,
+                    NombreMascota = atencion.NombreMascota,
+                    NombreCliente = atencion.NombreCliente,
+                    IdVeterinario = atencion.IdVeterinario,
+                    NombreVeterinario = atencion.NombreVeterinario,
+                    Diagnostico = string.Join(", ", atencion.Diagnosticos.Select(d => d.NombreEnfermedad)),
+                    FechaEmision = DateOnly.FromDateTime(DateTime.Today)
+                };
             }
-            ViewModel = receta;
-            return;
+            Listo = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeGuardar = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-
-        AtencionViewModel? atencion = DatosEjemplo.Atenciones().FirstOrDefault(a => a.Id == IdAtencion);
-        // RN-RE-02: no se emiten recetas en servicios estéticos
-        if (atencion == null || !atencion.EsServicioMedico) {
-            Nav.NavigateTo("/atenciones");
-            return;
-        }
-        ViewModel = new RecetaViewModel {
-            IdAtencion = atencion.Id,
-            NombreMascota = atencion.NombreMascota,
-            NombreCliente = atencion.NombreCliente,
-            NombreVeterinario = atencion.NombreVeterinario,
-            Diagnostico = string.Join(", ", atencion.Diagnosticos.Select(d => d.NombreEnfermedad)),
-            FechaEmision = DateOnly.FromDateTime(DateTime.Today)
-        };
     }
 
     // RN-RE-03: cada medicamento con artículo, dosis, frecuencia, duración y cantidad válidos
@@ -202,8 +233,23 @@
         ViewModel.Medicamentos.Remove(medicamento);
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /recetas o PUT /recetas/{Id}
-    private void Guardar() {
-        Nav.NavigateTo("/recetas");
+    // POST /recetas o PUT /recetas/{Id} (al editar, el backend reemplaza la lista de medicamentos);
+    // si rechaza los datos se muestra su mensaje
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeGuardar = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await RecetaService.Insert(ViewModel);
+            } else {
+                await RecetaService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/recetas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeGuardar = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

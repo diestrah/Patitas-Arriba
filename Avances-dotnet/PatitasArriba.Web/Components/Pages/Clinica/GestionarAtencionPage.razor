@@ -1,11 +1,26 @@
 @page "/atenciones/registrar/{IdDetalleCita:int}"
 @page "/atenciones/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+@inject IAtencionService AtencionService;
+@inject ICitaService CitaService;
+@inject IMascotaService MascotaService;
+@inject IServicioService ServicioService;
+@inject IDiagnosticoService DiagnosticoService;
+@inject IArticuloService ArticuloService;
 
 <PageTitle>Atención</PageTitle>
 
 <h3 class="mb-3">@(Id == null ? "Registrar atención" : "Editar atención")</h3>
 
+@if (MensajeError != null) {
+    @* Por ejemplo: no hay stock suficiente de un insumo (RN-AT-08) *@
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando la atención...</p>
+} else if (Listo) {
 @* Paciente y servicio de la cita que se está atendiendo *@
 <div class="card mb-4">
     <div class="card-body d-flex flex-wrap align-items-center gap-3">
@@ -59,7 +74,7 @@
             <TablaInsumos Insumos="ViewModel.Insumos" Articulos="Articulos" />
 
             <div class="d-flex gap-2 mt-4">
-                <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+                <button tabindex="4" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
                 <a tabindex="5" class="btn btn-outline-primary" href="@(Id == null ? "mi-agenda" : "atenciones")">Cancelar</a>
             </div>
         </EditForm>
@@ -98,6 +113,7 @@
         </div>
     </div>
 </div>
+}
 
 @code {
     // Registrar: viene el servicio de la cita (detalle_cita) desde la agenda
@@ -128,31 +144,74 @@
         }
     }
 
-    protected override void OnInitialized() {
-        Diagnosticos = DatosEjemplo.Diagnosticos();
-        Articulos = DatosEjemplo.Articulos();
-    }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
-        if (Id != null) {
-            AtencionViewModel? atencion = DatosEjemplo.Atenciones().FirstOrDefault(a => a.Id == Id);
-            if (atencion == null) {
-                Nav.NavigateTo("/atenciones");
+    // Hay datos para mostrar el formulario (si no se pudo cargar, solo queda el mensaje de error)
+    private bool Listo { get; set; }
+
+    // GET /diagnosticos y /articulos para las tablas; la atención o el servicio de la cita a atender;
+    // y para el encabezado y el panel lateral, la mascota y su historial
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        Listo = false;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<DiagnosticoViewModel>> diagnosticos = DiagnosticoService.FindAll();
+            Task<List<ArticuloViewModel>> articulos = ArticuloService.FindAll();
+            // Una atención apunta a un servicio de una cita, y no hay consulta por servicio: se buscan entre todas
+            Task<List<CitaViewModel>> citas = CitaService.FindAll();
+            Diagnosticos = await diagnosticos;
+            Articulos = await articulos;
+            List<CitaViewModel> todasLasCitas = await citas;
+
+            if (Id != null) {
+                // GET /atenciones/{Id}
+                AtencionViewModel? atencion = await AtencionService.FindById(Id.Value);
+                if (atencion == null) {
+                    Nav.NavigateTo("/atenciones");
+                    return;
+                }
+                ViewModel = atencion;
+            } else if (!await PrepararNueva(todasLasCitas)) {
+                Nav.NavigateTo("/mi-agenda");
                 return;
             }
-            ViewModel = atencion;
-            CargarContexto();
-            return;
-        }
 
-        // La cita puede ser de otro día (por ejemplo, una emergencia de ayer): se busca en la agenda de su fecha
-        CitaViewModel? cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Detalles.Any(d => d.Id == IdDetalleCita));
-        ItemAgendaViewModel? item = cita?.FechaHora == null ? null
-            : DatosEjemplo.AgendaDelDia(cita.FechaHora.Value).FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
-        // Solo se atiende lo que la agenda permite: cita aprobada (o emergencia pendiente), desde su hora y una sola vez
-        if (item == null || !AgendaVeterinario.PuedeAtenderse(item, DatosEjemplo.DetallesAtendidos(), DateTime.Now)) {
-            Nav.NavigateTo("/mi-agenda");
-            return;
+            Cita = todasLasCitas.FirstOrDefault(c => c.Detalles.Any(d => d.Id == ViewModel.IdDetalleCita));
+            Task<MascotaViewModel?> mascota = MascotaService.FindById(ViewModel.IdMascota);
+            Task<List<AtencionViewModel>> historial = AtencionService.FindByMascota(ViewModel.IdMascota);
+            Mascota = await mascota;
+            Anteriores = (await historial)
+                .Where(a => a.Id != ViewModel.Id)
+                .OrderByDescending(a => a.FechaHora)
+                .Take(3)
+                .ToList();
+            Listo = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    // Registrar: el servicio de la cita sale de la agenda de su fecha (la cita puede ser de otro día, por ejemplo
+    // una emergencia de ayer). Solo se atiende lo que la agenda permite: cita aprobada (o emergencia pendiente),
+    // desde su hora y una sola vez. Devuelve false si no se puede atender.
+    private async Task<bool> PrepararNueva(List<CitaViewModel> todasLasCitas) {
+        CitaViewModel? cita = todasLasCitas.FirstOrDefault(c => c.Detalles.Any(d => d.Id == IdDetalleCita));
+        if (cita?.FechaHora == null) {
+            return false;
+        }
+        Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+        Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+        ItemAgendaViewModel? item = AgendaClinica.DelDia(cita.FechaHora.Value, [cita], await servicios)
+            .FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
+        HashSet<int> atendidos = (await atenciones).Keys.ToHashSet();
+        if (item == null || !AgendaVeterinario.PuedeAtenderse(item, atendidos, DateTime.Now)) {
+            return false;
         }
         ViewModel = new AtencionViewModel {
             IdDetalleCita = item.IdDetalleCita,
@@ -161,25 +220,36 @@
             NombreCliente = item.NombreCliente,
             NombreServicio = item.NombreServicio,
             TipoServicio = item.TipoServicio,
+            IdVeterinario = item.IdVeterinario,
             NombreVeterinario = item.NombreVeterinario,
             FechaHora = DateTime.Now
         };
-        CargarContexto();
+        return true;
     }
 
-    // Al enlazar: GET /mascotas/{id}, la cita sale de GET /citas/{id} y el historial de GET /atenciones?mascota={id}
-    private void CargarContexto() {
-        Mascota = DatosEjemplo.Mascotas().FirstOrDefault(m => m.Id == ViewModel.IdMascota);
-        Cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Detalles.Any(d => d.Id == ViewModel.IdDetalleCita));
-        Anteriores = DatosEjemplo.HistorialDeMascota(ViewModel.IdMascota)
-            .Where(a => a.Id != ViewModel.Id)
-            .Take(3)
-            .ToList();
-    }
-
-    // Sin backend: solo regresa al listado. Al enlazar: POST /atenciones o PUT /atenciones/{Id};
-    // si no hay stock suficiente de algún insumo, el backend no registra la atención (RN-AT-08).
-    private void Guardar() {
-        Nav.NavigateTo("/atenciones");
+    // POST /atenciones o PUT /atenciones/{Id}. Si no hay stock suficiente de algún insumo, el backend no registra
+    // la atención (RN-AT-08) y se muestra su mensaje. Al registrar se vuelve a la agenda del veterinario.
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        // RN-AT-06: en un servicio estético no hay diagnósticos (el formulario no los muestra). Si la atención trae
+        // alguno de antes, se quita: si se reenviara, el backend rechazaría el cambio y no se podría editar.
+        if (!ViewModel.EsServicioMedico) {
+            ViewModel.Diagnosticos.Clear();
+        }
+        try {
+            if (Id == null) {
+                await AtencionService.Insert(ViewModel);
+                Nav.NavigateTo(Sesion.Rol == RolUsuario.VETERINARIO ? "/mi-agenda" : "/atenciones");
+            } else {
+                await AtencionService.Update(ViewModel);
+                Nav.NavigateTo("/atenciones");
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

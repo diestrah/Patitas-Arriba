@@ -11,6 +11,16 @@ public class AtencionRestService : RegistroRestService<AtencionViewModel, Atenci
     protected override int GetId(AtencionViewModel modelo) => modelo.Id;
     protected override void SetId(AtencionViewModel modelo, AtencionDTO dto) => modelo.Id = dto.Id;
     public Task<List<AtencionViewModel>> FindByMascota(int id) => FindList($"{RecursoUrl}?mascota={id}");
+
+    // Solo GET /atenciones, sin completar los nombres desde /citas como hace FindAll
+    public async Task<Dictionary<int, int>> AtencionPorDetalleCita() {
+        Dictionary<int, int> resultado = [];
+        foreach (AtencionDTO dto in await HttpUtils.DoGet<List<AtencionDTO>>(RecursoUrl)) {
+            if (dto.DetalleCita != null) resultado[dto.DetalleCita.Id] = dto.Id;
+        }
+        return resultado;
+    }
+
     private List<CitaDTO> citas = [];
     protected override async Task PrepareRead() => citas = await HttpUtils.DoGet<List<CitaDTO>>($"{BaseUrl}/citas");
     protected override Task<AtencionViewModel> ConvertAsync(AtencionDTO dto) {

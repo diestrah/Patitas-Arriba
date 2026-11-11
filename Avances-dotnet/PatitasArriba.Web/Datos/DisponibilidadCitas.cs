@@ -1,3 +1,4 @@
+using PatitasArriba.Web.Servicios;
 using PatitasArriba.Web.ViewModels;
 
 namespace PatitasArriba.Web.Datos {
@@ -8,29 +9,44 @@ namespace PatitasArriba.Web.Datos {
         public List<DetalleCitaViewModel> Detalles { get; set; } = [];
     }
 
-    // Calcula los horarios libres de un día para una lista de servicios y asigna un veterinario a cada uno.
-    // Aplica lo mismo que exigirá el backend: el veterinario atiende todo ese tiempo según sus horarios (RN-CI-05)
-    // y no tiene otro servicio que se cruce (RN-CI-06). Servicios sin duración cuentan 30 minutos.
-    // Al enlazar: usa GET /veterinarios (con sus horarios), GET /horarios y GET /citas?fecha=AAAA-MM-DD;
-    // el backend vuelve a validar todo al registrar la cita, así que esto es solo ayuda para el cliente.
+    // Calcula los horarios libres de un día para una lista de servicios y asigna un veterinario a cada uno, con la
+    // misma regla que CitaBLImpl: cada veterinario ocupa desde la hora de la cita la suma de la duración de sus
+    // servicios (30 minutos si un servicio no la tiene); ese tramo debe estar dentro de uno de sus horarios
+    // (RN-CI-05) y no cruzarse con el de otra cita PENDIENTE o APROBADA suya (RN-CI-06).
+    // Recibe los datos ya cargados: PersonalClinica (horarios y veterinarios), GET /citas?fecha=... y GET /servicios.
+    // El backend vuelve a validar todo al registrar la cita: esto es solo ayuda para el cliente.
     public static class DisponibilidadCitas {
         private const int PasoMinutos = 30;
 
-        public static List<HorarioDisponible> HorariosDelDia(DateTime fecha, List<ServicioViewModel> servicios) {
+        public static List<HorarioDisponible> HorariosDelDia(DateTime fecha, List<ServicioViewModel> elegidos,
+                PersonalClinica personal, List<CitaViewModel> citasDelDia, List<ServicioViewModel> catalogo) {
             List<HorarioDisponible> resultado = [];
-            if (servicios.Count == 0) {
+            if (elegidos.Count == 0) {
                 return resultado;
             }
 
             DiaSemana dia = TurnosPersonal.DiaDe(fecha.DayOfWeek);
-            List<HorarioViewModel> horarios = DatosEjemplo.Horarios().Where(h => h.DiaSemana == dia).ToList();
+            List<HorarioViewModel> horarios = personal.Horarios.Where(h => h.DiaSemana == dia).ToList();
             if (horarios.Count == 0) {
                 return resultado;
             }
-            List<VeterinarioViewModel> veterinarios = DatosEjemplo.Veterinarios();
-            List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDelDia(fecha);
 
-            int totalMinutos = servicios.Sum(s => s.DuracionEstimada ?? 30);
+            // Tramos ya ocupados por cada veterinario ese día
+            Dictionary<int, List<(DateTime Inicio, DateTime Fin)>> ocupados = [];
+            foreach (CitaViewModel cita in citasDelDia) {
+                if (cita.FechaHora?.Date != fecha.Date || (cita.Estado != EstadoCita.PENDIENTE && cita.Estado != EstadoCita.APROBADO)) {
+                    continue;
+                }
+                foreach ((int idVeterinario, int minutos) in AgendaClinica.MinutosPorVeterinario(cita, catalogo)) {
+                    if (!ocupados.TryGetValue(idVeterinario, out List<(DateTime, DateTime)>? tramos)) {
+                        tramos = [];
+                        ocupados[idVeterinario] = tramos;
+                    }
+                    tramos.Add((cita.FechaHora.Value, cita.FechaHora.Value.AddMinutes(minutos)));
+                }
+            }
+
+            int totalMinutos = elegidos.Sum(AgendaClinica.Duracion);
             TimeOnly primero = horarios.Min(h => h.HoraInicio);
             TimeOnly ultimo = horarios.Max(h => h.HoraFin);
             int desdeMinuto = primero.Hour * 60 + primero.Minute;
@@ -39,10 +55,10 @@ namespace PatitasArriba.Web.Datos {
             // Cada 30 minutos, mientras todos los servicios terminen dentro del horario de atención del día
             for (int minuto = desdeMinuto; minuto + totalMinutos <= hastaMinuto; minuto += PasoMinutos) {
                 DateTime inicio = fecha.Date.AddMinutes(minuto);
-                HorarioDisponible horario = new HorarioDisponible { Inicio = inicio, Libre = inicio > DateTime.Now };
+                HorarioDisponible horario = new() { Inicio = inicio, Libre = inicio > DateTime.Now };
                 if (horario.Libre) {
-                    horario.Detalles = AsignarVeterinarios(inicio, servicios, totalMinutos, horarios, veterinarios, agenda);
-                    horario.Libre = horario.Detalles.Count == servicios.Count;
+                    horario.Detalles = AsignarVeterinarios(inicio, elegidos, personal, ocupados);
+                    horario.Libre = horario.Detalles.Count == elegidos.Count;
                 }
                 resultado.Add(horario);
             }
@@ -51,23 +67,24 @@ namespace PatitasArriba.Web.Datos {
 
         // Un veterinario por servicio, probando primero con el que atendió el servicio anterior.
         // Si algún servicio no tiene veterinario libre, devuelve una lista incompleta (el horario no está libre).
-        private static List<DetalleCitaViewModel> AsignarVeterinarios(DateTime inicio, List<ServicioViewModel> servicios, int totalMinutos,
-                List<HorarioViewModel> horarios, List<VeterinarioViewModel> veterinarios, List<ItemAgendaViewModel> agenda) {
+        private static List<DetalleCitaViewModel> AsignarVeterinarios(DateTime inicio, List<ServicioViewModel> servicios,
+                PersonalClinica personal, Dictionary<int, List<(DateTime Inicio, DateTime Fin)>> ocupados) {
             List<DetalleCitaViewModel> detalles = [];
-            DateTime finTotal = inicio.AddMinutes(totalMinutos);
-            DateTime inicioServicio = inicio;
+            Dictionary<int, int> minutosAsignados = [];
             VeterinarioViewModel? anterior = null;
 
             foreach (ServicioViewModel servicio in servicios) {
-                DateTime finServicio = inicioServicio.AddMinutes(servicio.DuracionEstimada ?? 30);
-                List<VeterinarioViewModel> candidatos = veterinarios
-                    .Where(v => AtiendeTodoElTiempo(v, horarios, inicio, finTotal) && !Ocupado(v, agenda, inicioServicio, finServicio))
+                int duracion = AgendaClinica.Duracion(servicio);
+                VeterinarioViewModel? elegido = personal.Veterinarios
                     .OrderByDescending(v => anterior != null && v.Id == anterior.Id)
-                    .ToList();
-                if (candidatos.Count == 0) {
+                    .FirstOrDefault(v => {
+                        DateTime fin = inicio.AddMinutes(minutosAsignados.GetValueOrDefault(v.Id) + duracion);
+                        return Cubre(personal.HorariosDe(v), inicio, fin) && !Cruza(ocupados.GetValueOrDefault(v.Id), inicio, fin);
+                    });
+                if (elegido == null) {
                     return detalles;
                 }
-                VeterinarioViewModel elegido = candidatos[0];
+                minutosAsignados[elegido.Id] = minutosAsignados.GetValueOrDefault(elegido.Id) + duracion;
                 detalles.Add(new DetalleCitaViewModel {
                     IdServicio = servicio.Id,
                     NombreServicio = servicio.Nombre,
@@ -75,21 +92,24 @@ namespace PatitasArriba.Web.Datos {
                     NombreVeterinario = elegido.NombreCompleto
                 });
                 anterior = elegido;
-                inicioServicio = finServicio;
             }
             return detalles;
         }
 
-        // RN-CI-05: el veterinario atiende ese día durante todo el tiempo de los servicios
-        private static bool AtiendeTodoElTiempo(VeterinarioViewModel veterinario, List<HorarioViewModel> horarios, DateTime inicio, DateTime fin) {
+        // RN-CI-05: algún horario del veterinario cubre todo el tramo, el mismo día
+        private static bool Cubre(List<HorarioViewModel> suyos, DateTime inicio, DateTime fin) {
+            if (fin.Date != inicio.Date && fin.TimeOfDay != TimeSpan.Zero) {
+                return false;
+            }
+            DiaSemana dia = TurnosPersonal.DiaDe(inicio.DayOfWeek);
             TimeOnly desde = TimeOnly.FromDateTime(inicio);
-            TimeOnly hasta = TimeOnly.FromDateTime(fin);
-            return horarios.Any(h => h.NombresPersonal.Contains(veterinario.NombreCompleto) && h.HoraInicio <= desde && h.HoraFin >= hasta);
+            TimeOnly hasta = fin.Date != inicio.Date ? TimeOnly.MaxValue : TimeOnly.FromDateTime(fin);
+            return suyos.Any(h => h.DiaSemana == dia && h.HoraInicio <= desde && h.HoraFin >= hasta);
         }
 
-        // RN-CI-06: no puede tener otro servicio de una cita pendiente o aprobada que se cruce
-        private static bool Ocupado(VeterinarioViewModel veterinario, List<ItemAgendaViewModel> agenda, DateTime inicio, DateTime fin) {
-            return agenda.Any(i => i.NombreVeterinario == veterinario.NombreCompleto && i.FechaHora < fin && i.FechaHoraFin > inicio);
+        // RN-CI-06: el tramo no se cruza con otro tramo del mismo veterinario
+        private static bool Cruza(List<(DateTime Inicio, DateTime Fin)>? tramos, DateTime inicio, DateTime fin) {
+            return tramos != null && tramos.Any(t => inicio < t.Fin && t.Inicio < fin);
         }
     }
 }

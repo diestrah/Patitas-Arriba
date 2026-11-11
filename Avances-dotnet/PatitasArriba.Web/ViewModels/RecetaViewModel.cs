@@ -7,6 +7,7 @@ namespace PatitasArriba.Web.ViewModels {
         public string NombreMascota { get; set; } = "";
         public TipoMascota TipoMascota { get; set; }
         public string NombreCliente { get; set; } = "";
+        public int IdVeterinario { get; set; }
         public string NombreVeterinario { get; set; } = "";
         public string NumeroColegiatura { get; set; } = "";
         public string Diagnostico { get; set; } = "";

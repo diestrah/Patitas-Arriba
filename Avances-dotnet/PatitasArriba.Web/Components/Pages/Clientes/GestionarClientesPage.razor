@@ -1,6 +1,7 @@
 @page "/clientes/nuevo"
 @page "/clientes/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IClienteService ClienteService;
 
 <PageTitle>Clientes</PageTitle>
 
@@ -11,6 +12,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando cliente...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -50,10 +54,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="10" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="10" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="11" class="btn btn-outline-primary" href="clientes">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -62,26 +67,51 @@
 
     private ClienteViewModel ViewModel { get; set; } = new();
 
-    // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o usuario repetido)
+    // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o correo repetido)
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; }
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
+    // Al editar: GET /clientes/{Id}; si no existe se vuelve al listado
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
         if (Id == null) {
             ViewModel = new ClienteViewModel();
             return;
         }
-        ClienteViewModel? cliente = DatosEjemplo.Clientes().FirstOrDefault(c => c.Id == Id);
-        if (cliente == null) {
-            Nav.NavigateTo("/clientes");
-            return;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            ClienteViewModel? cliente = await ClienteService.FindById(Id.Value);
+            if (cliente == null) {
+                Nav.NavigateTo("/clientes");
+                return;
+            }
+            ViewModel = cliente;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        ViewModel = cliente;
     }
 
-    // Sin backend: no se registra nada, solo se regresa al listado.
-    // Al enlazar: registrar = POST /cuentas y luego POST /clientes con esa cuenta (si el segundo falla,
-    // se elimina la cuenta recién creada); editar = PUT /cuentas/{IdCuenta} y PUT /clientes/{Id}.
-    private void Guardar() {
-        Nav.NavigateTo("/clientes");
+    // Nuevo: POST /clientes/con-cuenta (crea el cliente y su cuenta en una sola transacción con solo el correo;
+    // el cliente recibe un enlace para elegir su contraseña). Editar: PUT /clientes/{Id}.
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await ClienteService.Insert(ViewModel);
+            } else {
+                await ClienteService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/clientes");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }
