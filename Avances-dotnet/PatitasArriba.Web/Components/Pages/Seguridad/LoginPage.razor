@@ -3,7 +3,9 @@
 @implements IAsyncDisposable
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject ICuentaService CuentaService;
 @inject IJSRuntime JS;
+@using System.Net
 
 <PageTitle>Iniciar sesión · Patitas Arriba</PageTitle>
 
@@ -61,8 +63,8 @@
 
                 <a class="olvide" href="olvide-contrasena" tabindex="4">¿Olvidaste tu contraseña?</a>
 
-                <button class="login-boton" type="submit" tabindex="3">
-                    Ingresar
+                <button class="login-boton" type="submit" tabindex="3" disabled="@Enviando">
+                    @(Enviando ? "Ingresando..." : "Ingresar")
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 </button>
 
@@ -74,12 +76,12 @@
                 </div>
 
 
-                @* Mientras no se enlaza con el backend: cuentas de los datos de ejemplo, con cualquier contraseña *@
+                @* Cuentas de Avances/sql/datos-prueba.sql (contraseña Patitas123): solo existen si se cargó ese script *@
                 <div class="login-demo">
-                    Cuentas de prueba (cualquier contraseña):
+                    Cuentas de prueba (contraseña Patitas123):
                     <div class="chips">
-                        <button type="button" class="chip" @onclick='() => Rellenar("diego.lopez@patasarriba.pe")'><b>diego.lopez@patasarriba.pe</b> · Administrador</button>
-                        <button type="button" class="chip" @onclick='() => Rellenar("carla.vega@patasarriba.pe")'><b>carla.vega@patasarriba.pe</b> · Veterinaria</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("rosa.admin@patitas.pe")'><b>rosa.admin@patitas.pe</b> · Administradora</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("dra.lucia@patitas.pe")'><b>dra.lucia@patitas.pe</b> · Veterinaria</button>
                         <button type="button" class="chip" @onclick='() => Rellenar("ana.torres@gmail.com")'><b>ana.torres@gmail.com</b> · Cliente</button>
                     </div>
                 </div>
@@ -93,6 +95,7 @@
     private LoginViewModel ViewModel { get; set; } = new();
     private EditContext Contexto { get; set; } = default!;
     private string? MensajeError { get; set; }
+    private bool Enviando { get; set; }
 
     protected override void OnInitialized() {
         Contexto = new EditContext(ViewModel);
@@ -115,17 +118,26 @@
 
     private void Rellenar(string correo) {
         ViewModel.Correo = correo;
-        ViewModel.Password = "patitas123";
+        ViewModel.Password = "Patitas123";
         MensajeError = null;
     }
 
-    // Sin backend: busca la cuenta en los datos de ejemplo y deduce el rol. Al enlazar: POST /login.
-    // Ante cualquier fallo el mensaje es el mismo, sin decir si falló el usuario o la contraseña (RN-CU-05)
+    // POST /login: el backend valida la contraseña y deduce el rol de la cuenta.
+    // Si las credenciales fallan el mensaje es siempre el mismo, sin decir si falló el correo o la contraseña (RN-CU-05)
     private async Task Ingresar() {
+        if (Enviando) return;
         MensajeError = null;
-        if (!Sesion.IniciarSesion(ViewModel.Correo, ViewModel.Password)) {
+        Enviando = true;
+        try {
+            Sesion.Iniciar(await CuentaService.Login(ViewModel.Correo.Trim(), ViewModel.Password));
+        } catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.BadRequest) {
             MensajeError = "Correo o contraseña incorrectos";
             return;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            return;
+        } finally {
+            Enviando = false;
         }
         try {
             await JS.InvokeVoidAsync("celebrarLogin");

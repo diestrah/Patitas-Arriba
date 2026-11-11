@@ -12,6 +12,9 @@ namespace PatitasArriba.Web.ViewModels {
         public int IdMascota { get; set; }
         public string NombreMascota { get; set; } = "";
 
+        // Solo para mostrar: la foto de la mascota viene dentro de la cita (GET /citas)
+        public string? FotoMascota { get; set; }
+
         [Required(ErrorMessage = "Indique la fecha y hora de la cita")]
         public DateTime? FechaHora { get; set; }
 

@@ -1,9 +1,17 @@
 @page "/boletas/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IBoletaService BoletaService;
+@inject IArticuloService ArticuloService;
 
 <PageTitle>Modificar boleta</PageTitle>
 
-@if (Boleta != null) {
+@if (Cargando) {
+    <p class="text-muted">Cargando la boleta...</p>
+} else if (Boleta == null && MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (!Cargando && Boleta != null) {
     <h3 class="mb-1">Modificar boleta @Boleta.SerieCorrelativo</h3>
     <p class="text-muted mb-3">Puede cambiar el método de pago y la venta en caja. La fecha de emisión se mantiene.</p>
 
@@ -98,8 +106,8 @@
                             }
                         </div>
                     </div>
-                    <button type="button" class="btn btn-primary btn-texto justify-content-center" @onclick="() => Guardar()">
-                        <Icono Nombre="save" /><span>Guardar cambios · S/ @Vista.Total.ToString("N2")</span>
+                    <button type="button" class="btn btn-primary btn-texto justify-content-center" disabled="@Guardando" @onclick="() => Guardar()">
+                        <Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : $"Guardar cambios · S/ {Vista.Total:N2}")</span>
                     </button>
                     <a class="btn btn-outline-primary" href="boletas">Cancelar</a>
                 </div>
@@ -139,15 +147,31 @@
         Lineas = Cobradas.Concat(Vendidos).ToList()
     };
 
-    // Al enlazar: GET /boletas/{id}
-    protected override void OnParametersSet() {
-        Boleta = DatosEjemplo.Boletas().FirstOrDefault(b => b.Id == Id);
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
+
+    // GET /boletas/{id} y GET /articulos (para la venta en caja). Si no existe o está anulada se vuelve al listado
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<BoletaViewModel?> boleta = BoletaService.FindById(Id);
+            Task<List<ArticuloViewModel>> articulos = ArticuloService.FindAll();
+            Boleta = await boleta;
+            Articulos = (await articulos).OrderBy(a => a.Nombre).ToList();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Boleta = null;
+            Cargando = false;
+            return;
+        }
+        Cargando = false;
         // RN-BO-12: una boleta anulada ya no se modifica
         if (Boleta == null || !Boleta.IsActivo) {
             Nav.NavigateTo("/boletas");
             return;
         }
-        Articulos = DatosEjemplo.Articulos();
         Pago = Boleta.MetodoPago;
         Cobradas = Boleta.Lineas.Where(l => l.Tipo != "Artículo").ToList();
         Vendidos = Boleta.Lineas.Where(l => l.Tipo == "Artículo").Select(l => new LineaBoletaViewModel {
@@ -196,9 +220,22 @@
         Vendidos.Remove(linea);
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: PUT /boletas/{id}; el backend devuelve al stock lo vendido
-    // antes y descuenta lo nuevo (RN-BO-10), y si algo no cumple las reglas se muestra su mensaje.
-    private void Guardar() {
-        Nav.NavigateTo("/boletas");
+    // PUT /boletas/{id} con el mismo número y fecha, los servicios e insumos ya cobrados, la venta en caja y el
+    // método de pago. El backend devuelve al stock lo vendido antes y descuenta lo nuevo (RN-BO-10), recalcula
+    // precios y total; si algo no cumple las reglas se muestra su mensaje.
+    private async Task Guardar() {
+        if (Boleta == null || Guardando) {
+            return;
+        }
+        MensajeError = null;
+        Guardando = true;
+        try {
+            await BoletaService.Update(Vista);
+            Nav.NavigateTo("/boletas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

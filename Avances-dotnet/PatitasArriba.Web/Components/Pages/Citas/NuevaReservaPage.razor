@@ -1,6 +1,12 @@
 @page "/mis-citas/nueva"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IMascotaService MascotaService;
+@inject IServicioService ServicioService;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
 
 @using System.Globalization
 
@@ -25,6 +31,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando sus mascotas y los servicios...</p>
+    } else if (PuedeReservar) {
     <div class="d-flex flex-column gap-3">
         <div class="card">
             <div class="card-header fw-bold">¿Para quién es la cita?</div>
@@ -76,6 +85,10 @@
 
                 @if (Fecha == null) {
                     <p class="text-muted mb-0">Elija una fecha para ver los horarios libres.</p>
+                } else if (CargandoDia) {
+                    <p class="text-muted mb-0">Buscando horarios libres...</p>
+                } else if (MensajeDia != null) {
+                    <div class="alert alert-danger mb-0">@MensajeDia</div>
                 } else if (IdsServicios.Count == 0) {
                     <p class="text-muted mb-0">Elija primero los servicios: la duración cambia los horarios que se pueden ofrecer.</p>
                 } else if (Horarios.Count == 0) {
@@ -108,14 +121,15 @@
                     <div class="alert alert-warning mb-0">Su cita quedará <strong>Pendiente</strong> hasta que la clínica la apruebe.</div>
                     <div class="d-flex justify-content-end gap-2">
                         <a class="btn btn-outline-primary" href="mis-citas">Cancelar</a>
-                        <button type="button" class="btn btn-primary btn-texto" @onclick="() => Reservar()">
-                            <Icono Nombre="check" /><span>Confirmar reserva</span>
+                        <button type="button" class="btn btn-primary btn-texto" disabled="@Guardando" @onclick="() => Reservar()">
+                            <Icono Nombre="check" /><span>@(Guardando ? "Reservando..." : "Confirmar reserva")</span>
                         </button>
                     </div>
                 </div>
             </div>
         }
     </div>
+    }
 </div>
 
 @code {
@@ -135,6 +149,17 @@
 
     // Mensaje del backend cuando rechace la reserva (por ejemplo, el veterinario ya no está libre a esa hora)
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
+    private bool PuedeReservar => Sesion.Rol == RolUsuario.CLIENTE;
+
+    // Datos para calcular los horarios libres: todo el catálogo (las citas de otros pueden tener servicios de
+    // emergencia), los horarios y veterinarios, y las citas del día elegido
+    private List<ServicioViewModel> Catalogo { get; set; } = [];
+    private PersonalClinica Personal { get; set; } = new();
+    private List<CitaViewModel> CitasDelDia { get; set; } = [];
+    private bool CargandoDia { get; set; }
+    private string? MensajeDia { get; set; }
 
     private MascotaViewModel? MascotaElegida => Mascotas.FirstOrDefault(m => m.Id == IdMascota);
     private List<ServicioViewModel> ServiciosElegidos => Servicios.Where(s => IdsServicios.Contains(s.Id)).ToList();
@@ -144,12 +169,29 @@
     private bool Completo => MascotaElegida != null && IdsServicios.Count > 0 && Horario != null;
 
     // Solo las mascotas del cliente que inició sesión. La emergencia no se ofrece: la registra la clínica.
-    // Al enlazar: GET /mascotas?cliente={id} y GET /servicios
-    protected override void OnInitialized() {
-        Mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
-        Servicios = DatosEjemplo.Servicios().Where(s => s.TipoServicio != TipoServicio.EMERGENCIA).ToList();
-        if (MascotaInicial != null && Mascotas.Any(m => m.Id == MascotaInicial)) {
-            IdMascota = MascotaInicial.Value;
+    // GET /mascotas?cliente={id}, GET /servicios y los horarios con su personal (GET /horarios, /veterinarios, /administradores)
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        if (!PuedeReservar) {
+            MensajeError = "Inicie sesión con una cuenta de cliente para reservar una cita.";
+            Cargando = false;
+            return;
+        }
+        try {
+            Task<List<MascotaViewModel>> mascotas = MascotaService.FindByCliente(Sesion.IdPersona);
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<PersonalClinica> personal = PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            Mascotas = await mascotas;
+            Catalogo = await servicios;
+            Personal = await personal;
+            Servicios = Catalogo.Where(s => s.TipoServicio != TipoServicio.EMERGENCIA).ToList();
+            if (MascotaInicial != null && Mascotas.Any(m => m.Id == MascotaInicial)) {
+                IdMascota = MascotaInicial.Value;
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
     }
 
@@ -171,22 +213,69 @@
         Recalcular();
     }
 
-    private void CambiarFecha() {
-        Recalcular();
+    // GET /citas?fecha=AAAA-MM-DD: lo que ya está ocupado ese día
+    private async Task CambiarFecha() {
+        Horario = null;
+        Horarios = [];
+        MensajeDia = null;
+        CitasDelDia = [];
+        if (Fecha == null) {
+            return;
+        }
+        DateTime fecha = Fecha.Value;
+        CargandoDia = true;
+        try {
+            List<CitaViewModel> citas = await CitaService.FindByFecha(DateOnly.FromDateTime(fecha));
+            // Si mientras tanto se eligió otra fecha, esta respuesta ya no corresponde
+            if (Fecha != fecha) return;
+            CitasDelDia = citas;
+            Recalcular();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            if (Fecha == fecha) MensajeDia = ErrorServicio.Desde(ex);
+        } finally {
+            if (Fecha == fecha) CargandoDia = false;
+        }
     }
 
     private void Recalcular() {
         Horario = null;
-        Horarios = Fecha == null ? [] : DisponibilidadCitas.HorariosDelDia(Fecha.Value, ServiciosElegidos);
+        Horarios = Fecha == null || MensajeDia != null
+            ? []
+            : DisponibilidadCitas.HorariosDelDia(Fecha.Value, ServiciosElegidos, Personal, CitasDelDia, Catalogo);
     }
 
     private void ElegirHorario(HorarioDisponible horario) {
         Horario = horario;
     }
 
-    // Sin backend: solo regresa a "Mis citas". Al enlazar: POST /citas con IdCliente, IdMascota, la fecha y hora,
-    // EsEmergencia = false y un detalle por servicio con su veterinario. Queda PENDIENTE hasta que el administrador la apruebe.
-    private void Reservar() {
-        Nav.NavigateTo("/mis-citas");
+    // POST /citas con la mascota, la fecha y hora, EsEmergencia = false y un detalle por servicio con el veterinario
+    // asignado. Queda PENDIENTE hasta que el administrador la apruebe. El backend vuelve a revisar el horario y los
+    // cruces: si mientras tanto otro cliente tomó esa hora, se muestra su mensaje y se recalculan los horarios.
+    private async Task Reservar() {
+        if (!Completo || Guardando || Horario == null) return;
+        MensajeError = null;
+        Guardando = true;
+        CitaViewModel cita = new() {
+            IdCliente = Sesion.IdPersona,
+            IdMascota = IdMascota,
+            FechaHora = Horario.Inicio,
+            Estado = EstadoCita.PENDIENTE,
+            EsEmergencia = false,
+            Detalles = Horario.Detalles.Select(d => new DetalleCitaViewModel {
+                IdServicio = d.IdServicio,
+                NombreServicio = d.NombreServicio,
+                IdVeterinario = d.IdVeterinario,
+                NombreVeterinario = d.NombreVeterinario
+            }).ToList()
+        };
+        try {
+            await CitaService.Insert(cita);
+            Nav.NavigateTo("/mis-citas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            await CambiarFecha();
+        } finally {
+            Guardando = false;
+        }
     }
 }

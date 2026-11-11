@@ -1,6 +1,8 @@
 @page "/administradores/nuevo"
 @page "/administradores/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IAdministradorService AdministradorService;
+@inject IHorarioService HorarioService;
 
 <PageTitle>Administradores</PageTitle>
 
@@ -11,6 +13,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando administrador...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -63,10 +68,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="10" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="10" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="11" class="btn btn-outline-primary" href="administradores">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -75,26 +81,55 @@
 
     private AdministradorViewModel ViewModel { get; set; } = new();
 
-    // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o usuario repetido)
+    // Mensaje del backend cuando rechace el registro (por ejemplo, DNI o correo repetido)
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
-        if (Id == null) {
-            ViewModel = new AdministradorViewModel { Horarios = DatosEjemplo.OpcionesHorario() };
-            return;
+    // GET /horarios para las casillas y, al editar, GET /administradores/{Id}
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            List<HorarioViewModel> horarios = await HorarioService.FindAll();
+            AdministradorViewModel administrador;
+            if (Id == null) {
+                administrador = new AdministradorViewModel();
+            } else {
+                AdministradorViewModel? encontrado = await AdministradorService.FindById(Id.Value);
+                if (encontrado == null) {
+                    Nav.NavigateTo("/administradores");
+                    return;
+                }
+                administrador = encontrado;
+            }
+            administrador.Horarios = PersonalClinica.OpcionesHorario(horarios, administrador.Horarios);
+            ViewModel = administrador;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        AdministradorViewModel? administrador = DatosEjemplo.Administradores().FirstOrDefault(a => a.Id == Id);
-        if (administrador == null) {
-            Nav.NavigateTo("/administradores");
-            return;
-        }
-        ViewModel = administrador;
     }
 
-    // Sin backend: no se registra nada, solo se regresa al listado.
-    // Al enlazar: POST /cuentas y luego POST /administradores (con la cuenta y los horarios marcados);
-    // al editar: PUT /cuentas/{IdCuenta} y PUT /administradores/{Id}.
-    private void Guardar() {
-        Nav.NavigateTo("/administradores");
+    // Nuevo: POST /administradores/con-cuenta (crea la persona y su cuenta con solo el correo; la persona
+    // recibe un enlace para elegir su contraseña). Editar: PUT /administradores/{Id} con los horarios marcados.
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await AdministradorService.Insert(ViewModel);
+            } else {
+                await AdministradorService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/administradores");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

@@ -1,5 +1,10 @@
 @page "/veterinarios"
 @inject NavigationManager Nav;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
+@inject ICitaService CitaService;
+@inject IAtencionService AtencionService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -38,8 +43,13 @@
     <div class="col-sm-6 col-xl-3">
         <div class="indicador indicador-terracota">
             <span class="indicador-icono"><Icono Nombre="paw" /></span>
-            <span class="indicador-valor">@ServiciosHoy servicios hoy</span>
-            <span class="indicador-texto">@AtendidosHoy atendidos · @(ServiciosHoy - AtendidosHoy) pendientes</span>
+            @if (AgendaDisponible) {
+                <span class="indicador-valor">@ServiciosHoy servicios hoy</span>
+                <span class="indicador-texto">@AtendidosHoy atendidos · @(ServiciosHoy - AtendidosHoy) pendientes</span>
+            } else {
+                <span class="indicador-valor">—</span>
+                <span class="indicador-texto">No se pudo cargar la agenda de hoy</span>
+            }
         </div>
     </div>
 </div>
@@ -64,8 +74,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Filtrados.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando veterinarios...</p>
+}
+else if (!Filtrados.Any()) {
     <div class="alert alert-info">No se encontraron veterinarios.</div>
 }
 else if (Vista == "tarjetas") {
@@ -73,6 +89,7 @@ else if (Vista == "tarjetas") {
         @foreach (VeterinarioViewModel veterinario in Filtrados) {
             <div class="col-md-6 col-xl-4">
                 <TarjetaPersonal Persona="veterinario" Colegiatura="@veterinario.NumeroColegiatura"
+                                 HorariosAsignados="Personal.HorariosDe(veterinario)" Hoy="Hoy(veterinario)"
                                  OnEditar="p => EditarVeterinario(p.Id)" OnEliminar="p => PedirEliminar((VeterinarioViewModel)p)" />
             </div>
         }
@@ -114,9 +131,16 @@ else {
     private IQueryable<VeterinarioViewModel> Veterinarios { get; set; } = Enumerable.Empty<VeterinarioViewModel>().AsQueryable();
     private VeterinarioViewModel? VeterinarioAEliminar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private string Filtro { get; set; } = string.Empty;
     private string Vista { get; set; } = "tarjetas";
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    private PersonalClinica Personal { get; set; } = new();
+    private List<CitaViewModel> CitasDeHoy { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private bool AgendaDisponible { get; set; }
 
     private List<VeterinarioViewModel> Filtrados => Veterinarios.ToList();
     private List<VeterinarioViewModel> EnTurno { get; set; } = [];
@@ -124,28 +148,50 @@ else {
     private int ServiciosHoy { get; set; }
     private int AtendidosHoy { get; set; }
 
-    // Al enlazar: GET /veterinarios (cada uno trae sus horarios) y GET /citas?fecha=hoy para los servicios de hoy
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Veterinarios();
-        Filtrar();
+    // GET /horarios, /veterinarios y /administradores (para saber los horarios de cada uno).
+    // La agenda de hoy (GET /citas?fecha=hoy y GET /atenciones) se carga aparte: si falla, solo falta ese indicador.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Personal = await PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            Todos = Personal.Veterinarios;
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+        try {
+            Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today));
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            CitasDeHoy = await citas;
+            Atendidos = (await atenciones).Keys.ToHashSet();
+            AgendaDisponible = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            AgendaDisponible = false;
+        }
         Resumir();
     }
 
     private void Resumir() {
         DateTime ahora = DateTime.Now;
-        EnTurno = Todos.Where(v => TurnosPersonal.EnTurno(v.NombreCompleto, ahora) != null).ToList();
-        ProximoRelevo = TurnosPersonal.ProximoRelevo(ahora);
+        EnTurno = Todos.Where(v => TurnosPersonal.EnTurno(Personal.HorariosDe(v), ahora) != null).ToList();
+        ProximoRelevo = TurnosPersonal.ProximoRelevo(Personal.Horarios, ahora);
         ServiciosHoy = 0;
         AtendidosHoy = 0;
         foreach (VeterinarioViewModel veterinario in Todos) {
-            (int programados, int atendidos) = TurnosPersonal.ServiciosDeHoy(veterinario.NombreCompleto);
+            (int programados, int atendidos) = Hoy(veterinario);
             ServiciosHoy += programados;
             AtendidosHoy += atendidos;
         }
     }
 
-    private static (string Clase, string Texto) Estado(VeterinarioViewModel veterinario) {
-        return TurnosPersonal.Estado(veterinario.NombreCompleto, DateTime.Now);
+    private (int Programados, int Atendidos) Hoy(VeterinarioViewModel veterinario) {
+        return TurnosPersonal.ServiciosDeHoy(veterinario.Id, CitasDeHoy, Atendidos);
+    }
+
+    private (string Clase, string Texto) Estado(VeterinarioViewModel veterinario) {
+        return TurnosPersonal.Estado(Personal.HorariosDe(veterinario), DateTime.Now);
     }
 
     private void Filtrar() {
@@ -178,16 +224,24 @@ else {
         VeterinarioAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /veterinarios/{id};
-    // si el backend lo rechaza (RN-VE-03), se mostrará su mensaje.
-    private void EliminarVeterinario() {
+    // DELETE /veterinarios/{id} (también da de baja su cuenta); si el backend lo rechaza
+    // (RN-VE-03: tiene citas asignadas) se muestra su mensaje
+    private async Task EliminarVeterinario() {
         if (VeterinarioAEliminar == null) {
             return;
         }
-        Todos.Remove(VeterinarioAEliminar);
-        MensajeExito = $"Se eliminó al veterinario {VeterinarioAEliminar.NombreCompleto}.";
+        VeterinarioViewModel veterinario = VeterinarioAEliminar;
         VeterinarioAEliminar = null;
-        Filtrar();
-        Resumir();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await VeterinarioService.Delete(veterinario.Id);
+            Todos.Remove(veterinario);
+            MensajeExito = $"Se eliminó al veterinario {veterinario.NombreCompleto}.";
+            Filtrar();
+            Resumir();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

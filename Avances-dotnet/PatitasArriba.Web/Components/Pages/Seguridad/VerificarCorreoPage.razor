@@ -1,16 +1,22 @@
 @page "/verificar-correo"
 @layout LayoutVacio
+@inject IAccesoService AccesoService
 
 <PageTitle>Verificar correo · Patitas Arriba</PageTitle>
 
 @* Es la página a la que lleva el enlace del correo de registro: /verificar-correo?token=... *@
-<AccesoMarco Titulo="@(Valido ? "¡Tu cuenta quedó activa!" : "El enlace no es válido")"
-             Subtitulo="@(Valido ? "Confirmamos tu correo. Ya puedes iniciar sesión." : null)">
-    @if (Valido) {
-        <a class="login-boton" href="login">Iniciar sesión</a>
-    } else {
-        <div class="login-error">El enlace no es válido o ya venció.</div>
-        <a class="login-boton" href="registro">Volver a registrarme</a>
+<AccesoMarco Titulo="@Titulo" Subtitulo="@(Estado == EstadoVerificacion.Activa ? "Confirmamos tu correo. Ya puedes iniciar sesión." : null)">
+    @switch (Estado) {
+        case EstadoVerificacion.Verificando:
+            <div class="aviso-ok">Estamos confirmando tu correo...</div>
+            break;
+        case EstadoVerificacion.Activa:
+            <a class="login-boton" href="login">Iniciar sesión</a>
+            break;
+        default:
+            <div class="login-error">@MensajeError</div>
+            <a class="login-boton" href="registro">Volver a registrarme</a>
+            break;
     }
 </AccesoMarco>
 
@@ -18,6 +24,32 @@
     [SupplyParameterFromQuery]
     public string? Token { get; set; }
 
-    // Sin backend: cualquier token sirve salvo "invalido". Al enlazar: POST /acceso/registro/confirmar con { token }
-    private bool Valido => !string.IsNullOrWhiteSpace(Token) && Token != "invalido";
+    private enum EstadoVerificacion { Verificando, Activa, Error }
+
+    private EstadoVerificacion Estado { get; set; } = EstadoVerificacion.Verificando;
+    private string MensajeError { get; set; } = "El enlace no es válido o ya venció.";
+
+    private string Titulo => Estado switch {
+        EstadoVerificacion.Verificando => "Verificando tu correo",
+        EstadoVerificacion.Activa => "¡Tu cuenta quedó activa!",
+        _ => "No pudimos activar tu cuenta"
+    };
+
+    // POST /acceso/registro/confirmar con { token }. El token es de un solo uso: con el prerenderizado de
+    // Blazor este método corre dos veces (primero en el servidor y luego en el circuito interactivo),
+    // por eso se confirma solo en la pasada interactiva; si no, la segunda llamada vería el token ya usado.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        if (string.IsNullOrWhiteSpace(Token)) {
+            Estado = EstadoVerificacion.Error;
+            return;
+        }
+        try {
+            await AccesoService.ConfirmarRegistro(Token);
+            Estado = EstadoVerificacion.Activa;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Estado = EstadoVerificacion.Error;
+        }
+    }
 }

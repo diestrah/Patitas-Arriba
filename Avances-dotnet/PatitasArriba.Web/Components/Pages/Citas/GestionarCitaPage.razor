@@ -1,6 +1,12 @@
 @page "/citas/nueva"
 @page "/citas/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject ICitaService CitaService;
+@inject IClienteService ClienteService;
+@inject IMascotaService MascotaService;
+@inject IServicioService ServicioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAtencionService AtencionService;
 
 <PageTitle>Gestión de citas</PageTitle>
 
@@ -11,6 +17,9 @@
         <div class="alert alert-danger">@MensajeError</div>
     }
 
+    @if (Cargando) {
+        <p class="text-muted">Cargando cita...</p>
+    } else {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -63,10 +72,11 @@
         <ValidationMessage For="() => ViewModel.Detalles" />
 
         <div class="d-flex gap-2 mt-3">
-            <button tabindex="5" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="5" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="6" class="btn btn-outline-primary" href="citas">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -82,29 +92,45 @@
 
     // Mensaje del backend cuando rechace la cita (por ejemplo, el veterinario no atiende a esa hora)
     private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
     private IEnumerable<MascotaViewModel> MascotasDelClienteElegido => Mascotas.Where(m => m.IdCliente == ViewModel.IdCliente);
 
-    protected override void OnInitialized() {
-        Clientes = DatosEjemplo.Clientes();
-        Mascotas = DatosEjemplo.Mascotas();
-        Servicios = DatosEjemplo.Servicios();
-        Veterinarios = DatosEjemplo.Veterinarios();
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-    }
+    // GET /clientes, /mascotas, /servicios y /veterinarios para los selectores; al editar, GET /citas/{Id}
+    // y GET /atenciones (un servicio ya atendido no se puede quitar)
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<ClienteViewModel>> clientes = ClienteService.FindAll();
+            Task<List<MascotaViewModel>> mascotas = MascotaService.FindAll();
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
+            Clientes = (await clientes).OrderBy(c => c.NombreCompleto).ToList();
+            Mascotas = await mascotas;
+            Servicios = await servicios;
+            Veterinarios = await veterinarios;
 
-    protected override void OnParametersSet() {
-        if (Id == null) {
-            ViewModel = new CitaViewModel();
-            return;
+            if (Id == null) {
+                ViewModel = new CitaViewModel();
+                Atendidos = [];
+                return;
+            }
+            CitaViewModel? cita = await CitaService.FindById(Id.Value);
+            // Las citas rechazadas, canceladas o completadas ya no se modifican (RN-CI-08)
+            if (cita == null || !cita.EsModificable) {
+                Nav.NavigateTo("/citas");
+                return;
+            }
+            Atendidos = (await AtencionService.AtencionPorDetalleCita()).Keys.ToHashSet();
+            ViewModel = cita;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        CitaViewModel? cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Id == Id);
-        // Las citas rechazadas, canceladas o completadas ya no se modifican (RN-CI-08)
-        if (cita == null || !cita.EsModificable) {
-            Nav.NavigateTo("/citas");
-            return;
-        }
-        ViewModel = cita;
     }
 
     // Al cambiar de cliente se limpia la mascota elegida
@@ -112,9 +138,24 @@
         ViewModel.IdMascota = 0;
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /citas (queda PENDIENTE) o PUT /citas/{Id};
-    // el backend revisa el horario de cada veterinario y los cruces (RN-CI-05 y RN-CI-06).
-    private void Guardar() {
-        Nav.NavigateTo("/citas");
+    // POST /citas (queda PENDIENTE) o PUT /citas/{Id}. El backend revisa el horario de cada veterinario
+    // y los cruces (RN-CI-05 y RN-CI-06); si rechaza la cita se muestra su mensaje.
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                ViewModel.Estado = EstadoCita.PENDIENTE;
+                await CitaService.Insert(ViewModel);
+            } else {
+                await CitaService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/citas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

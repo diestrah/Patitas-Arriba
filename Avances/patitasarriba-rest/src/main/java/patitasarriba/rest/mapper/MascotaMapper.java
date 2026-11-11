@@ -57,6 +57,10 @@ public final class MascotaMapper {
             throw new ValidacionException("No existe el cliente con id " + dto.getCliente().getId());
         }
 
+        // La columna fecha_nacimiento es NOT NULL: sin esto el error decía "Datos de la mascota invalidos: text"
+        if (dto.getFechaNacimiento() == null || dto.getFechaNacimiento().isBlank()) {
+            throw new ValidacionException("La fecha de nacimiento es obligatoria");
+        }
         Mascota mascota = new Mascota();
         try {
             mascota.setId(dto.getId());

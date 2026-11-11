@@ -1,5 +1,6 @@
 @page "/restablecer-contrasena"
 @layout LayoutVacio
+@inject IAccesoService AccesoService
 
 <PageTitle>Restablecer contraseña · Patitas Arriba</PageTitle>
 
@@ -9,17 +10,28 @@
     @if (Listo) {
         <div class="aviso-ok">Tu contraseña se actualizó. Ya puedes iniciar sesión.</div>
         <a class="login-boton" href="login">Iniciar sesión</a>
-    } else if (!TokenValido) {
+    } else if (!TieneToken) {
         <div class="login-error">El enlace no es válido o ya venció.</div>
         <a class="login-boton" href="olvide-contrasena">Pedir un enlace nuevo</a>
     } else {
         <EditForm Model="ViewModel" OnValidSubmit="Guardar">
             <DataAnnotationsValidator />
+
+            @if (MensajeError != null) {
+                @* El token solo se valida al guardar: si venció o ya se usó, el backend lo dice aquí *@
+                <div class="login-error">
+                    @MensajeError
+                    <br /><a href="olvide-contrasena">Pedir un enlace nuevo</a>
+                </div>
+            }
+
             <CampoAcceso Id="clave" Etiqueta="Contraseña nueva" Icono="lock" Tipo="password" Placeholder="Al menos 8 caracteres" TabIndex="1"
                          Autocompletar="new-password" @bind-Value="ViewModel.Password" />
             <CampoAcceso Id="confirmar" Etiqueta="Confirmar contraseña" Icono="lock" Tipo="password" Placeholder="Repite tu contraseña" TabIndex="2"
                          Autocompletar="new-password" @bind-Value="ViewModel.ConfirmarPassword" />
-            <button class="login-boton" type="submit" tabindex="3">Guardar contraseña</button>
+            <button class="login-boton" type="submit" tabindex="3" disabled="@Enviando">
+                @(Enviando ? "Guardando..." : "Guardar contraseña")
+            </button>
         </EditForm>
     }
 </AccesoMarco>
@@ -29,16 +41,27 @@
     public string? Token { get; set; }
 
     private RestablecerContrasenaViewModel ViewModel { get; set; } = new();
+    private string? MensajeError { get; set; }
     private bool Listo { get; set; }
+    private bool Enviando { get; set; }
 
-    // Sin backend: cualquier token sirve salvo "invalido". Al enlazar, el backend responde si el enlace no sirve
-    private bool TokenValido => !string.IsNullOrWhiteSpace(Token) && Token != "invalido";
+    private bool TieneToken => !string.IsNullOrWhiteSpace(Token);
 
-    private string Titulo => Listo ? "¡Contraseña actualizada!" : TokenValido ? "Elige tu contraseña" : "El enlace no es válido";
-    private string? Subtitulo => !Listo && TokenValido ? "Escribe una contraseña nueva de al menos 8 caracteres." : null;
+    private string Titulo => Listo ? "¡Contraseña actualizada!" : TieneToken ? "Elige tu contraseña" : "El enlace no es válido";
+    private string? Subtitulo => !Listo && TieneToken ? "Escribe una contraseña nueva de al menos 8 caracteres." : null;
 
-    // Al enlazar: POST /acceso/recuperacion/restablecer con { token, password }
-    private void Guardar() {
-        Listo = true;
+    // POST /acceso/recuperacion/restablecer con { token, password }: el token es de un solo uso y vence
+    private async Task Guardar() {
+        if (Enviando || !TieneToken) return;
+        MensajeError = null;
+        Enviando = true;
+        try {
+            await AccesoService.RestablecerContrasena(Token!, ViewModel.Password);
+            Listo = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Enviando = false;
+        }
     }
 }

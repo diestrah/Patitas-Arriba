@@ -28,7 +28,6 @@ public final class DetalleCitaMapper {
         DetalleCitaDTO dto = new DetalleCitaDTO();
         dto.setId(detalle.getId());
         dto.setActivo(detalle.isActivo());
-        dto.setIdCita(detalle.getCita() != null ? detalle.getCita().getId() : 0);
         dto.setObservaciones(detalle.getObservaciones());
         dto.setServicio(detalle.getServicio() != null ? ServicioMapper.toDTO(detalle.getServicio()) : null);
         dto.setVeterinario(detalle.getVeterinario() != null ? VeterinarioMapper.toDTO(detalle.getVeterinario()) : null);

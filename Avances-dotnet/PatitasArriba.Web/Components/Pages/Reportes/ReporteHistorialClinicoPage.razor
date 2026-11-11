@@ -2,25 +2,57 @@
 @page "/reportes/historial-clinico/{IdMascota:int}"
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
+@inject IMascotaService MascotaService;
+@inject IClienteService ClienteService;
+@inject IAtencionService AtencionService;
+@inject IRecetaService RecetaService;
 
 <PageTitle>Historial clínico</PageTitle>
 
 <h3 class="mb-3">Reporte de historial clínico</h3>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-4 no-print">
-    <label class="text-nowrap">Mascota:</label>
-    <select tabindex="1" class="form-select w-auto" @bind="IdMascotaSeleccionada">
-        <option value="0">Seleccione una mascota</option>
-        @foreach (MascotaViewModel mascota in Mascotas) {
-            <option value="@mascota.Id">@mascota.Nombre (@mascota.NombreDueno)</option>
-        }
-    </select>
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Generar()"><Icono Nombre="search" /><span>Generar</span></button>
+@* La mascota se busca por su nombre, el de su dueño o el DNI del dueño: con muchas mascotas, una lista desplegable es poco práctica.
+   Enter en el buscador también busca *@
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
+    <label class="text-nowrap" for="hc-buscar">Mascota:</label>
+    <input id="hc-buscar" tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Nombre de la mascota o del dueño, o DNI del dueño"
+           @bind="TextoBusqueda" @bind:event="oninput" @onkeydown="TeclaEnBusqueda" />
+    <button tabindex="2" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => Buscar()"><Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span></button>
     <button tabindex="3" class="btn btn-secondary btn-texto" @onclick="() => Imprimir()" disabled="@(Mascota == null)"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 
-@if (Mascota == null) {
-    <div class="alert alert-info">Seleccione una mascota y presione "Generar" para ver su historial clínico.</div>
+@if (Resultados != null) {
+    <div class="mb-4 no-print">
+        @if (Resultados.Count == 0) {
+            <div class="alert alert-warning mb-0">No se encontró ninguna mascota con “@TextoBuscado”.</div>
+        } else {
+            <p class="small text-muted mb-2">Elija la mascota para ver su historial clínico:</p>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach (MascotaViewModel resultado in Resultados) {
+                    <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-2 text-start" @onclick="() => Elegir(resultado.Id)">
+                        <AvatarMascota Nombre="@resultado.Nombre" Foto="@resultado.Foto" Tamano="chico" />
+                        <span>
+                            <strong>@resultado.Nombre</strong>
+                            <span class="d-block small">@resultado.NombreDueno</span>
+                        </span>
+                    </button>
+                }
+            </div>
+        }
+    </div>
+}
+
+@if (MensajeError != null) {
+    <div class="alert alert-danger no-print">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando el historial clínico...</p>
+}
+else if (Mascota == null) {
+    if (Resultados == null && MensajeError == null) {
+        <div class="alert alert-info">Busque la mascota por su nombre, el de su dueño o el DNI del dueño para ver su historial clínico.</div>
+    }
 }
 else {
     <div class="row g-4">
@@ -35,7 +67,7 @@ else {
             }
 
             @foreach (AtencionViewModel atencion in Historial) {
-                RecetaViewModel? receta = DatosEjemplo.RecetaDeAtencion(atencion.Id);
+                RecetaViewModel? receta = RecetasPorAtencion.GetValueOrDefault(atencion.Id);
                 <div class="card mb-3">
                     <div class="card-header d-flex justify-content-between">
                         <span class="fw-bold">@(atencion.FechaHora?.ToString("dd/MM/yyyy HH:mm")) · @atencion.NombreServicio</span>
@@ -69,23 +101,49 @@ else {
     public int? IdMascota { get; set; }
 
     private List<MascotaViewModel> Mascotas { get; set; } = [];
-    private int IdMascotaSeleccionada { get; set; }
     private MascotaViewModel? Mascota { get; set; }
+
+    // Búsqueda: lo que se escribe, lo que se buscó y las mascotas encontradas (null mientras no se busca)
+    private string TextoBusqueda { get; set; } = string.Empty;
+    private string TextoBuscado { get; set; } = string.Empty;
+    private List<MascotaViewModel>? Resultados { get; set; }
     private List<AtencionViewModel> Historial { get; set; } = [];
+    private Dictionary<int, RecetaViewModel> RecetasPorAtencion { get; set; } = [];
 
-    protected override void OnInitialized() {
-        Mascotas = DatosEjemplo.Mascotas();
-    }
+    // Para buscar por DNI del dueño (se cargan con la primera búsqueda)
+    private List<ClienteViewModel>? Clientes { get; set; }
+    private bool MascotasCargadas { get; set; }
 
-    protected override void OnParametersSet() {
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; }
+    private bool Buscando { get; set; }
+
+    // Con una mascota elegida: GET /mascotas/{id}, su historial (GET /atenciones?mascota={id}) y las recetas
+    // (GET /recetas) para mostrar la de cada atención
+    protected override async Task OnParametersSetAsync() {
+        Resultados = null;
+        MensajeError = null;
         if (IdMascota == null) {
             Mascota = null;
             Historial = [];
             return;
         }
-        IdMascotaSeleccionada = IdMascota.Value;
-        Mascota = Mascotas.FirstOrDefault(m => m.Id == IdMascota);
-        Historial = DatosEjemplo.HistorialDeMascota(IdMascota.Value);
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<MascotaViewModel?> mascota = MascotaService.FindById(IdMascota.Value);
+            Task<List<AtencionViewModel>> historial = AtencionService.FindByMascota(IdMascota.Value);
+            Task<List<RecetaViewModel>> recetas = RecetaService.FindAll();
+            Mascota = await mascota;
+            Historial = (await historial).OrderByDescending(a => a.FechaHora).ToList();
+            RecetasPorAtencion = (await recetas).GroupBy(r => r.IdAtencion).ToDictionary(g => g.Key, g => g.First());
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Mascota = null;
+            Historial = [];
+        } finally {
+            Cargando = false;
+        }
     }
 
     // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF
@@ -93,10 +151,49 @@ else {
         await JS.InvokeVoidAsync("print");
     }
 
-    // Navega a la URL del historial de la mascota elegida
-    private void Generar() {
-        if (IdMascotaSeleccionada > 0) {
-            Nav.NavigateTo($"/reportes/historial-clinico/{IdMascotaSeleccionada}");
+    private async Task TeclaEnBusqueda(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            await Buscar();
         }
+    }
+
+    // Por nombre de la mascota o del dueño, o por el DNI del dueño (solo números; vale el inicio del DNI).
+    // Si hay una sola, la abre. Usa GET /mascotas y, para el DNI, GET /clientes (se cargan una vez y se reusan).
+    private async Task Buscar() {
+        string texto = TextoBusqueda.Trim();
+        if (texto.Length == 0 || Buscando) {
+            return;
+        }
+        Buscando = true;
+        MensajeError = null;
+        try {
+            if (!MascotasCargadas) {
+                Mascotas = await MascotaService.FindAll();
+                MascotasCargadas = true;
+            }
+            HashSet<int> duenos = [];
+            if (texto.All(char.IsDigit)) {
+                Clientes ??= await ClienteService.FindAll();
+                duenos = Clientes.Where(c => c.Dni.StartsWith(texto)).Select(c => c.Id).ToHashSet();
+            }
+            TextoBuscado = texto;
+            Resultados = Mascotas
+                .Where(m => m.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                         || m.NombreDueno.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                         || duenos.Contains(m.IdCliente))
+                .ToList();
+            if (Resultados.Count == 1) {
+                Elegir(Resultados[0].Id);
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Buscando = false;
+        }
+    }
+
+    // Navega a la URL del historial de la mascota elegida
+    private void Elegir(int idMascota) {
+        Nav.NavigateTo($"/reportes/historial-clinico/{idMascota}");
     }
 }

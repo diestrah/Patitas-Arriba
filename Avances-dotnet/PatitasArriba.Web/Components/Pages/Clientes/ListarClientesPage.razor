@@ -1,6 +1,8 @@
 @page "/clientes"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IClienteService ClienteService;
+@inject IMascotaService MascotaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -28,8 +30,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Clientes.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando clientes...</p>
+}
+else if (!Clientes.Any()) {
     <div class="alert alert-info">No se encontraron clientes.</div>
 }
 else {
@@ -60,6 +68,8 @@ else {
         <div class="col-lg-5">
             @if (ClienteSeleccionado == null) {
                 <div class="alert alert-info">Seleccione un cliente para ver sus datos y sus mascotas.</div>
+            } else if (CargandoMascotas) {
+                <p class="text-muted">Cargando sus mascotas...</p>
             } else {
                 <MascotasDelCliente Cliente="ClienteSeleccionado" Mascotas="MascotasSeleccionadas" PermitirEditar="Sesion.EsAdministrador" />
             }
@@ -79,12 +89,23 @@ else {
     private List<MascotaViewModel> MascotasSeleccionadas { get; set; } = [];
     private ClienteViewModel? ClienteAEliminar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool CargandoMascotas { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
 
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Clientes();
-        Filtrar();
+    // GET /clientes. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todos = await ClienteService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void Filtrar() {
@@ -99,10 +120,25 @@ else {
         Filtrar();
     }
 
-    // Maestro-detalle: al seleccionar un cliente se muestran sus mascotas a la derecha
-    private void SeleccionarCliente(ClienteViewModel cliente) {
+    // Maestro-detalle: al seleccionar un cliente se muestran sus mascotas a la derecha (GET /mascotas?cliente={id})
+    private async Task SeleccionarCliente(ClienteViewModel cliente) {
         ClienteSeleccionado = cliente;
-        MascotasSeleccionadas = DatosEjemplo.MascotasDeCliente(cliente.Id);
+        MascotasSeleccionadas = [];
+        MensajeError = null;
+        CargandoMascotas = true;
+        try {
+            List<MascotaViewModel> mascotas = await MascotaService.FindByCliente(cliente.Id);
+            // Si mientras tanto se eligió otro cliente, esta respuesta ya no corresponde
+            if (ClienteSeleccionado == cliente) {
+                MascotasSeleccionadas = mascotas;
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            if (ClienteSeleccionado == cliente) {
+                CargandoMascotas = false;
+            }
+        }
     }
 
     private void NuevoCliente() {
@@ -121,18 +157,26 @@ else {
         ClienteAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /clientes/{id};
-    // si el backend lo rechaza (RN-CL-01), se mostrará su mensaje.
-    private void EliminarCliente() {
+    // DELETE /clientes/{id} (también da de baja sus mascotas y su cuenta); si el backend lo rechaza
+    // (RN-CL-01: sus mascotas tienen citas o tiene boletas) se muestra su mensaje
+    private async Task EliminarCliente() {
         if (ClienteAEliminar == null) {
             return;
         }
-        Todos.Remove(ClienteAEliminar);
-        if (ClienteSeleccionado == ClienteAEliminar) {
-            ClienteSeleccionado = null;
-        }
-        MensajeExito = $"Se eliminó al cliente {ClienteAEliminar.NombreCompleto}.";
+        ClienteViewModel cliente = ClienteAEliminar;
         ClienteAEliminar = null;
-        Filtrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await ClienteService.Delete(cliente.Id);
+            Todos.Remove(cliente);
+            if (ClienteSeleccionado == cliente) {
+                ClienteSeleccionado = null;
+            }
+            MensajeExito = $"Se eliminó al cliente {cliente.NombreCompleto}.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

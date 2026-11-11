@@ -2,6 +2,8 @@
 @page "/mis-mascotas/editar/{Id:int}"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IMascotaService MascotaService;
+@inject ICitaService CitaService;
 
 <PageTitle>@(Id == null ? "Agregar mascota" : "Editar mascota")</PageTitle>
 
@@ -11,6 +13,13 @@
         <a class="small fw-bold" href="mis-mascotas">Volver</a>
     </div>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    @if (Cargando) {
+        <p class="text-muted">Cargando mascota...</p>
+    } else if (PuedeEditar) {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -100,11 +109,12 @@
 
                 <div class="d-flex justify-content-end gap-2">
                     <a tabindex="8" class="btn btn-outline-primary" href="mis-mascotas">Cancelar</a>
-                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar mascota</span></button>
+                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar mascota")</span></button>
                 </div>
             </div>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -116,28 +126,56 @@
     private SexoMascota[] Sexos { get; } = Enum.GetValues<SexoMascota>();
     private string NombreOriginal { get; set; } = "";
     private bool Bloqueada { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
+
+    // Solo un cliente con sesión puede registrar o editar sus mascotas
+    private bool PuedeEditar => Sesion.Rol == RolUsuario.CLIENTE;
 
     // La foto se reduce en el navegador a 300 px y JPG (pesa pocos KB); el backend acepta hasta 200 KB (RN-MA-07)
     private static readonly string[] TiposFoto = ["image/jpeg", "image/png", "image/webp"];
     private const int MaxBytesFoto = 150_000;
     private string? MensajeFoto { get; set; }
 
-    // Solo se edita una mascota del cliente que inició sesión (al enlazar: GET /mascotas?cliente={id})
-    protected override void OnParametersSet() {
+    // Al editar: GET /mascotas/{Id} (solo si es del cliente que inició sesión) y GET /citas?cliente={id}
+    // para saber si el nombre y el tipo quedan bloqueados (ya tiene citas aprobadas o atendidas)
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
         if (Id == null) {
             // Esta misma pantalla sirve para agregar y para editar: al agregar no queda nada de una edición anterior
             ViewModel = new MascotaClienteViewModel();
             NombreOriginal = "";
             Bloqueada = false;
+        }
+        if (!RendererInfo.IsInteractive) return;
+        if (!PuedeEditar) {
+            MensajeError = "Inicie sesión con una cuenta de cliente para registrar sus mascotas.";
+            Cargando = false;
             return;
         }
-        MascotaViewModel? mascota = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona).FirstOrDefault(m => m.Id == Id);
-        if (mascota == null) {
-            Nav.NavigateTo("/mis-mascotas");
+        if (Id == null) {
+            Cargando = false;
             return;
         }
+        try {
+            MascotaViewModel? mascota = await MascotaService.FindById(Id.Value);
+            if (mascota == null || mascota.IdCliente != Sesion.IdPersona) {
+                Nav.NavigateTo("/mis-mascotas");
+                return;
+            }
+            Bloqueada = PortalCliente.NombreYTipoBloqueados(await CitaService.FindByCliente(Sesion.IdPersona), mascota.Id);
+            CargarFormulario(mascota);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    private void CargarFormulario(MascotaViewModel mascota) {
         NombreOriginal = mascota.Nombre;
-        Bloqueada = PortalCliente.NombreYTipoBloqueados(DatosEjemplo.CitasDeCliente(Sesion.IdPersona), mascota.Id);
         ViewModel = new MascotaClienteViewModel {
             Id = mascota.Id,
             Nombre = mascota.Nombre,
@@ -174,10 +212,35 @@
         MensajeFoto = null;
     }
 
-    // Sin backend: solo regresa a "Mis mascotas". Al enlazar: POST /mascotas o PUT /mascotas/{Id}, con el dueño
-    // fijado al cliente de la sesión, "foto" con el texto base64 (o vacío) y, si no indicó el peso, peso 0
-    // ("no registrado"): el backend lo acepta (MascotaBLImpl, RN-MA-02) y valida la foto (RN-MA-07).
-    private void Guardar() {
-        Nav.NavigateTo("/mis-mascotas");
+    // POST /mascotas o PUT /mascotas/{Id}, con el dueño fijado al cliente de la sesión, "foto" con el texto
+    // base64 (o vacío) y, si no indicó el peso, peso 0 ("no registrado"): el backend lo acepta
+    // (MascotaBLImpl, RN-MA-02) y valida la foto (RN-MA-07). Si rechaza los datos se muestra su mensaje.
+    private async Task Guardar() {
+        if (Guardando || !PuedeEditar) return;
+        MensajeError = null;
+        Guardando = true;
+        MascotaViewModel mascota = new() {
+            Id = ViewModel.Id,
+            IdCliente = Sesion.IdPersona,
+            Nombre = ViewModel.Nombre,
+            TipoMascota = ViewModel.TipoMascota,
+            Sexo = ViewModel.Sexo,
+            Raza = ViewModel.Raza,
+            Peso = ViewModel.Peso,
+            FechaNacimiento = ViewModel.FechaNacimiento,
+            Foto = ViewModel.Foto
+        };
+        try {
+            if (Id == null) {
+                await MascotaService.Insert(mascota);
+            } else {
+                await MascotaService.Update(mascota);
+            }
+            Nav.NavigateTo("/mis-mascotas");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

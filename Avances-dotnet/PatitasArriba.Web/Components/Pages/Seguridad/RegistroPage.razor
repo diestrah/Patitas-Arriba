@@ -1,5 +1,6 @@
 @page "/registro"
 @layout LayoutVacio
+@inject IAccesoService AccesoService
 
 <PageTitle>Crear cuenta · Patitas Arriba</PageTitle>
 
@@ -9,11 +10,7 @@
             <b>Revisa tu correo.</b> Te enviamos un enlace a <b>@ViewModel.Correo</b> para confirmar tu registro.
             Es válido por 24 horas. Tu cuenta se crea cuando lo abres.
         </div>
-        @* Sin backend no se envía ningún correo: el enlace de prueba hace de ese correo *@
-        <div class="aviso-demo">
-            Modo demostración: no se envió ningún correo.
-            <a href="verificar-correo?token=demo">Abrir el enlace del correo</a>
-        </div>
+        <p class="login-registro"><a href="login">Volver a iniciar sesión</a></p>
     } else {
         <EditForm Model="ViewModel" OnValidSubmit="Enviar">
             <DataAnnotationsValidator />
@@ -43,7 +40,9 @@
             <CampoAcceso Id="confirmar" Etiqueta="Confirmar contraseña" Icono="lock" Tipo="password" Placeholder="Repite tu contraseña" MaxLength="64" TabIndex="8"
                          Autocompletar="new-password" @bind-Value="ViewModel.ConfirmarPassword" />
 
-            <button class="login-boton" type="submit" tabindex="9">Crear cuenta</button>
+            <button class="login-boton" type="submit" tabindex="9" disabled="@Enviando">
+                @(Enviando ? "Enviando..." : "Crear cuenta")
+            </button>
             <p class="login-registro">¿Ya tienes una cuenta? <a href="login">Inicia sesión</a></p>
         </EditForm>
     }
@@ -53,21 +52,22 @@
     private RegistroViewModel ViewModel { get; set; } = new();
     private string? MensajeError { get; set; }
     private bool Enviado { get; set; }
+    private bool Enviando { get; set; }
 
-    // Sin backend: solo se comprueba contra los datos de ejemplo lo que el backend rechazaría (RN-AC-01).
-    // Al enlazar: POST /acceso/registro y mostrar el mensaje de error que devuelva
-    private void Enviar() {
+    // POST /acceso/registro: el backend valida las reglas (RN-AC-01), que el correo y el DNI no estén
+    // registrados, y envía el correo de confirmación. Sus mensajes de error se muestran tal cual.
+    private async Task Enviar() {
+        if (Enviando) return;
         MensajeError = null;
-        string correo = ViewModel.Correo.Trim();
-        if (DatosEjemplo.CuentasUsuario().Any(c => c.Correo.Equals(correo, StringComparison.OrdinalIgnoreCase))) {
-            MensajeError = "El correo ya está registrado";
-            return;
+        Enviando = true;
+        try {
+            await AccesoService.SolicitarRegistro(ViewModel);
+            ViewModel.Correo = ViewModel.Correo.Trim();
+            Enviado = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Enviando = false;
         }
-        if (DatosEjemplo.Clientes().Any(c => c.Dni == ViewModel.Dni)) {
-            MensajeError = $"Ya existe un cliente con el DNI {ViewModel.Dni}";
-            return;
-        }
-        ViewModel.Correo = correo;
-        Enviado = true;
     }
 }

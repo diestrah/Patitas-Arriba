@@ -1,5 +1,9 @@
 @page "/agenda"
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IServicioService ServicioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAtencionService AtencionService;
 
 @using System.Globalization
 
@@ -33,6 +37,12 @@
 
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+@if (Cargando) {
+    <p class="text-muted">Cargando la agenda...</p>
 }
 
 <div class="agenda-scroll mb-3">
@@ -74,7 +84,7 @@
     <span><i style="background: #fdf0d2; border: 2px dashed #c9922e"></i>Por aprobar</span>
 </div>
 
-@if (Agenda.Count == 0) {
+@if (!Cargando && MensajeError == null && Agenda.Count == 0) {
     <div class="alert alert-info">No hay servicios programados para esta fecha.</div>
 }
 
@@ -129,6 +139,9 @@
     private CitaViewModel? CitaSeleccionada { get; set; }
     private CitaViewModel? CitaARechazar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private List<ServicioViewModel> Servicios { get; set; } = [];
 
     private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
     private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
@@ -138,29 +151,56 @@
     private int FinMinutos => Math.Max(780, Agenda.Select(i => (int)Math.Ceiling((i.FechaHoraFin.TimeOfDay.TotalMinutes) / 60) * 60).DefaultIfEmpty(780).Max());
     private int AlturaTotal => (FinMinutos - InicioMinutos) * PxPorHora / 60;
 
-    // Al enlazar: GET /citas?fecha=AAAA-MM-DD (la duración viene en detalle.servicio.duracionEstimada)
-    protected override void OnInitialized() {
-        Citas = DatosEjemplo.Citas();
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-        Veterinarios = DatosEjemplo.Veterinarios().Select(v => v.NombreCompleto).ToList();
-        if (VeterinarioInicial != null && Veterinarios.Contains(VeterinarioInicial)) {
-            FiltroVeterinario = VeterinarioInicial;
+    // GET /veterinarios (columnas), GET /servicios (duración de cada servicio) y GET /atenciones (lo ya atendido);
+    // luego la agenda del día con GET /citas?fecha=AAAA-MM-DD
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
+            Servicios = await servicios;
+            Atendidos = (await atenciones).Keys.ToHashSet();
+            if (VeterinarioInicial != null && Veterinarios.Contains(VeterinarioInicial)) {
+                FiltroVeterinario = VeterinarioInicial;
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Cargando = false;
+            return;
         }
-        Recalcular();
+        await Recalcular();
     }
 
-    private void Recalcular() {
-        Agenda = DatosEjemplo.AgendaDelDia(Fecha, Citas);
+    // GET /citas?fecha=AAAA-MM-DD del día que se está viendo
+    private async Task Recalcular() {
+        Cargando = true;
+        MensajeError = null;
+        DateTime fecha = Fecha;
+        try {
+            List<CitaViewModel> citas = await CitaService.FindByFecha(DateOnly.FromDateTime(fecha));
+            // Si mientras tanto se cambió de día, esta respuesta ya no corresponde
+            if (fecha != Fecha) return;
+            Citas = citas;
+            Agenda = AgendaClinica.DelDia(fecha, Citas, Servicios);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Citas = [];
+            Agenda = [];
+        } finally {
+            if (fecha == Fecha) Cargando = false;
+        }
     }
 
-    private void CambiarDia(int dias) {
+    private Task CambiarDia(int dias) {
         Fecha = Fecha.AddDays(dias);
-        Recalcular();
+        return Recalcular();
     }
 
-    private void IrAHoy() {
+    private Task IrAHoy() {
         Fecha = DateTime.Today;
-        Recalcular();
+        return Recalcular();
     }
 
     private static string Hora(int minutos) {
@@ -224,15 +264,23 @@
         CitaSeleccionada = Citas.FirstOrDefault(c => c.Id == idCita);
     }
 
-    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
-    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
-    private void Aprobar(CitaViewModel cita) {
-        cita.Estado = EstadoCita.APROBADO;
-        cita.IdAdministrador = Sesion.IdPersona;
-        cita.NombreAdministrador = Sesion.NombreUsuario;
-        MensajeExito = $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\".";
+    // PUT /citas/{id} con el nuevo estado y el administrador que decide (RN-CI-09);
+    // si el backend lo rechaza, la cita queda como estaba y se muestra su mensaje.
+    private async Task CambiarEstado(CitaViewModel cita, EstadoCita estado, string mensaje) {
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await CitaService.CambiarEstado(cita, estado, Sesion.IdPersona, Sesion.NombreUsuario);
+            MensajeExito = mensaje;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+        Agenda = AgendaClinica.DelDia(Fecha, Citas, Servicios);
+    }
+
+    private async Task Aprobar(CitaViewModel cita) {
         CitaSeleccionada = null;
-        Recalcular();
+        await CambiarEstado(cita, EstadoCita.APROBADO, $"Se aprobó la cita de {cita.NombreMascota}. Ahora aparece como \"Por atender\".");
     }
 
     // El cuadro de confirmación reemplaza al detalle para no apilar dos ventanas
@@ -241,16 +289,13 @@
         CitaARechazar = cita;
     }
 
-    private void Rechazar() {
+    private async Task Rechazar() {
         if (CitaARechazar == null) {
             return;
         }
-        CitaARechazar.Estado = EstadoCita.RECHAZADO;
-        CitaARechazar.IdAdministrador = Sesion.IdPersona;
-        CitaARechazar.NombreAdministrador = Sesion.NombreUsuario;
-        MensajeExito = $"Se rechazó la cita de {CitaARechazar.NombreMascota}.";
+        CitaViewModel cita = CitaARechazar;
         CitaARechazar = null;
-        Recalcular();
+        await CambiarEstado(cita, EstadoCita.RECHAZADO, $"Se rechazó la cita de {cita.NombreMascota}.");
     }
 
     private void CancelarRechazo() {

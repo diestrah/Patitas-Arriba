@@ -1,11 +1,19 @@
 @page "/articulos/stock/{Id:int}"
 @inject NavigationManager Nav;
+@inject IArticuloService ArticuloService;
 
 <PageTitle>Actualizar stock</PageTitle>
 
 <div class="col-md-6">
     <h3 class="mb-3">Actualizar stock</h3>
 
+    @if (MensajeError != null) {
+        <div class="alert alert-danger">@MensajeError</div>
+    }
+
+    @if (Cargando) {
+        <p class="text-muted">Cargando artículo...</p>
+    } else if (Articulo != null) {
     <EditForm Model="ViewModel" OnValidSubmit="Guardar">
         <DataAnnotationsValidator />
 
@@ -26,10 +34,11 @@
         </div>
 
         <div class="d-flex gap-2">
-            <button tabindex="2" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+            <button tabindex="2" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
             <a tabindex="3" class="btn btn-outline-primary" href="articulos">Cancelar</a>
         </div>
     </EditForm>
+    }
 </div>
 
 @code {
@@ -37,24 +46,51 @@
     public int Id { get; set; }
 
     private ActualizarStockViewModel ViewModel { get; set; } = new();
+    private ArticuloViewModel? Articulo { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
-        ArticuloViewModel? articulo = DatosEjemplo.Articulos().FirstOrDefault(a => a.Id == Id);
-        if (articulo == null) {
-            Nav.NavigateTo("/articulos");
-            return;
+    // GET /articulos/{Id}; si no existe se vuelve al listado
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Articulo = await ArticuloService.FindById(Id);
+            if (Articulo == null) {
+                Nav.NavigateTo("/articulos");
+                return;
+            }
+            ViewModel = new ActualizarStockViewModel {
+                IdArticulo = Articulo.Id,
+                NombreArticulo = Articulo.Nombre,
+                StockActual = Articulo.StockActual,
+                NuevoStock = Articulo.StockActual
+            };
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        ViewModel = new ActualizarStockViewModel {
-            IdArticulo = articulo.Id,
-            NombreArticulo = articulo.Nombre,
-            StockActual = articulo.StockActual,
-            NuevoStock = articulo.StockActual
-        };
     }
 
-    // Sin backend: solo regresa al listado. El backend no tiene un endpoint solo para el stock:
-    // al enlazar se lee el artículo (GET /articulos/{id}), se cambia su stock y se envía PUT /articulos/{id} (RN-AR-04)
-    private void Guardar() {
-        Nav.NavigateTo("/articulos");
+    // El backend no tiene un endpoint solo para el stock: se envía PUT /articulos/{id} con el artículo
+    // completo que se leyó y su nuevo stock (RN-AR-04)
+    private async Task Guardar() {
+        if (Guardando || Articulo == null) return;
+        MensajeError = null;
+        Guardando = true;
+        int anterior = Articulo.StockActual;
+        try {
+            Articulo.StockActual = ViewModel.NuevoStock;
+            await ArticuloService.Update(Articulo);
+            Nav.NavigateTo("/articulos");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            Articulo.StockActual = anterior;
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

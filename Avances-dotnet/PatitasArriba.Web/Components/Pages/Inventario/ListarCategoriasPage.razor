@@ -1,5 +1,6 @@
 @page "/categorias"
 @inject NavigationManager Nav;
+@inject ICategoriaService CategoriaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -19,7 +20,10 @@
     <div class="alert alert-danger">@MensajeError</div>
 }
 
-@if (!Categorias.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando categorías...</p>
+}
+else if (!Categorias.Any()) {
     <div class="alert alert-info">No hay categorías registradas.</div>
 }
 else {
@@ -52,10 +56,23 @@ else {
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 8 };
+    private bool Cargando { get; set; } = true;
 
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.Categorias();
-        Categorias = Todas.AsQueryable();
+    // GET /categorias. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        await Cargar();
+    }
+
+    private async Task Cargar() {
+        try {
+            Todas = await CategoriaService.FindAll();
+            Categorias = Todas.AsQueryable();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void NuevaCategoria() {
@@ -74,23 +91,23 @@ else {
         CategoriaAEliminar = null;
     }
 
-    // Al enlazar se llamará a DELETE /categorias/{id}. Igual que el backend (RN-CA-03),
-    // no se elimina una categoría que tiene artículos asignados.
-    private void EliminarCategoria() {
+    // DELETE /categorias/{id}. El backend no elimina una categoría con artículos asignados (RN-CA-03):
+    // en ese caso se muestra su mensaje
+    private async Task EliminarCategoria() {
         if (CategoriaAEliminar == null) {
             return;
         }
+        CategoriaViewModel categoria = CategoriaAEliminar;
+        CategoriaAEliminar = null;
         MensajeExito = null;
         MensajeError = null;
-        int articulos = DatosEjemplo.Articulos()
-            .Count(a => a.Categorias.Any(c => c.Id == CategoriaAEliminar.Id && c.Seleccionado));
-        if (articulos > 0) {
-            MensajeError = $"No se puede eliminar la categoría “{CategoriaAEliminar.Nombre}”: tiene {articulos} artículo(s) asignado(s).";
-        } else {
-            Todas.Remove(CategoriaAEliminar);
+        try {
+            await CategoriaService.Delete(categoria.Id);
+            Todas.Remove(categoria);
             Categorias = Todas.AsQueryable();
-            MensajeExito = $"Se eliminó la categoría “{CategoriaAEliminar.Nombre}”.";
+            MensajeExito = $"Se eliminó la categoría “{categoria.Nombre}”.";
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
         }
-        CategoriaAEliminar = null;
     }
 }

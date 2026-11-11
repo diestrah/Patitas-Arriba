@@ -90,11 +90,18 @@
     [Parameter]
     public EventCallback<PersonalViewModel> OnEliminar { get; set; }
 
+    // Los horarios completos de la persona (PersonalClinica.HorariosDe), para saber si está de turno
+    [Parameter]
+    public List<HorarioViewModel> HorariosAsignados { get; set; } = [];
+
+    // Solo veterinarios: sus servicios de hoy (TurnosPersonal.ServiciosDeHoy)
+    [Parameter]
+    public (int Programados, int Atendidos) Hoy { get; set; }
+
     private string Iniciales => (Persona.Nombres.Length > 0 && Persona.ApellidoPaterno.Length > 0)
         ? $"{Persona.Nombres[..1]}{Persona.ApellidoPaterno[..1]}".ToUpper()
         : "?";
-    private (string Clase, string Texto) Estado => TurnosPersonal.Estado(Persona.NombreCompleto, DateTime.Now);
-    private (int Programados, int Atendidos) Hoy => TurnosPersonal.ServiciosDeHoy(Persona.NombreCompleto);
+    private (string Clase, string Texto) Estado => TurnosPersonal.Estado(HorariosAsignados, DateTime.Now);
     private int PorcentajeAtendido => Hoy.Programados == 0 ? 0 : (int)Math.Round(100.0 * Hoy.Atendidos / Hoy.Programados);
 
     // "Lunes 08:00 - 14:00", uno por cada horario asignado

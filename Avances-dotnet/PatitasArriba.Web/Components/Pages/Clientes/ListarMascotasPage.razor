@@ -1,6 +1,7 @@
 @page "/mascotas"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IMascotaService MascotaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -28,8 +29,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Mascotas.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando mascotas...</p>
+}
+else if (!Mascotas.Any()) {
     <div class="alert alert-info">No se encontraron mascotas.</div>
 }
 else {
@@ -77,12 +84,22 @@ else {
     private IQueryable<MascotaViewModel> Mascotas { get; set; } = Enumerable.Empty<MascotaViewModel>().AsQueryable();
     private MascotaViewModel? MascotaAEliminar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.Mascotas();
-        Filtrar();
+    // GET /mascotas (cada una trae a su dueño). Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todas = await MascotaService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void Filtrar() {
@@ -118,15 +135,22 @@ else {
         MascotaAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /mascotas/{id};
-    // si el backend lo rechaza (RN-MA-05: tiene citas), se mostrará su mensaje.
-    private void EliminarMascota() {
+    // DELETE /mascotas/{id}; si el backend lo rechaza (RN-MA-05: tiene citas) se muestra su mensaje
+    private async Task EliminarMascota() {
         if (MascotaAEliminar == null) {
             return;
         }
-        Todas.Remove(MascotaAEliminar);
-        MensajeExito = $"Se eliminó la mascota {MascotaAEliminar.Nombre}.";
+        MascotaViewModel mascota = MascotaAEliminar;
         MascotaAEliminar = null;
-        Filtrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await MascotaService.Delete(mascota.Id);
+            Todas.Remove(mascota);
+            MensajeExito = $"Se eliminó la mascota {mascota.Nombre}.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

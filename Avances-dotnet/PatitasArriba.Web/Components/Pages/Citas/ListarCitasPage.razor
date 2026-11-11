@@ -1,6 +1,8 @@
 @page "/citas"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IAtencionService AtencionService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -33,8 +35,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Citas.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando citas...</p>
+}
+else if (!Citas.Any()) {
     <div class="alert alert-info">No hay citas para mostrar.</div>
 }
 else {
@@ -135,6 +143,8 @@ else {
     private string EstadoFiltroAplicado { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
 
     // Servicios de cita que ya tienen su atención registrada
     private HashSet<int> Atendidos { get; set; } = [];
@@ -143,13 +153,23 @@ else {
     private CitaViewModel? CitaPorConfirmar { get; set; }
     private EstadoCita EstadoDestino { get; set; }
 
-    protected override void OnInitialized() {
-        Todas = DatosEjemplo.Citas();
-        Atendidos = DatosEjemplo.DetallesAtendidos();
-        Mostrar();
+    // GET /citas y, para saber qué servicios ya se atendieron (completar y cancelar dependen de eso), GET /atenciones.
+    // Se cargan todas una vez y los filtros se aplican sobre esa lista.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<CitaViewModel>> citas = CitaService.FindAll();
+            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Todas = await citas;
+            Atendidos = (await atenciones).Keys.ToHashSet();
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
-    // Al enlazar: GET /citas?fecha=AAAA-MM-DD
     private void Mostrar() {
         Citas = Todas
             .Where(c => FechaFiltroAplicada == null || c.FechaHora?.Date == FechaFiltroAplicada.Value.Date)
@@ -201,21 +221,25 @@ else {
         Nav.NavigateTo($"/citas/editar/{id}");
     }
 
-    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con el nuevo estado
-    // y el administrador que decide (RN-CI-09); si el backend lo rechaza, se muestra su mensaje.
-    private void Aprobar(CitaViewModel cita) {
-        cita.Estado = EstadoCita.APROBADO;
-        cita.IdAdministrador = Sesion.IdPersona;
-        cita.NombreAdministrador = Sesion.NombreUsuario;
-        MensajeExito = $"Se aprobó la cita N.° {cita.Id} de {cita.NombreMascota}.";
+    // PUT /citas/{id} con el nuevo estado y el administrador que decide (RN-CI-09);
+    // si el backend lo rechaza, la cita queda como estaba y se muestra su mensaje.
+    private async Task CambiarEstado(CitaViewModel cita, EstadoCita estado, string mensaje) {
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await CitaService.CambiarEstado(cita, estado, Sesion.IdPersona, Sesion.NombreUsuario);
+            MensajeExito = mensaje;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
         Mostrar();
     }
 
-    private void Completar(CitaViewModel cita) {
-        cita.Estado = EstadoCita.COMPLETADO;
-        MensajeExito = $"La cita N.° {cita.Id} de {cita.NombreMascota} quedó completada.";
-        Mostrar();
-    }
+    private Task Aprobar(CitaViewModel cita) =>
+        CambiarEstado(cita, EstadoCita.APROBADO, $"Se aprobó la cita N.° {cita.Id} de {cita.NombreMascota}.");
+
+    private Task Completar(CitaViewModel cita) =>
+        CambiarEstado(cita, EstadoCita.COMPLETADO, $"La cita N.° {cita.Id} de {cita.NombreMascota} quedó completada.");
 
     private void PedirCambio(CitaViewModel cita, EstadoCita estado) {
         CitaPorConfirmar = cita;
@@ -236,19 +260,15 @@ else {
             : $"{cita} Se liberará el horario del veterinario.";
     }
 
-    private void ConfirmarCambio() {
+    private async Task ConfirmarCambio() {
         if (CitaPorConfirmar == null) {
             return;
         }
-        CitaPorConfirmar.Estado = EstadoDestino;
-        if (EstadoDestino == EstadoCita.RECHAZADO) {
-            CitaPorConfirmar.IdAdministrador = Sesion.IdPersona;
-            CitaPorConfirmar.NombreAdministrador = Sesion.NombreUsuario;
-            MensajeExito = $"Se rechazó la cita N.° {CitaPorConfirmar.Id}.";
-        } else {
-            MensajeExito = $"Se canceló la cita N.° {CitaPorConfirmar.Id}.";
-        }
+        CitaViewModel cita = CitaPorConfirmar;
         CitaPorConfirmar = null;
-        Mostrar();
+        string mensaje = EstadoDestino == EstadoCita.RECHAZADO
+            ? $"Se rechazó la cita N.° {cita.Id}."
+            : $"Se canceló la cita N.° {cita.Id}.";
+        await CambiarEstado(cita, EstadoDestino, mensaje);
     }
 }

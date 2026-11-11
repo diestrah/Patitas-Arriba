@@ -1,6 +1,9 @@
 @page "/horarios"
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -71,7 +74,10 @@
     <div class="alert alert-danger no-print">@MensajeError</div>
 }
 
-@if (Todos.Count == 0) {
+@if (Cargando) {
+    <p class="text-muted">Cargando horarios...</p>
+}
+else if (Todos.Count == 0) {
     <div class="alert alert-info">No hay horarios registrados. Cree el primero con "Nuevo horario".</div>
 }
 else if (Vista == "semana") {
@@ -211,10 +217,20 @@ else {
         }
     }
 
-    // Al enlazar: GET /horarios y, para saber quién está en cada uno, GET /veterinarios y /administradores
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Horarios();
-        Horarios = Todos.AsQueryable();
+    private bool Cargando { get; set; } = true;
+
+    // GET /horarios y, para saber quién está en cada uno, GET /veterinarios y /administradores
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            PersonalClinica personal = await PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            Todos = personal.Horarios;
+            Horarios = Todos.AsQueryable();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private static string NombreCorto(string nombreCompleto) {
@@ -256,16 +272,23 @@ else {
         HorarioAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /horarios/{id}.
-    // Igual que el backend (RN-HO-04), no se elimina un horario que tiene personal asignado.
-    private void EliminarHorario() {
+    // DELETE /horarios/{id}. Un horario con personal no llega aquí (PedirEliminar lo bloquea, igual que
+    // RN-HO-04 en el backend); si el backend lo rechaza por otro motivo se muestra su mensaje
+    private async Task EliminarHorario() {
         if (HorarioAEliminar == null) {
             return;
         }
-        MensajeError = null;
-        Todos.Remove(HorarioAEliminar);
-        MensajeExito = $"Se eliminó el horario del {TextoHorario(HorarioAEliminar)}.";
-        Horarios = Todos.AsQueryable();
+        HorarioViewModel horario = HorarioAEliminar;
         HorarioAEliminar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await HorarioService.Delete(horario.Id);
+            Todos.Remove(horario);
+            MensajeExito = $"Se eliminó el horario del {TextoHorario(horario)}.";
+            Horarios = Todos.AsQueryable();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

@@ -1,5 +1,6 @@
 @page "/mis-citas"
 @inject SesionDemo Sesion;
+@inject ICitaService CitaService;
 
 <PageTitle>Mis citas</PageTitle>
 
@@ -13,7 +14,13 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
+@if (Cargando) {
+    <p class="text-muted">Cargando sus citas...</p>
+} else {
 <h5 class="mb-2">Próximas</h5>
 <div class="card lista-citas mb-4">
     @if (ProximasCitas.Count == 0) {
@@ -33,6 +40,7 @@
         <FilaCitaCliente Cita="cita" MostrarAcciones="true" OnVer="Ver" OnModificar="PedirReprogramar" OnCancelar="PedirCancelacion" />
     }
 </div>
+}
 
 <p class="text-muted small mt-3">
     ¿Es una emergencia? Llame o acérquese a la clínica; la atendemos de inmediato. Las emergencias las registra la clínica y aquí aparecen con la etiqueta "Emergencia".
@@ -64,13 +72,17 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-secondary">La mascota y los servicios no cambian. Puede elegir otra fecha y hora.</p>
+                        @if (MensajeReprogramar != null) {
+                            @* Por ejemplo: el veterinario no atiende a esa hora o ya tiene otra cita *@
+                            <div class="alert alert-danger">@MensajeReprogramar</div>
+                        }
                         <label class="form-label" for="reprogramar-fecha">Fecha y hora</label>
                         <PaInputDate id="reprogramar-fecha" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="Reprogramar.FechaHora" />
                         <ValidationMessage For="() => Reprogramar.FechaHora" />
                     </div>
                     <div class="modal-footer border-0 pt-0">
                         <button type="button" class="btn btn-outline-primary btn-par" @onclick="CancelarReprogramacion">Cancelar</button>
-                        <button type="submit" class="btn btn-primary btn-texto btn-par"><Icono Nombre="save" /><span>Guardar cambios</span></button>
+                        <button type="submit" class="btn btn-primary btn-texto btn-par" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar cambios")</span></button>
                     </div>
                 </EditForm>
             </div>
@@ -94,13 +106,29 @@
     private CitaViewModel? CitaAReprogramar { get; set; }
     private ReprogramarCitaViewModel Reprogramar { get; set; } = new();
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private string? MensajeReprogramar { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
     private List<CitaViewModel> ProximasCitas => PortalCliente.Proximas(Citas);
     private List<CitaViewModel> AnterioresCitas => PortalCliente.Anteriores(Citas);
 
-    // Solo las citas del cliente que inició sesión (al enlazar: GET /citas?cliente={id})
-    protected override void OnInitialized() {
-        Citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
+    // Solo las citas del cliente que inició sesión: GET /citas?cliente={id}
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        if (Sesion.Rol != RolUsuario.CLIENTE) {
+            MensajeError = "Inicie sesión con una cuenta de cliente para ver sus citas.";
+            Cargando = false;
+            return;
+        }
+        try {
+            Citas = await CitaService.FindByCliente(Sesion.IdPersona);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void Ver(CitaViewModel cita) {
@@ -109,6 +137,7 @@
 
     private void PedirReprogramar(CitaViewModel cita) {
         CitaAReprogramar = cita;
+        MensajeReprogramar = null;
         Reprogramar = new ReprogramarCitaViewModel { FechaHora = cita.FechaHora };
     }
 
@@ -116,15 +145,28 @@
         CitaAReprogramar = null;
     }
 
-    // Sin backend se cambia en la lista. Al enlazar: PUT /citas/{id} con la nueva fecha y hora; el backend vuelve a
-    // exigir el horario del veterinario y que no se cruce (RN-CI-12) y, si lo rechaza, se muestra su mensaje.
-    private void GuardarReprogramacion() {
-        if (CitaAReprogramar == null) {
+    // PUT /citas/{id} con la nueva fecha y hora; el backend vuelve a exigir el horario del veterinario y que
+    // no se cruce (RN-CI-12). Si lo rechaza, la cita conserva su hora y el mensaje se muestra en la ventana.
+    private async Task GuardarReprogramacion() {
+        if (CitaAReprogramar == null || Guardando) {
             return;
         }
-        CitaAReprogramar.FechaHora = Reprogramar.FechaHora;
-        MensajeExito = $"Se modificó la cita de {CitaAReprogramar.NombreMascota} para el {CitaAReprogramar.FechaHora:dd/MM/yyyy HH:mm}.";
-        CitaAReprogramar = null;
+        CitaViewModel cita = CitaAReprogramar;
+        DateTime? anterior = cita.FechaHora;
+        MensajeReprogramar = null;
+        MensajeExito = null;
+        Guardando = true;
+        cita.FechaHora = Reprogramar.FechaHora;
+        try {
+            await CitaService.Update(cita);
+            MensajeExito = $"Se modificó la cita de {cita.NombreMascota} para el {cita.FechaHora:dd/MM/yyyy HH:mm}.";
+            CitaAReprogramar = null;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            cita.FechaHora = anterior;
+            MensajeReprogramar = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 
     private void PedirCancelacion(CitaViewModel cita) {
@@ -135,13 +177,20 @@
         CitaACancelar = null;
     }
 
-    // Sin backend se cambia el estado en la lista. Al enlazar: PUT /citas/{id} con estado CANCELADO (RN-CI-11)
-    private void CancelarReserva() {
+    // PUT /citas/{id} con estado CANCELADO (RN-CI-11); si el backend lo rechaza, se muestra su mensaje
+    private async Task CancelarReserva() {
         if (CitaACancelar == null) {
             return;
         }
-        CitaACancelar.Estado = EstadoCita.CANCELADO;
-        MensajeExito = $"Se canceló la reserva de {CitaACancelar.NombreMascota}.";
+        CitaViewModel cita = CitaACancelar;
         CitaACancelar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await CitaService.CambiarEstado(cita, EstadoCita.CANCELADO);
+            MensajeExito = $"Se canceló la reserva de {cita.NombreMascota}.";
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Mismo logo de la barra superior: patita verde sobre cuadro mostaza -->
+  <rect width="64" height="64" rx="14" fill="#F2B33D"/>
+  <g fill="#325642" transform="translate(8 8) scale(.75)">
+    <ellipse cx="32" cy="42" rx="14" ry="12"/>
+    <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)"/>
+    <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)"/>
+    <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)"/>
+    <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)"/>
+  </g>
+</svg>

@@ -1,6 +1,9 @@
 @page "/administradores"
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -54,7 +57,10 @@
     <div class="alert alert-danger">@MensajeError</div>
 }
 
-@if (!Filtrados.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando administradores...</p>
+}
+else if (!Filtrados.Any()) {
     <div class="alert alert-info">No se encontraron administradores.</div>
 }
 else if (Vista == "tarjetas") {
@@ -62,6 +68,7 @@ else if (Vista == "tarjetas") {
         @foreach (AdministradorViewModel administrador in Filtrados) {
             <div class="col-md-6 col-xl-4">
                 <TarjetaPersonal Persona="administrador" Propia="EsLaSesion(administrador)" MotivoBloqueo="@MotivoBloqueo(administrador)"
+                                 HorariosAsignados="Personal.HorariosDe(administrador)"
                                  OnEditar="p => EditarAdministrador(p.Id)" OnEliminar="p => PedirEliminar((AdministradorViewModel)p)" />
             </div>
         }
@@ -116,13 +123,24 @@ else {
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
     private GridSort<AdministradorViewModel> PorNombre { get; } = GridSort<AdministradorViewModel>.ByAscending(a => a.NombreCompleto);
 
-    private List<AdministradorViewModel> Filtrados => Administradores.ToList();
-    private List<AdministradorViewModel> EnTurno => Todos.Where(a => TurnosPersonal.EnTurno(a.NombreCompleto, DateTime.Now) != null).ToList();
+    private bool Cargando { get; set; } = true;
+    private PersonalClinica Personal { get; set; } = new();
 
-    // Al enlazar: GET /administradores (cada uno trae sus horarios)
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Administradores();
-        Filtrar();
+    private List<AdministradorViewModel> Filtrados => Administradores.ToList();
+    private List<AdministradorViewModel> EnTurno => Todos.Where(a => TurnosPersonal.EnTurno(Personal.HorariosDe(a), DateTime.Now) != null).ToList();
+
+    // GET /horarios, /veterinarios y /administradores (cada persona trae los ids de sus horarios)
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Personal = await PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            Todos = Personal.Administradores;
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     // Fila del administrador que inició sesión
@@ -166,21 +184,23 @@ else {
         AdministradorAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /administradores/{id};
-    // el backend no deja eliminar al último administrador activo (RN-AD-02).
-    private void EliminarAdministrador() {
+    // DELETE /administradores/{id} (también da de baja su cuenta). El backend no deja eliminar al último
+    // administrador activo (RN-AD-02): en ese caso se muestra su mensaje
+    private async Task EliminarAdministrador() {
         if (AdministradorAEliminar == null) {
             return;
         }
+        AdministradorViewModel administrador = AdministradorAEliminar;
+        AdministradorAEliminar = null;
         MensajeExito = null;
         MensajeError = null;
-        if (Todos.Count == 1) {
-            MensajeError = "No se puede eliminar al último administrador activo.";
-        } else {
-            Todos.Remove(AdministradorAEliminar);
-            MensajeExito = $"Se eliminó al administrador {AdministradorAEliminar.NombreCompleto}.";
+        try {
+            await AdministradorService.Delete(administrador.Id);
+            Todos.Remove(administrador);
+            MensajeExito = $"Se eliminó al administrador {administrador.NombreCompleto}.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
         }
-        AdministradorAEliminar = null;
-        Filtrar();
     }
 }

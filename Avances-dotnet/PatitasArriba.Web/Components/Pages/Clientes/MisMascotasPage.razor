@@ -1,5 +1,7 @@
 @page "/mis-mascotas"
 @inject SesionDemo Sesion;
+@inject IMascotaService MascotaService;
+@inject ICitaService CitaService;
 
 <PageTitle>Mis mascotas</PageTitle>
 
@@ -10,7 +12,14 @@
     </a>
 </div>
 
-@if (Mascotas.Count == 0) {
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando sus mascotas...</p>
+} else {
+@if (Mascotas.Count == 0 && MensajeError == null) {
     <div class="alert alert-info">Aún no tiene mascotas registradas. Agregue la primera para poder reservar una cita.</div>
 }
 
@@ -29,14 +38,32 @@
 </div>
 
 <p class="text-muted small mt-3">Para dar de baja una mascota, comuníquese con la clínica.</p>
+}
 
 @code {
-    // Mascotas y citas del cliente que inició sesión (al enlazar: GET /mascotas?cliente={id} y GET /citas?cliente={id})
     private List<MascotaViewModel> Mascotas { get; set; } = [];
     private List<CitaViewModel> Citas { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
 
-    protected override void OnInitialized() {
-        Mascotas = DatosEjemplo.MascotasDeCliente(Sesion.IdPersona);
-        Citas = DatosEjemplo.CitasDeCliente(Sesion.IdPersona);
+    // Mascotas y citas del cliente que inició sesión: GET /mascotas?cliente={id} y GET /citas?cliente={id}.
+    // Las citas sirven para mostrar en cada tarjeta la última visita y la próxima cita.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        if (Sesion.Rol != RolUsuario.CLIENTE) {
+            MensajeError = "Inicie sesión con una cuenta de cliente para ver sus mascotas.";
+            Cargando = false;
+            return;
+        }
+        try {
+            Task<List<MascotaViewModel>> mascotas = MascotaService.FindByCliente(Sesion.IdPersona);
+            Task<List<CitaViewModel>> citas = CitaService.FindByCliente(Sesion.IdPersona);
+            Mascotas = await mascotas;
+            Citas = await citas;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 }

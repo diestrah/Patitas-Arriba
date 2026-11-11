@@ -1,12 +1,21 @@
 @page "/articulos/nuevo"
 @page "/articulos/editar/{Id:int}"
 @inject NavigationManager Nav;
+@inject IArticuloService ArticuloService;
+@inject ICategoriaService CategoriaService;
 
 <PageTitle>Artículos</PageTitle>
 
 <h3 class="mb-1">@(Id == null ? "Nuevo artículo" : "Editar artículo")</h3>
 <p class="text-muted mb-3">Todo artículo necesita nombre, precio mayor a 0 y al menos una categoría.</p>
 
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando artículo...</p>
+} else {
 <EditForm Model="ViewModel" OnValidSubmit="PedirConfirmacion">
     <DataAnnotationsValidator />
 
@@ -97,13 +106,14 @@
                             <span class="estado estado-pendiente">Normal</span>
                         }
                     </div>
-                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto justify-content-center mt-2"><Icono Nombre="save" /><span>Guardar artículo</span></button>
+                    <button tabindex="7" type="submit" class="btn btn-primary btn-texto justify-content-center mt-2" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar artículo")</span></button>
                     <a tabindex="8" class="btn btn-outline-primary" href="articulos">Cancelar</a>
                 </div>
             </div>
         </div>
     </div>
 </EditForm>
+}
 
 <ConfirmarDialogo Visible="Confirmando"
                   Titulo="@(Id == null ? $"¿Guardar el artículo {ViewModel.Nombre.Trim()}?" : $"¿Guardar los cambios de {ViewModel.Nombre.Trim()}?")"
@@ -118,18 +128,47 @@
 
     private ArticuloViewModel ViewModel { get; set; } = new();
     private bool Confirmando { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private bool Guardando { get; set; }
 
-    protected override void OnParametersSet() {
-        if (Id == null) {
-            ViewModel = new ArticuloViewModel { Categorias = DatosEjemplo.OpcionesCategoria() };
-            return;
+    // GET /categorias para las casillas y, al editar, GET /articulos/{Id}.
+    // El artículo solo trae sus categorías asignadas: se muestran todas las del catálogo con esas marcadas.
+    protected override async Task OnParametersSetAsync() {
+        MensajeError = null;
+        Cargando = true;
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            List<CategoriaViewModel> catalogo = await CategoriaService.FindAll();
+            ArticuloViewModel articulo;
+            if (Id == null) {
+                articulo = new ArticuloViewModel();
+            } else {
+                ArticuloViewModel? encontrado = await ArticuloService.FindById(Id.Value);
+                if (encontrado == null) {
+                    Nav.NavigateTo("/articulos");
+                    return;
+                }
+                articulo = encontrado;
+            }
+            articulo.Categorias = OpcionesCategoria(catalogo, articulo.Categorias);
+            ViewModel = articulo;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
         }
-        ArticuloViewModel? articulo = DatosEjemplo.Articulos().FirstOrDefault(a => a.Id == Id);
-        if (articulo == null) {
-            Nav.NavigateTo("/articulos");
-            return;
-        }
-        ViewModel = articulo;
+    }
+
+    // Todas las categorías activas, marcando las que tiene el artículo. Si tiene una que ya no está en el
+    // catálogo (se desactivó), se conserva al final para no quitársela sin querer al guardar.
+    private static List<OpcionSeleccion> OpcionesCategoria(List<CategoriaViewModel> catalogo, List<OpcionSeleccion> asignadas) {
+        HashSet<int> marcadas = asignadas.Where(c => c.Seleccionado).Select(c => c.Id).ToHashSet();
+        List<OpcionSeleccion> opciones = catalogo
+            .Select(c => new OpcionSeleccion { Id = c.Id, Texto = c.Nombre, Seleccionado = marcadas.Contains(c.Id) })
+            .ToList();
+        opciones.AddRange(asignadas.Where(a => a.Seleccionado && catalogo.All(c => c.Id != a.Id)));
+        return opciones;
     }
 
     // Antes de guardar se muestra lo que se va a registrar
@@ -146,8 +185,23 @@
         return $"Precio S/ {ViewModel.PrecioBase:N2}, stock {ViewModel.StockActual} (mínimo {ViewModel.StockMinimo}) y categorías: {categorias}.";
     }
 
-    // Sin backend: solo regresa al listado. Al enlazar: POST /articulos o PUT /articulos/{Id}
-    private void Guardar() {
-        Nav.NavigateTo("/articulos");
+    // POST /articulos o PUT /articulos/{Id}; si el backend rechaza los datos se muestra su mensaje
+    private async Task Guardar() {
+        Confirmando = false;
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            if (Id == null) {
+                await ArticuloService.Insert(ViewModel);
+            } else {
+                await ArticuloService.Update(ViewModel);
+            }
+            Nav.NavigateTo("/articulos");
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
     }
 }

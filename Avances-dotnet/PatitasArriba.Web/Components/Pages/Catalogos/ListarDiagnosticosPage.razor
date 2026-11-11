@@ -1,5 +1,6 @@
 @page "/diagnosticos"
 @inject NavigationManager Nav;
+@inject IDiagnosticoService DiagnosticoService;
 @inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -28,8 +29,14 @@
 @if (MensajeExito != null) {
     <div class="alert alert-success">@MensajeExito</div>
 }
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
 
-@if (!Diagnosticos.Any()) {
+@if (Cargando) {
+    <p class="text-muted">Cargando diagnósticos...</p>
+}
+else if (!Diagnosticos.Any()) {
     <div class="alert alert-info">No se encontraron diagnósticos.</div>
 }
 else {
@@ -62,12 +69,22 @@ else {
     private IQueryable<DiagnosticoViewModel> Diagnosticos { get; set; } = Enumerable.Empty<DiagnosticoViewModel>().AsQueryable();
     private DiagnosticoViewModel? DiagnosticoAEliminar { get; set; }
     private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+    private bool Cargando { get; set; } = true;
 
-    protected override void OnInitialized() {
-        Todos = DatosEjemplo.Diagnosticos();
-        Filtrar();
+    // GET /diagnosticos. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todos = await DiagnosticoService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
     }
 
     private void Filtrar() {
@@ -98,15 +115,22 @@ else {
         DiagnosticoAEliminar = null;
     }
 
-    // Sin backend: se quita de la lista. Al enlazar se llamará a DELETE /diagnosticos/{id};
-    // si el backend lo rechaza (RN-DI-02), se mostrará su mensaje.
-    private void EliminarDiagnostico() {
+    // DELETE /diagnosticos/{id}; si el backend lo rechaza (RN-DI-02: se usó en una atención) se muestra su mensaje
+    private async Task EliminarDiagnostico() {
         if (DiagnosticoAEliminar == null) {
             return;
         }
-        Todos.Remove(DiagnosticoAEliminar);
-        MensajeExito = $"Se eliminó el diagnóstico “{DiagnosticoAEliminar.NombreEnfermedad}”.";
+        DiagnosticoViewModel diagnostico = DiagnosticoAEliminar;
         DiagnosticoAEliminar = null;
-        Filtrar();
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await DiagnosticoService.Delete(diagnostico.Id);
+            Todos.Remove(diagnostico);
+            MensajeExito = $"Se eliminó el diagnóstico “{diagnostico.NombreEnfermedad}”.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
     }
 }
