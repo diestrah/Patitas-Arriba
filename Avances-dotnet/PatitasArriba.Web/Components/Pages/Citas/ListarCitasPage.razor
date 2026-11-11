@@ -13,13 +13,21 @@
     </button>
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">Fecha:</label>
-    <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="TextoFiltro" />
+    <label class="text-nowrap" for="filtro-estado">Estado:</label>
+    <select id="filtro-estado" tabindex="2" class="form-select w-auto" @bind="EstadoFiltro">
+        <option value="">Todos</option>
+        @foreach (EstadoCita estado in Enum.GetValues<EstadoCita>()) {
+            <option value="@estado">@TextoEnum.De(estado)</option>
+        }
+    </select>
+    <label class="text-nowrap" for="filtro-fecha">Fecha:</label>
+    <input id="filtro-fecha" tabindex="3" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
+    <button tabindex="4" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
-    <button tabindex="3" class="btn btn-secondary" @onclick="() => VerTodas()">Ver todas</button>
+    <button tabindex="5" class="btn btn-secondary" @onclick="() => VerTodas()">Limpiar</button>
 </div>
 
 @if (MensajeExito != null) {
@@ -93,11 +101,18 @@ else {
     <Paginador State="Paginacion" />
 }
 
-@* Maestro-detalle: el detalle de la cita elegida con "Ver" aparece debajo de la tabla *@
+@* El detalle de la cita elegida con "Ver" se abre en una ventana encima de la tabla *@
 @if (CitaSeleccionada != null) {
-    <div class="col-lg-8 mt-4">
-        <DetalleCita Cita="CitaSeleccionada" Atendidos="Atendidos" />
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <DetalleCita Cita="CitaSeleccionada" Atendidos="Atendidos">
+                    <button type="button" class="btn btn-outline-primary ms-auto" @onclick="() => CitaSeleccionada = null">Cerrar</button>
+                </DetalleCita>
+            </div>
+        </div>
     </div>
+    <div class="modal-backdrop fade show"></div>
 }
 
 <ConfirmarDialogo Visible="CitaPorConfirmar != null"
@@ -112,8 +127,12 @@ else {
     private List<CitaViewModel> Todas { get; set; } = [];
     private IQueryable<CitaViewModel> Citas { get; set; } = Enumerable.Empty<CitaViewModel>().AsQueryable();
     private CitaViewModel? CitaSeleccionada { get; set; }
-    private DateTime FechaFiltro { get; set; } = DateTime.Today;
-    private bool FiltrarPorFecha { get; set; }
+    private DateTime? FechaFiltro { get; set; }
+    private DateTime? FechaFiltroAplicada { get; set; }
+    private string TextoFiltro { get; set; } = string.Empty;
+    private string EstadoFiltro { get; set; } = string.Empty;
+    private string TextoFiltroAplicado { get; set; } = string.Empty;
+    private string EstadoFiltroAplicado { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
     private string? MensajeExito { get; set; }
 
@@ -133,18 +152,30 @@ else {
     // Al enlazar: GET /citas?fecha=AAAA-MM-DD
     private void Mostrar() {
         Citas = Todas
-            .Where(c => !FiltrarPorFecha || c.FechaHora?.Date == FechaFiltro.Date)
+            .Where(c => FechaFiltroAplicada == null || c.FechaHora?.Date == FechaFiltroAplicada.Value.Date)
+            .Where(c => EstadoFiltroAplicado == "" || c.Estado.ToString() == EstadoFiltroAplicado)
+            .Where(c => TextoFiltroAplicado == ""
+                     || c.NombreMascota.Contains(TextoFiltroAplicado, StringComparison.OrdinalIgnoreCase)
+                     || c.NombreCliente.Contains(TextoFiltroAplicado, StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(c => c.FechaHora)
             .AsQueryable();
     }
 
+    // Los filtros se aplican al presionar Filtrar (como en el resto de listados)
     private void Filtrar() {
-        FiltrarPorFecha = true;
+        FechaFiltroAplicada = FechaFiltro;
+        TextoFiltroAplicado = TextoFiltro.Trim();
+        EstadoFiltroAplicado = EstadoFiltro;
         Mostrar();
     }
 
     private void VerTodas() {
-        FiltrarPorFecha = false;
+        FechaFiltro = null;
+        FechaFiltroAplicada = null;
+        TextoFiltro = string.Empty;
+        EstadoFiltro = string.Empty;
+        TextoFiltroAplicado = string.Empty;
+        EstadoFiltroAplicado = string.Empty;
         Mostrar();
     }
 

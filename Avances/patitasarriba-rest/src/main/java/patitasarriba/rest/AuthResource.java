@@ -32,12 +32,13 @@ public class AuthResource {
     @POST
     public Response login(Map<String, String> credenciales) {
         try {
-            String nombreUsuario = credenciales.get("nombreUsuario");
+            String correo = credenciales.get("correo");
             String password = credenciales.get("password");
-            Persona persona = cuentaBL.login(nombreUsuario, password);
+            Persona persona = cuentaBL.login(correo, password);
 
             Map<String, Object> sesion = new LinkedHashMap<>();
             sesion.put("id", persona.getCuenta().getId());
+            sesion.put("correo", persona.getCuenta().getCorreo());
             sesion.put("nombreUsuario", persona.getCuenta().getNombreUsuario());
             sesion.put("rol", rol(persona));
             sesion.put("idPersona", persona.getId());
@@ -48,7 +49,7 @@ public class AuthResource {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (CredencialesInvalidasException ex) {
-            // Siempre el mismo mensaje: no revela si fallo el usuario o la contrasena
+            // Siempre el mismo mensaje: no revela si fallo el correo o la contrasena
             return Response.status(Response.Status.UNAUTHORIZED)
                     .entity(Map.of("error", ex.getMessage())).build();
         } catch (BLException ex) {

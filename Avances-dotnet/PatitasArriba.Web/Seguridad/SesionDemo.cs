@@ -26,13 +26,12 @@ namespace PatitasArriba.Web.Seguridad {
         public string Iniciales => NombreCorto.Length == 0 ? "?"
             : string.Concat(NombreCorto.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(p => char.ToUpper(p[0])));
 
-        // Busca la cuenta por usuario o correo y entra con la persona dueña de esa cuenta.
+        // Busca la cuenta por su correo y entra con la persona dueña de esa cuenta.
         // Devuelve false si no existe (el mensaje es siempre el mismo, RN-CU-05).
-        public bool IniciarSesion(string usuarioOCorreo, string password) {
-            string texto = usuarioOCorreo.Trim();
+        public bool IniciarSesion(string correo, string password) {
+            string texto = correo.Trim();
             CuentaUsuarioViewModel? cuenta = DatosEjemplo.CuentasUsuario().FirstOrDefault(c =>
-                c.NombreUsuario.Equals(texto, StringComparison.OrdinalIgnoreCase)
-                || c.Correo.Equals(texto, StringComparison.OrdinalIgnoreCase));
+                c.Correo.Equals(texto, StringComparison.OrdinalIgnoreCase));
             if (cuenta == null || string.IsNullOrWhiteSpace(password)) {
                 return false;
             }

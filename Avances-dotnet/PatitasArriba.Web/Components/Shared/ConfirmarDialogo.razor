@@ -13,7 +13,7 @@
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-primary btn-par" @onclick="Cancelar">@TextoCancelar</button>
-                    <button type="button" class="btn btn-danger btn-texto btn-par" @onclick="Confirmar">
+                    <button type="button" class="btn @ClaseConfirmar btn-texto btn-par" @onclick="Confirmar">
                         <Icono Nombre="@IconoConfirmar" />
                         <span>@TextoConfirmar</span>
                     </button>
@@ -43,6 +43,10 @@
 
     [Parameter]
     public string IconoConfirmar { get; set; } = "trash";
+
+    // Terracota para lo destructivo; verde ("btn-primary") cuando solo se pide confirmar un guardado
+    [Parameter]
+    public string ClaseConfirmar { get; set; } = "btn-danger";
 
     [Parameter]
     public EventCallback OnConfirmar { get; set; }

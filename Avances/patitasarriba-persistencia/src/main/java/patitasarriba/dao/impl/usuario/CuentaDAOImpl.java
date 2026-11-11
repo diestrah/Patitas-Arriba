@@ -57,6 +57,29 @@ public class CuentaDAOImpl extends RegistroDAOImpl<Cuenta> implements CuentaDAO 
     }
 
     @Override
+    public Cuenta findByCorreo(String correo) throws SQLException {
+        boolean cerrarConexion = !TransactionsManager.activa();
+        Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()
+                : TransactionsManager.getConnection();
+        try {
+            if (correo == null || correo.isBlank()) {
+                throw new IllegalArgumentException("El correo no puede ser nulo o vacío");
+            }
+
+            String sql = "{call buscar_cuenta_por_correo(?)}";
+            try (CallableStatement cmd = conn.prepareCall(sql)) {
+                cmd.setString("p_correo", correo.trim());
+
+                try (ResultSet rs = cmd.executeQuery()) {
+                    return rs.next() ? mapear(rs, new Cuenta()) : null;
+                }
+            }
+        } finally {
+            if (cerrarConexion) conn.close();
+        }
+    }
+
+    @Override
     public Cuenta findByNombreUsuario(String nombreUsuario) throws SQLException {
         boolean cerrarConexion = !TransactionsManager.activa();
         Connection conn = cerrarConexion ? DBManager.getInstance().getConnection()

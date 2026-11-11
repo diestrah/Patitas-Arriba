@@ -5,9 +5,11 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
 import patitasarriba.bl.AdministradorBL;
+import patitasarriba.bl.AccesoBL;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.impl.usuario.AccesoBLImpl;
 import patitasarriba.bl.impl.usuario.AdministradorBLImpl;
 import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.rest.dto.AdministradorDTO;
@@ -22,6 +24,8 @@ import java.util.Map;
 @Consumes("application/json")
 public class AdministradorResource {
     private final AdministradorBL administradorBL;
+
+    private final AccesoBL accesoBL = new AccesoBLImpl();
 
     @Context
     private UriInfo uriInfo;
@@ -69,6 +73,28 @@ public class AdministradorResource {
             Administrador administrador = AdministradorMapper.toModelo(administradorDTO);
             administradorBL.insert(administrador);
             URI uri = uriInfo.getAbsolutePathBuilder().path(String.valueOf(administrador.getId())).build();
+            return Response.created(uri).entity(AdministradorMapper.toDTO(administrador)).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (BLException ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        }
+    }
+
+    // Alta hecha por un administrador: crea la persona y su cuenta en una sola transaccion. La cuenta lleva
+    // solo el correo (cuenta.correo): la persona elige su contrasena con el enlace que recibe por correo
+    @POST
+    @Path("/con-cuenta")
+    public Response insertConCuenta(AdministradorDTO dto) {
+        try {
+            if (dto.getCuenta() == null) {
+                throw new ValidacionException("Debe indicar el correo de la cuenta");
+            }
+            Administrador administrador = AdministradorMapper.toModeloSinCuenta(dto);
+            accesoBL.registrarAdministrador(administrador, dto.getCuenta().getCorreo());
+            URI uri = uriInfo.getBaseUriBuilder().path("administradores").path(String.valueOf(administrador.getId())).build();
             return Response.created(uri).entity(AdministradorMapper.toDTO(administrador)).build();
         } catch (ValidacionException ex) {
             return Response.status(Response.Status.BAD_REQUEST)

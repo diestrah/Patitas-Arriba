@@ -14,6 +14,7 @@ public class Mascota extends Registro {
     private LocalDate fechaNacimiento;
     private String raza;
     private TipoMascota tipoMascota;
+    private String foto;
 
     public Mascota() {
     }
@@ -45,6 +46,7 @@ public class Mascota extends Registro {
         setFechaNacimiento(mascota.getFechaNacimiento());
         setRaza(mascota.getRaza());
         setTipoMascota(mascota.getTipoMascota());
+        setFoto(mascota.getFoto());
     }
 
     // Getters y Setters
@@ -136,6 +138,19 @@ public class Mascota extends Registro {
             throw new IllegalArgumentException("tipoMascota no puede ser nulo");
         }
         this.tipoMascota = tipoMascota;
+    }
+
+    public String getFoto() {
+        return foto;
+    }
+
+    public void setFoto(String foto) {
+        // foto es opcional: imagen como texto "data:image/jpeg;base64,..."; vacía = sin foto
+        if (foto == null || foto.isBlank()) {
+            this.foto = null;
+        } else {
+            this.foto = foto;
+        }
     }
 
     @Override

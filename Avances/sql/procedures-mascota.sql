@@ -22,17 +22,18 @@ CREATE PROCEDURE insertar_mascota (
     IN p_fecha_nacimiento DATE,
     IN p_tipo_mascota VARCHAR(10),
     IN p_raza VARCHAR(45),
+    IN p_foto MEDIUMTEXT,
     IN p_activo TINYINT(1),
     OUT p_id INT
 )
 BEGIN
     INSERT INTO mascota (
         id_cliente, nombre, sexo, peso, fecha_nacimiento,
-        tipo_mascota, raza, activo
+        tipo_mascota, raza, foto, activo
     )
     VALUES (
         p_id_cliente, p_nombre, p_sexo, p_peso, p_fecha_nacimiento,
-        p_tipo_mascota, p_raza, p_activo
+        p_tipo_mascota, p_raza, p_foto, p_activo
     );
 
     SET p_id = LAST_INSERT_ID();
@@ -47,6 +48,7 @@ CREATE PROCEDURE modificar_mascota (
     IN p_fecha_nacimiento DATE,
     IN p_tipo_mascota VARCHAR(10),
     IN p_raza VARCHAR(45),
+    IN p_foto MEDIUMTEXT,
     IN p_activo TINYINT(1),
     IN p_id INT
 )
@@ -59,6 +61,7 @@ BEGIN
         fecha_nacimiento = p_fecha_nacimiento,
         tipo_mascota = p_tipo_mascota,
         raza = p_raza,
+        foto = p_foto,
         activo = p_activo
     WHERE id_mascota = p_id;
 END //

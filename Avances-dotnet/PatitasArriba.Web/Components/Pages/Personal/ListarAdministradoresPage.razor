@@ -8,18 +8,43 @@
 
 <div class="d-flex justify-content-between mb-3">
     <h3 class="mb-3">Administradores</h3>
-    <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoAdministrador()">
+    <button tabindex="6" class="btn btn-warning btn-texto" @onclick="() => NuevoAdministrador()">
         <Icono Nombre="plus" /><span>Nuevo administrador</span>
     </button>
 </div>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">DNI o nombre:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-verde">
+            <span class="indicador-icono"><Icono Nombre="users" /></span>
+            <span class="indicador-valor">@Todos.Count</span>
+            <span class="indicador-texto">Administradores activos</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-mostaza">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@(EnTurno.Count == 0 ? "Ninguno" : $"{EnTurno.Count} en turno")</span>
+            <span class="indicador-texto">@(EnTurno.Count == 0 ? "Fuera de los horarios asignados" : string.Join(", ", EnTurno.Select(a => a.Nombres.Split(' ')[0])))</span>
+        </div>
+    </div>
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap" for="filtro-adm">DNI o nombre:</label>
+    <input id="filtro-adm" tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
     <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <div class="seg-pago ms-auto" role="group" aria-label="Vista">
+        <button type="button" tabindex="4" class="@(Vista == "tarjetas" ? "activo" : "")" aria-pressed="@(Vista == "tarjetas")" @onclick='() => Vista = "tarjetas"'>
+            <Icono Nombre="grid" /> Tarjetas
+        </button>
+        <button type="button" tabindex="5" class="@(Vista == "tabla" ? "activo" : "")" aria-pressed="@(Vista == "tabla")" @onclick='() => Vista = "tabla"'>
+            <Icono Nombre="list" /> Tabla
+        </button>
+    </div>
 </div>
 
 @if (MensajeExito != null) {
@@ -29,8 +54,18 @@
     <div class="alert alert-danger">@MensajeError</div>
 }
 
-@if (!Administradores.Any()) {
+@if (!Filtrados.Any()) {
     <div class="alert alert-info">No se encontraron administradores.</div>
+}
+else if (Vista == "tarjetas") {
+    <div class="row g-3">
+        @foreach (AdministradorViewModel administrador in Filtrados) {
+            <div class="col-md-6 col-xl-4">
+                <TarjetaPersonal Persona="administrador" Propia="EsLaSesion(administrador)" MotivoBloqueo="@MotivoBloqueo(administrador)"
+                                 OnEditar="p => EditarAdministrador(p.Id)" OnEliminar="p => PedirEliminar((AdministradorViewModel)p)" />
+            </div>
+        }
+    </div>
 }
 else {
     <QuickGrid Items="Administradores" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
@@ -48,9 +83,8 @@ else {
                 <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAdministrador(context.Id)">
                     <Icono Nombre="edit" />
                 </button>
-                @if (EsLaSesion(context)) {
-                    @* No puede eliminarse a sí mismo: perdería el acceso con el que está trabajando *@
-                    <span class="btn-icono-bloqueado" tabindex="0" title="No puede eliminarse a sí mismo mientras está en sesión" aria-label="Eliminar no disponible: es su propia cuenta">
+                @if (MotivoBloqueo(context) != null) {
+                    <span class="btn-icono-bloqueado" tabindex="0" title="@MotivoBloqueo(context)" aria-label="@($"Eliminar no disponible: {MotivoBloqueo(context)}")">
                         <Icono Nombre="lock" />
                     </span>
                 } else {
@@ -64,6 +98,8 @@ else {
     <Paginador State="Paginacion" />
 }
 
+<p class="text-muted small mt-3">Tu propia cuenta no se puede eliminar, y siempre debe quedar al menos un administrador (RN-AD-02). El candado explica el motivo.</p>
+
 <ConfirmarDialogo Visible="AdministradorAEliminar != null"
                   Titulo="¿Eliminar al administrador?"
                   Mensaje="@($"{AdministradorAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja.")"
@@ -76,9 +112,14 @@ else {
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
     private string Filtro { get; set; } = string.Empty;
+    private string Vista { get; set; } = "tarjetas";
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
     private GridSort<AdministradorViewModel> PorNombre { get; } = GridSort<AdministradorViewModel>.ByAscending(a => a.NombreCompleto);
 
+    private List<AdministradorViewModel> Filtrados => Administradores.ToList();
+    private List<AdministradorViewModel> EnTurno => Todos.Where(a => TurnosPersonal.EnTurno(a.NombreCompleto, DateTime.Now) != null).ToList();
+
+    // Al enlazar: GET /administradores (cada uno trae sus horarios)
     protected override void OnInitialized() {
         Todos = DatosEjemplo.Administradores();
         Filtrar();
@@ -87,6 +128,14 @@ else {
     // Fila del administrador que inició sesión
     private bool EsLaSesion(AdministradorViewModel administrador) {
         return Sesion.EsAdministrador && administrador.Id == Sesion.IdPersona;
+    }
+
+    // Por qué no se puede eliminar (null si se puede): no a sí mismo y nunca al último administrador
+    private string? MotivoBloqueo(AdministradorViewModel administrador) {
+        if (EsLaSesion(administrador)) {
+            return "No puede eliminarse a sí mismo mientras está en sesión";
+        }
+        return Todos.Count == 1 ? "Siempre debe existir al menos un administrador (RN-AD-02)" : null;
     }
 
     private void Filtrar() {

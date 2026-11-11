@@ -1,0 +1,23 @@
+@page "/verificar-correo"
+@layout LayoutVacio
+
+<PageTitle>Verificar correo · Patitas Arriba</PageTitle>
+
+@* Es la página a la que lleva el enlace del correo de registro: /verificar-correo?token=... *@
+<AccesoMarco Titulo="@(Valido ? "¡Tu cuenta quedó activa!" : "El enlace no es válido")"
+             Subtitulo="@(Valido ? "Confirmamos tu correo. Ya puedes iniciar sesión." : null)">
+    @if (Valido) {
+        <a class="login-boton" href="login">Iniciar sesión</a>
+    } else {
+        <div class="login-error">El enlace no es válido o ya venció.</div>
+        <a class="login-boton" href="registro">Volver a registrarme</a>
+    }
+</AccesoMarco>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Token { get; set; }
+
+    // Sin backend: cualquier token sirve salvo "invalido". Al enlazar: POST /acceso/registro/confirmar con { token }
+    private bool Valido => !string.IsNullOrWhiteSpace(Token) && Token != "invalido";
+}

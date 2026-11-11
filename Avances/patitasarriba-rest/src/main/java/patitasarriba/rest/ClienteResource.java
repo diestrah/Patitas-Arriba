@@ -4,10 +4,12 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.UriInfo;
+import patitasarriba.bl.AccesoBL;
 import patitasarriba.bl.BLException;
 import patitasarriba.bl.ClienteBL;
 import patitasarriba.bl.NoEncontradoException;
 import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.impl.usuario.AccesoBLImpl;
 import patitasarriba.bl.impl.usuario.ClienteBLImpl;
 import patitasarriba.modelo.usuario.Cliente;
 import patitasarriba.rest.dto.ClienteDTO;
@@ -22,6 +24,8 @@ import java.util.Map;
 @Consumes("application/json")
 public class ClienteResource {
     private final ClienteBL clienteBL;
+
+    private final AccesoBL accesoBL = new AccesoBLImpl();
 
     @Context
     private UriInfo uriInfo;
@@ -69,6 +73,28 @@ public class ClienteResource {
             Cliente cliente = ClienteMapper.toModelo(clienteDTO);
             clienteBL.insert(cliente);
             URI uri = uriInfo.getAbsolutePathBuilder().path(String.valueOf(cliente.getId())).build();
+            return Response.created(uri).entity(ClienteMapper.toDTO(cliente)).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (BLException ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        }
+    }
+
+    // Alta hecha por un administrador: crea la persona y su cuenta en una sola transaccion. La cuenta lleva
+    // solo el correo (cuenta.correo): la persona elige su contrasena con el enlace que recibe por correo
+    @POST
+    @Path("/con-cuenta")
+    public Response insertConCuenta(ClienteDTO dto) {
+        try {
+            if (dto.getCuenta() == null) {
+                throw new ValidacionException("Debe indicar el correo de la cuenta");
+            }
+            Cliente cliente = ClienteMapper.toModeloSinCuenta(dto);
+            accesoBL.registrarCliente(cliente, dto.getCuenta().getCorreo());
+            URI uri = uriInfo.getBaseUriBuilder().path("clientes").path(String.valueOf(cliente.getId())).build();
             return Response.created(uri).entity(ClienteMapper.toDTO(cliente)).build();
         } catch (ValidacionException ex) {
             return Response.status(Response.Status.BAD_REQUEST)

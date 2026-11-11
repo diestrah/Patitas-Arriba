@@ -67,4 +67,19 @@ public final class ClienteMapper {
         }
         return cliente;
     }
+
+    // Alta hecha por un administrador: la cuenta no existe todavia, la crea AccesoBL junto con la persona
+    public static Cliente toModeloSinCuenta(ClienteDTO dto) throws BLException {
+        Cliente cliente = new Cliente();
+        try {
+            cliente.setDni(dto.getDni());
+            cliente.setNombres(dto.getNombres());
+            cliente.setApellidoPaterno(dto.getApellidoPaterno());
+            cliente.setApellidoMaterno(dto.getApellidoMaterno());
+            cliente.setTelefono(dto.getTelefono());
+        } catch (IllegalArgumentException e) {
+            throw new ValidacionException("Datos del cliente invalidos: " + e.getMessage());
+        }
+        return cliente;
+    }
 }

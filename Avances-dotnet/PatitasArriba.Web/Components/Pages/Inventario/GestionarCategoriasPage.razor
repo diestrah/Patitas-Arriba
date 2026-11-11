@@ -12,12 +12,12 @@
 
         <div class="mb-3">
             <label class="form-label">Nombre</label>
-            <InputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
+            <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
             <ValidationMessage For="() => ViewModel.Nombre" />
         </div>
         <div class="mb-3">
             <label class="form-label">Descripción</label>
-            <InputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
+            <PaInputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
             <ValidationMessage For="() => ViewModel.Descripcion" />
         </div>
 

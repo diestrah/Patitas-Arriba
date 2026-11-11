@@ -12,51 +12,51 @@
 
         <div class="mb-3">
             <label class="form-label">Dueño</label>
-            <InputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
+            <PaInputSelect tabindex="1" class="form-select" @bind-Value="ViewModel.IdCliente">
                 <option value="0">Seleccione el dueño</option>
                 @foreach (ClienteViewModel cliente in Clientes) {
                     <option value="@cliente.Id">@cliente.NombreCompleto (DNI @cliente.Dni)</option>
                 }
-            </InputSelect>
+            </PaInputSelect>
             <ValidationMessage For="() => ViewModel.IdCliente" />
         </div>
         <div class="mb-3">
             <label class="form-label">Nombre</label>
-            <InputText tabindex="2" class="form-control" @bind-Value="ViewModel.Nombre" />
+            <PaInputText tabindex="2" class="form-control" @bind-Value="ViewModel.Nombre" />
             <ValidationMessage For="() => ViewModel.Nombre" />
         </div>
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label class="form-label">Tipo</label>
-                <InputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.TipoMascota">
+                <PaInputSelect tabindex="3" class="form-select" @bind-Value="ViewModel.TipoMascota">
                     @foreach (TipoMascota tipo in Tipos) {
                         <option value="@tipo">@TextoEnum.De(tipo)</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Raza</label>
-                <InputText tabindex="4" class="form-control" @bind-Value="ViewModel.Raza" />
+                <PaInputText tabindex="4" class="form-control" @bind-Value="ViewModel.Raza" />
                 <ValidationMessage For="() => ViewModel.Raza" />
             </div>
             <div class="col-md-4 mb-3">
                 <label class="form-label">Sexo</label>
-                <InputSelect tabindex="5" class="form-select" @bind-Value="ViewModel.Sexo">
+                <PaInputSelect tabindex="5" class="form-select" @bind-Value="ViewModel.Sexo">
                     @foreach (SexoMascota sexo in Sexos) {
                         <option value="@sexo">@TextoEnum.De(sexo)</option>
                     }
-                </InputSelect>
+                </PaInputSelect>
             </div>
         </div>
         <div class="row">
             <div class="col-md-6 mb-3">
                 <label class="form-label">Peso (kg)</label>
-                <InputNumber tabindex="6" class="form-control" @bind-Value="ViewModel.Peso" />
+                <PaInputNumber tabindex="6" class="form-control" @bind-Value="ViewModel.Peso" />
                 <ValidationMessage For="() => ViewModel.Peso" />
             </div>
             <div class="col-md-6 mb-3">
                 <label class="form-label">Fecha de nacimiento</label>
-                <InputDate tabindex="7" class="form-control" @bind-Value="ViewModel.FechaNacimiento" />
+                <PaInputDate tabindex="7" class="form-control" @bind-Value="ViewModel.FechaNacimiento" />
                 <ValidationMessage For="() => ViewModel.FechaNacimiento" />
             </div>
         </div>

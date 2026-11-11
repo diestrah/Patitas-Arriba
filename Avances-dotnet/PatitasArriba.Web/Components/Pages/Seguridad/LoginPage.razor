@@ -27,30 +27,30 @@
 
     <section class="form-panel">
         <div class="login-contenedor">
-            <EditForm Model="ViewModel" OnValidSubmit="Ingresar" class="login-tarjeta">
+            <EditForm EditContext="Contexto" OnValidSubmit="Ingresar" class="login-tarjeta">
                 <DataAnnotationsValidator />
 
                 <h2>¡Hola de nuevo!</h2>
-                <p class="sub">Ingresa con tu usuario o correo y tu contraseña.</p>
+                <p class="sub">Ingresa con tu correo y tu contraseña.</p>
 
                 @if (MensajeError != null) {
                     <div class="login-error">@MensajeError</div>
                 }
 
                 <div class="campo">
-                    <label for="correo">Usuario o correo</label>
+                    <label for="correo">Correo electrónico</label>
                     <div class="input-wrap">
                         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
-                        <InputText id="correo" tabindex="1" class="login-input" placeholder="usuario o nombre@correo.com" autocomplete="username" @bind-Value="ViewModel.NombreUsuario" />
+                        <InputText id="correo" tabindex="1" class="login-input" placeholder="nombre@correo.com" autocomplete="username" inputmode="email" @bind-Value="ViewModel.Correo" @onblur="() => Tocar(nameof(LoginViewModel.Correo))" />
                     </div>
-                    <ValidationMessage For="() => ViewModel.NombreUsuario" />
+                    <ValidationMessage For="() => ViewModel.Correo" />
                 </div>
 
                 <div class="campo">
                     <label for="clave">Contraseña</label>
                     <div class="input-wrap">
                         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-                        <InputText id="clave" tabindex="2" type="password" class="login-input" placeholder="••••••••" autocomplete="current-password" @bind-Value="ViewModel.Password" />
+                        <InputText id="clave" tabindex="2" type="password" class="login-input" placeholder="••••••••" autocomplete="current-password" @bind-Value="ViewModel.Password" @onblur="() => Tocar(nameof(LoginViewModel.Password))" />
                         @* Mostrar u ocultar la contraseña lo maneja login-patitas.js (los perritos espían con un ojo) *@
                         <button class="eye-btn" type="button" id="ver" aria-label="Mostrar contraseña" title="Mostrar contraseña">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -59,23 +59,28 @@
                     <ValidationMessage For="() => ViewModel.Password" />
                 </div>
 
+                <a class="olvide" href="olvide-contrasena" tabindex="4">¿Olvidaste tu contraseña?</a>
+
                 <button class="login-boton" type="submit" tabindex="3">
                     Ingresar
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
                 </button>
+
+                <p class="login-registro">¿No tienes una cuenta? <a href="registro" tabindex="5">Crea una</a></p>
 
                 <div class="login-ayuda">
                     <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4M12 8h.01" /></svg>
                     <span>No eliges tu rol: el sistema lo detecta según tu cuenta.</span>
                 </div>
 
+
                 @* Mientras no se enlaza con el backend: cuentas de los datos de ejemplo, con cualquier contraseña *@
                 <div class="login-demo">
                     Cuentas de prueba (cualquier contraseña):
                     <div class="chips">
-                        <button type="button" class="chip" @onclick='() => Rellenar("diego.lopez")'><b>diego.lopez</b> · Administrador</button>
-                        <button type="button" class="chip" @onclick='() => Rellenar("carla.vega")'><b>carla.vega</b> · Veterinaria</button>
-                        <button type="button" class="chip" @onclick='() => Rellenar("ana.torres")'><b>ana.torres</b> · Cliente</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("diego.lopez@patasarriba.pe")'><b>diego.lopez@patasarriba.pe</b> · Administrador</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("carla.vega@patasarriba.pe")'><b>carla.vega@patasarriba.pe</b> · Veterinaria</button>
+                        <button type="button" class="chip" @onclick='() => Rellenar("ana.torres@gmail.com")'><b>ana.torres@gmail.com</b> · Cliente</button>
                     </div>
                 </div>
             </EditForm>
@@ -86,7 +91,17 @@
 
 @code {
     private LoginViewModel ViewModel { get; set; } = new();
+    private EditContext Contexto { get; set; } = default!;
     private string? MensajeError { get; set; }
+
+    protected override void OnInitialized() {
+        Contexto = new EditContext(ViewModel);
+    }
+
+    // Al salir de un campo se valida, aunque no se haya escrito nada
+    private void Tocar(string campo) {
+        Contexto.NotifyFieldChanged(new FieldIdentifier(ViewModel, campo));
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) {
         if (firstRender) {
@@ -98,8 +113,8 @@
         }
     }
 
-    private void Rellenar(string usuario) {
-        ViewModel.NombreUsuario = usuario;
+    private void Rellenar(string correo) {
+        ViewModel.Correo = correo;
         ViewModel.Password = "patitas123";
         MensajeError = null;
     }
@@ -108,8 +123,8 @@
     // Ante cualquier fallo el mensaje es el mismo, sin decir si falló el usuario o la contraseña (RN-CU-05)
     private async Task Ingresar() {
         MensajeError = null;
-        if (!Sesion.IniciarSesion(ViewModel.NombreUsuario, ViewModel.Password)) {
-            MensajeError = "Usuario o contraseña incorrectos";
+        if (!Sesion.IniciarSesion(ViewModel.Correo, ViewModel.Password)) {
+            MensajeError = "Correo o contraseña incorrectos";
             return;
         }
         try {
