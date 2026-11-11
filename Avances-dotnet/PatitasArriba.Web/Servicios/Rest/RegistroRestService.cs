@@ -42,7 +42,7 @@ public abstract class RegistroRestService<TModel, TDto> : IRegistroService<TMode
     protected async Task<TModel> FindOne(string parametro, string valor) {
         var encontrados = await FindList($"{RecursoUrl}?{parametro}={Uri.EscapeDataString(valor)}");
         return encontrados.FirstOrDefault()
-            ?? throw new HttpRequestException("No se encontrÃ³ el registro solicitado.", null, HttpStatusCode.NotFound);
+            ?? throw new HttpRequestException("No se encontró el registro solicitado.", null, HttpStatusCode.NotFound);
     }
     public virtual async Task Insert(TModel modelo) {
         await BeforeSave(modelo);

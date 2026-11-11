@@ -6,54 +6,98 @@
 
 <h3 class="mb-3">@(Id == null ? "Registrar atención" : "Editar atención")</h3>
 
-@* Datos del servicio de la cita que se está atendiendo *@
+@* Paciente y servicio de la cita que se está atendiendo *@
 <div class="card mb-4">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-3"><span class="text-muted small d-block">Mascota</span><strong>@ViewModel.NombreMascota</strong></div>
-            <div class="col-md-3"><span class="text-muted small d-block">Dueño</span>@ViewModel.NombreCliente</div>
-            <div class="col-md-3"><span class="text-muted small d-block">Servicio</span>@ViewModel.NombreServicio</div>
-            <div class="col-md-3"><span class="text-muted small d-block">Veterinario</span>@ViewModel.NombreVeterinario</div>
+    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+        <AvatarMascota Nombre="@ViewModel.NombreMascota" Foto="@Mascota?.Foto" />
+        <div class="flex-grow-1">
+            <div class="fs-5 fw-bold">
+                @ViewModel.NombreMascota · @ViewModel.NombreServicio
+                @if (Cita?.EsEmergencia == true) {
+                    <span class="badge text-bg-danger ms-1">Emergencia</span>
+                }
+            </div>
+            <div class="text-muted">@DatosMascota</div>
+            <div class="small text-muted">
+                Dueño: @ViewModel.NombreCliente · Cita: @(Cita?.FechaHora?.ToString("dd/MM/yyyy HH:mm") ?? "—") · Veterinario: @ViewModel.NombreVeterinario
+            </div>
         </div>
     </div>
 </div>
 
-<EditForm Model="ViewModel" OnValidSubmit="Guardar">
-    <DataAnnotationsValidator />
+<div class="row g-4">
+    <div class="col-xl-8">
+        <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+            <DataAnnotationsValidator />
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <label class="form-label">Fecha y hora de la atención</label>
-            <PaInputDate tabindex="1" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
-            <ValidationMessage For="() => ViewModel.FechaHora" />
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">Fecha y hora de la atención</label>
+                    <PaInputDate tabindex="1" Type="InputDateType.DateTimeLocal" class="form-control" @bind-Value="ViewModel.FechaHora" />
+                    <ValidationMessage For="() => ViewModel.FechaHora" />
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label">Motivo de consulta @(ViewModel.EsServicioMedico ? "" : "(opcional)")</label>
+                    <PaInputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
+                    <ValidationMessage For="() => ViewModel.MotivoConsulta" />
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Observaciones</label>
+                <PaInputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Observaciones" />
+                <ValidationMessage For="() => ViewModel.Observaciones" />
+            </div>
+
+            @* RN-AT-06: en servicios estéticos no se registran diagnósticos *@
+            @if (ViewModel.EsServicioMedico) {
+                <h5 class="mt-4">Diagnósticos</h5>
+                <TablaDiagnosticos Diagnosticos="ViewModel.Diagnosticos" Catalogo="Diagnosticos" />
+            }
+
+            <h5 class="mt-4">Insumos utilizados</h5>
+            <p class="form-text mt-0">Al guardar, los insumos se descuentan del stock (RN-AT-08). Marque "Se cobra aparte" si el cliente los paga en caja.</p>
+            <TablaInsumos Insumos="ViewModel.Insumos" Articulos="Articulos" />
+
+            <div class="d-flex gap-2 mt-4">
+                <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
+                <a tabindex="5" class="btn btn-outline-primary" href="@(Id == null ? "mi-agenda" : "atenciones")">Cancelar</a>
+            </div>
+        </EditForm>
+    </div>
+
+    @* Lo último que se le hizo a la mascota, para consultarlo sin salir del formulario *@
+    <div class="col-xl-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Últimas atenciones</span>
+                <a class="small fw-bold" href="@($"reportes/historial-clinico/{ViewModel.IdMascota}")" target="_blank">Historial completo</a>
+            </div>
+            <div class="card-body py-2">
+                @if (Anteriores.Count == 0) {
+                    <p class="text-muted my-2">Es la primera atención de @(ViewModel.NombreMascota).</p>
+                }
+                @foreach (AtencionViewModel anterior in Anteriores) {
+                    <div class="fila-pendiente">
+                        <div>
+                            <strong>@(anterior.FechaHora?.ToString("dd/MM/yyyy"))</strong> · @anterior.NombreServicio
+                            <div class="small text-muted">@anterior.NombreVeterinario</div>
+                            @if (!string.IsNullOrWhiteSpace(anterior.MotivoConsulta)) {
+                                <div class="small">Motivo: @anterior.MotivoConsulta</div>
+                            }
+                            @if (anterior.Diagnosticos.Count > 0) {
+                                <div class="d-flex flex-wrap gap-1 mt-1">
+                                    @foreach (AtencionDiagnosticoViewModel diagnostico in anterior.Diagnosticos) {
+                                        <span class="chip-cat">@diagnostico.NombreEnfermedad (@(TextoEnum.De(diagnostico.NivelGravedad).ToLower()))</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
         </div>
-        <div class="col-md-8 mb-3">
-            <label class="form-label">Motivo de consulta @(ViewModel.EsServicioMedico ? "" : "(opcional)")</label>
-            <PaInputText tabindex="2" class="form-control" @bind-Value="ViewModel.MotivoConsulta" />
-            <ValidationMessage For="() => ViewModel.MotivoConsulta" />
-        </div>
     </div>
-    <div class="mb-3">
-        <label class="form-label">Observaciones</label>
-        <PaInputTextArea tabindex="3" class="form-control" rows="3" @bind-Value="ViewModel.Observaciones" />
-        <ValidationMessage For="() => ViewModel.Observaciones" />
-    </div>
-
-    @* RN-AT-06: en servicios estéticos no se registran diagnósticos *@
-    @if (ViewModel.EsServicioMedico) {
-        <h5 class="mt-4">Diagnósticos</h5>
-        <TablaDiagnosticos Diagnosticos="ViewModel.Diagnosticos" Catalogo="Diagnosticos" />
-    }
-
-    <h5 class="mt-4">Insumos utilizados</h5>
-    <p class="form-text mt-0">Al guardar, los insumos se descuentan del stock (RN-AT-08). Marque "Se cobra aparte" si el cliente los paga en caja.</p>
-    <TablaInsumos Insumos="ViewModel.Insumos" Articulos="Articulos" />
-
-    <div class="d-flex gap-2 mt-4">
-        <button tabindex="4" type="submit" class="btn btn-primary btn-texto"><Icono Nombre="save" /><span>Guardar</span></button>
-        <a tabindex="5" class="btn btn-outline-primary" href="@(Id == null ? "mi-agenda" : "atenciones")">Cancelar</a>
-    </div>
-</EditForm>
+</div>
 
 @code {
     // Registrar: viene el servicio de la cita (detalle_cita) desde la agenda
@@ -68,6 +112,22 @@
     private List<DiagnosticoViewModel> Diagnosticos { get; set; } = [];
     private List<ArticuloViewModel> Articulos { get; set; } = [];
 
+    // Datos para el encabezado y el panel lateral
+    private MascotaViewModel? Mascota { get; set; }
+    private CitaViewModel? Cita { get; set; }
+    private List<AtencionViewModel> Anteriores { get; set; } = [];
+
+    private string DatosMascota {
+        get {
+            if (Mascota == null) {
+                return "";
+            }
+            string peso = Mascota.Peso is > 0 ? $"{Mascota.Peso:N1} kg" : "Peso sin registrar";
+            string edad = Mascota.FechaNacimiento == null ? "" : " · " + PortalCliente.Edad(Mascota.FechaNacimiento);
+            return $"{TextoEnum.De(Mascota.TipoMascota)} · {Mascota.Raza ?? "Sin raza"} · {peso}{edad}";
+        }
+    }
+
     protected override void OnInitialized() {
         Diagnosticos = DatosEjemplo.Diagnosticos();
         Articulos = DatosEjemplo.Articulos();
@@ -81,11 +141,16 @@
                 return;
             }
             ViewModel = atencion;
+            CargarContexto();
             return;
         }
 
-        ItemAgendaViewModel? item = DatosEjemplo.AgendaDeHoy().FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
-        if (item == null) {
+        // La cita puede ser de otro día (por ejemplo, una emergencia de ayer): se busca en la agenda de su fecha
+        CitaViewModel? cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Detalles.Any(d => d.Id == IdDetalleCita));
+        ItemAgendaViewModel? item = cita?.FechaHora == null ? null
+            : DatosEjemplo.AgendaDelDia(cita.FechaHora.Value).FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
+        // Solo se atiende lo que la agenda permite: cita aprobada (o emergencia pendiente), desde su hora y una sola vez
+        if (item == null || !AgendaVeterinario.PuedeAtenderse(item, DatosEjemplo.DetallesAtendidos(), DateTime.Now)) {
             Nav.NavigateTo("/mi-agenda");
             return;
         }
@@ -99,6 +164,17 @@
             NombreVeterinario = item.NombreVeterinario,
             FechaHora = DateTime.Now
         };
+        CargarContexto();
+    }
+
+    // Al enlazar: GET /mascotas/{id}, la cita sale de GET /citas/{id} y el historial de GET /atenciones?mascota={id}
+    private void CargarContexto() {
+        Mascota = DatosEjemplo.Mascotas().FirstOrDefault(m => m.Id == ViewModel.IdMascota);
+        Cita = DatosEjemplo.Citas().FirstOrDefault(c => c.Detalles.Any(d => d.Id == ViewModel.IdDetalleCita));
+        Anteriores = DatosEjemplo.HistorialDeMascota(ViewModel.IdMascota)
+            .Where(a => a.Id != ViewModel.Id)
+            .Take(3)
+            .ToList();
     }
 
     // Sin backend: solo regresa al listado. Al enlazar: POST /atenciones o PUT /atenciones/{Id};

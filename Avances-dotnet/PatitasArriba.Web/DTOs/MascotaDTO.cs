@@ -10,5 +10,7 @@ public class MascotaDTO {
     public string? FechaNacimiento { get; set; }
     public string? Raza { get; set; }
     public string? TipoMascota { get; set; }
+    // Imagen "data:image/...;base64,..." o null (RN-MA-07)
+    public string? Foto { get; set; }
 }
 

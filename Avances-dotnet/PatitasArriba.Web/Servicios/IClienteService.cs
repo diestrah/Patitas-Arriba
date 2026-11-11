@@ -3,5 +3,6 @@
 namespace PatitasArriba.Web.Servicios;
 
 public interface IClienteService : IRegistroService<ClienteViewModel> {
-    Task<ClienteViewModel> FindByDni(string Dni);
+    // null si no hay un cliente activo con ese DNI
+    Task<ClienteViewModel?> FindByDni(string Dni);
 }

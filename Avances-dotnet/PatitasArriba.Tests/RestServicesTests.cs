@@ -88,14 +88,16 @@ public class RestServicesTests {
                 Assert.That(dto.Cliente!.Id, Is.EqualTo(7));
                 Assert.That(dto.FechaNacimiento, Is.EqualTo("2020-02-03"));
                 Assert.That(dto.TipoMascota, Is.EqualTo("GATO"));
+                Assert.That(dto.Foto, Is.EqualTo("data:image/webp;base64,AAAA"));
                 return (201, body);
             }
             Assert.That(path, Does.EndWith("/mascotas?cliente=7"));
-            return (200, "[{\"id\":8,\"nombre\":\"Michi\",\"sexo\":\"HEMBRA\",\"tipoMascota\":\"GATO\",\"peso\":4,\"fechaNacimiento\":\"2020-02-03\",\"cliente\":{\"id\":7,\"nombres\":\"Ana\",\"apellidoPaterno\":\"Paz\"}}]");
+            return (200, "[{\"id\":8,\"nombre\":\"Michi\",\"sexo\":\"HEMBRA\",\"tipoMascota\":\"GATO\",\"peso\":4,\"foto\":\"data:image/webp;base64,AAAA\",\"fechaNacimiento\":\"2020-02-03\",\"cliente\":{\"id\":7,\"nombres\":\"Ana\",\"apellidoPaterno\":\"Paz\"}}]");
         };
         var service = services.GetRequiredService<IMascotaService>();
         var pet = (await service.FindByCliente(7)).Single();
         Assert.That(pet.NombreDueno, Is.EqualTo("Ana Paz"));
+        Assert.That(pet.Foto, Is.EqualTo("data:image/webp;base64,AAAA"));
         await service.Insert(pet);
     }
 
@@ -164,11 +166,13 @@ public class RestServicesTests {
             Assert.That(path, Does.EndWith("/boletas"));
             var dto = Read<PatitasArriba.Web.DTOs.BoletaDTO>(body);
             Assert.That(dto.Fecha, Is.EqualTo("2026-11-10T14:15:00"));
+            Assert.That(dto.SerieCorrelativo, Is.Null);
             Assert.That(dto.DetallesServicio.Single().DetalleCita!.Id, Is.EqualTo(11));
             Assert.That(dto.DetallesArticulo.Count, Is.EqualTo(2));
             Assert.That(dto.DetallesArticulo.Count(x => x.InsumoUtilizado == null), Is.EqualTo(1));
             Assert.That(dto.DetallesArticulo.Single(x => x.InsumoUtilizado != null).InsumoUtilizado!.Id, Is.EqualTo(22));
             dto.Id = 30;
+            dto.SerieCorrelativo = "B001-000124";
             return (201, JsonSerializer.Serialize(dto, json));
         };
         var receipt = new BoletaViewModel { IdCliente = 7, Fecha = new DateTime(2026, 11, 10, 14, 15, 0),
@@ -179,6 +183,7 @@ public class RestServicesTests {
             ] };
         await services.GetRequiredService<IBoletaService>().Insert(receipt);
         Assert.That(receipt.Id, Is.EqualTo(30));
+        Assert.That(receipt.SerieCorrelativo, Is.EqualTo("B001-000124"));
     }
 
     [Test]

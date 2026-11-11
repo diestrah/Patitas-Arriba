@@ -3,6 +3,7 @@
 namespace PatitasArriba.Web.Servicios;
 
 public interface IVeterinarioService : IRegistroService<VeterinarioViewModel>{
-    Task<VeterinarioViewModel> FindByDni(string Dni);
+    // null si no hay un veterinario activo con ese DNI
+    Task<VeterinarioViewModel?> FindByDni(string Dni);
 }
 

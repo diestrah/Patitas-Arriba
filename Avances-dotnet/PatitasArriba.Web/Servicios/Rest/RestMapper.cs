@@ -179,9 +179,11 @@ internal static class RestMapper {
         Nombre = d.Nombre ?? "",
         Sexo = EnumValue<SexoMascota>(d.Sexo),
         TipoMascota = EnumValue<TipoMascota>(d.TipoMascota),
-        Peso = d.Peso,
+        // Peso 0 significa "no registrado" en el backend (RN-MA-02)
+        Peso = d.Peso > 0 ? d.Peso : null,
         FechaNacimiento = DateValue(d.FechaNacimiento),
-        Raza = d.Raza
+        Raza = d.Raza,
+        Foto = d.Foto
     };
     internal static MascotaDTO ToDto(MascotaViewModel m) => new() {
         Id = m.Id,
@@ -191,7 +193,9 @@ internal static class RestMapper {
         TipoMascota = m.TipoMascota.ToString(),
         Peso = m.Peso ?? 0,
         FechaNacimiento = DateText(m.FechaNacimiento),
-        Raza = m.Raza
+        Raza = m.Raza,
+        // Se envía siempre: si no viajara, Java guardaría la mascota sin foto
+        Foto = m.Foto
     };
 
     internal static DetalleCitaViewModel ToViewModel(DetalleCitaDTO d) => new() {

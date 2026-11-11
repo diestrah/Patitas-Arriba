@@ -1,0 +1,231 @@
+@inject SesionDemo Sesion;
+
+@* Inicio del veterinario: mismo formato que el del administrador y el del cliente (banner, indicadores y tarjetas).
+   Muestra su siguiente paciente, su agenda de hoy y las atenciones que ya registró hoy (con su receta). *@
+<BannerInicio Nombre="@Sesion.Nombres" Texto="@Resumen">
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-warning btn-texto" href="mi-agenda"><Icono Nombre="calendar" /><span>Mi agenda</span></a>
+        <a class="btn btn-secondary btn-texto" href="reportes/historial-clinico"><Icono Nombre="clipboard" /><span>Historial clínico</span></a>
+        <a class="btn btn-secondary btn-texto" href="recetas"><Icono Nombre="file-text" /><span>Recetas</span></a>
+    </div>
+</BannerInicio>
+
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-verde" href="mi-agenda">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">@AgendaHoy.Count</span>
+            <span class="indicador-texto">Servicios de hoy</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-mostaza" href="mi-agenda">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@PorAtender.Count</span>
+            <span class="indicador-texto">Por atender</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-salvia" href="atenciones">
+            <span class="indicador-icono"><Icono Nombre="check-circle" /></span>
+            <span class="indicador-valor">@AtendidosHoy</span>
+            <span class="indicador-texto">Atendidos hoy</span>
+        </a>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <a class="indicador indicador-terracota" href="mi-agenda">
+            <span class="indicador-icono"><Icono Nombre="alert" /></span>
+            <span class="indicador-valor">@(AgendaHoy.Count(i => i.EsEmergencia))</span>
+            <span class="indicador-texto">Emergencias de hoy</span>
+        </a>
+    </div>
+</div>
+
+<section class="mb-4">
+    <h5 class="mb-2">Siguiente paciente</h5>
+    @if (Siguiente == null) {
+        <div class="card">
+            <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <div class="fw-bold">No tiene pacientes por atender hoy</div>
+                    <div class="text-muted">Revise su agenda de los próximos días.</div>
+                </div>
+                <a class="btn btn-outline-primary" href="mi-agenda">Ver mi agenda</a>
+            </div>
+        </div>
+    } else {
+        string? motivo = AgendaVeterinario.MotivoSinAtender(Siguiente, Atendidos, DateTime.Now);
+        <div class="card">
+            <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                <div class="fecha-cita">
+                    <span>Hoy</span>
+                    <b>@Siguiente.FechaHora.ToString("HH:mm")</b>
+                    <span>@Siguiente.DuracionMinutos min</span>
+                </div>
+                <AvatarMascota Nombre="@Siguiente.NombreMascota" Foto="@Foto(Siguiente.IdMascota)" />
+                <div class="flex-grow-1">
+                    @if (Siguiente.EsEmergencia) {
+                        <span class="badge text-bg-danger">Emergencia</span>
+                    }
+                    <div class="fs-5 fw-bold mt-1">@Siguiente.NombreMascota · @Siguiente.NombreServicio</div>
+                    <div class="text-muted">Dueño: @Siguiente.NombreCliente · hasta las @Siguiente.FechaHoraFin.ToString("HH:mm")</div>
+                    @if (motivo != null) {
+                        <div class="small text-muted mt-1">@(motivo).</div>
+                    } else if (Siguiente.FechaHoraFin < DateTime.Now) {
+                        <div class="small fw-bold mt-1" style="color: #7a5410">Atrasado: estaba para las @(Siguiente.FechaHora.ToString("HH:mm")).</div>
+                    }
+                </div>
+                <div class="d-flex flex-wrap gap-2">
+                    @if (motivo == null) {
+                        <a class="btn btn-primary btn-texto" href="@($"atenciones/registrar/{Siguiente.IdDetalleCita}")"><Icono Nombre="activity" /><span>Atender</span></a>
+                    }
+                    <a class="btn btn-secondary btn-texto" href="@($"reportes/historial-clinico/{Siguiente.IdMascota}")"><Icono Nombre="clipboard" /><span>Historial</span></a>
+                </div>
+            </div>
+        </div>
+    }
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Mi agenda de hoy</span>
+                <a class="small fw-bold" href="mi-agenda">Ver mi agenda</a>
+            </div>
+            <div class="card-body">
+                @if (AgendaHoy.Count == 0) {
+                    <p class="text-muted mb-0">No tiene servicios programados para hoy.</p>
+                } else {
+                    <ul class="lista-agenda">
+                        @foreach (ItemAgendaViewModel item in AgendaHoy) {
+                            EstadoServicioAgenda estado = AgendaTexto.De(item, Atendidos);
+                            string? motivo = AgendaVeterinario.MotivoSinAtender(item, Atendidos, DateTime.Now);
+                            <li>
+                                <span class="lista-hora">@item.FechaHora.ToString("HH:mm")</span>
+                                <AvatarMascota Nombre="@item.NombreMascota" Foto="@Foto(item.IdMascota)" Tamano="chico" />
+                                <div class="flex-grow-1">
+                                    <div class="fw-bold">
+                                        @item.NombreMascota · @item.NombreServicio
+                                        @if (item.EsEmergencia) {
+                                            <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                        }
+                                    </div>
+                                    <div class="small text-muted">@item.NombreCliente</div>
+                                </div>
+                                @* Dos columnas de ancho fijo para que queden alineadas entre filas: el estado (la misma etiqueta
+                                   que en la agenda del administrador) y la acción. Si no hay acción, un guion como en las tablas *@
+                                <div class="text-center" style="width: 7rem; flex: none">
+                                    <span class="estado @AgendaTexto.ClaseEstado(estado)">@AgendaTexto.Texto(estado)</span>
+                                </div>
+                                <div class="text-center" style="width: 8.6rem; flex: none">
+                                    @if (motivo == null) {
+                                        <a class="btn btn-primary btn-sm btn-texto" href="@($"atenciones/registrar/{item.IdDetalleCita}")"><Icono Nombre="activity" /><span>Atender</span></a>
+                                    } else {
+                                        <span class="slot-guion" title="@motivo">—</span>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-bold">Atendidos hoy</span>
+                <a class="small fw-bold" href="atenciones">Ver atenciones</a>
+            </div>
+            <div class="card-body py-2">
+                @if (AtencionesHoy.Count == 0) {
+                    <p class="text-muted my-2">Todavía no registra atenciones hoy.</p>
+                }
+                @foreach (AtencionViewModel atencion in AtencionesHoy) {
+                    RecetaViewModel? receta = DatosEjemplo.RecetaDeAtencion(atencion.Id);
+                    <div class="fila-pendiente">
+                        <div>
+                            <strong>@atencion.NombreMascota</strong> · @atencion.NombreServicio
+                            <div class="small text-muted">
+                                @(atencion.FechaHora?.ToString("HH:mm")) ·
+                                @(receta != null ? $"Receta N.° {receta.Id:D6}" : atencion.EsServicioMedico ? "Sin receta" : "Servicio estético (sin receta)")
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            @* RN-RE-02: los servicios estéticos no llevan receta *@
+                            @if (receta != null) {
+                                <a class="btn btn-outline-primary btn-sm btn-texto" href="@($"recetas/{receta.Id}")"><Icono Nombre="eye" /><span>Ver receta</span></a>
+                            } else if (atencion.EsServicioMedico) {
+                                <a class="btn btn-secondary btn-sm btn-texto" href="@($"recetas/nueva/{atencion.Id}")"><Icono Nombre="file-text" /><span>Receta</span></a>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<ItemAgendaViewModel> AgendaHoy { get; set; } = [];
+    private List<AtencionViewModel> AtencionesHoy { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private Dictionary<int, string?> Fotos { get; set; } = [];
+
+    private List<ItemAgendaViewModel> PorAtender => AgendaHoy.Where(i => AgendaVeterinario.EsPorAtender(i, Atendidos)).ToList();
+    private int AtendidosHoy => AgendaHoy.Count(i => Atendidos.Contains(i.IdDetalleCita));
+
+    // Primero lo que ya se puede atender (y entre eso, las emergencias); si todavía no llega la hora de ninguno,
+    // el próximo por hora. Así una emergencia de la tarde no tapa a un paciente que ya está esperando
+    private ItemAgendaViewModel? Siguiente {
+        get {
+            DateTime ahora = DateTime.Now;
+            return PorAtender
+                .OrderByDescending(i => AgendaVeterinario.PuedeAtenderse(i, Atendidos, ahora))
+                .ThenByDescending(i => i.EsEmergencia && AgendaVeterinario.PuedeAtenderse(i, Atendidos, ahora))
+                .ThenBy(i => i.FechaHora)
+                .FirstOrDefault();
+        }
+    }
+
+    // Resumen en una frase: lo que tiene pendiente hoy y su turno (RN-HO-03)
+    private string Resumen {
+        get {
+            int porAtender = PorAtender.Count;
+            int emergencias = PorAtender.Count(i => i.EsEmergencia);
+            string texto = porAtender == 0
+                ? "No tiene servicios por atender hoy."
+                : $"Hoy tiene {porAtender} servicio{(porAtender == 1 ? "" : "s")} por atender"
+                  + (emergencias == 0 ? "" : emergencias == 1 ? " (uno es emergencia)" : $" ({emergencias} son emergencias)") + ".";
+            return $"{texto} {TextoTurno}";
+        }
+    }
+
+    private string TextoTurno {
+        get {
+            DateTime ahora = DateTime.Now;
+            HorarioViewModel? turno = TurnosPersonal.EnTurno(Sesion.NombreUsuario, ahora);
+            if (turno != null) {
+                return $"Está en turno hasta las {turno.HoraFin:HH:mm}.";
+            }
+            (DateTime Inicio, HorarioViewModel Horario)? proximo = TurnosPersonal.ProximoTurno(Sesion.NombreUsuario, ahora);
+            return proximo == null ? "No tiene horarios asignados." : $"Su próximo turno: {TurnosPersonal.TextoMomento(proximo.Value.Inicio, ahora)}.";
+        }
+    }
+
+    // Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id}, GET /atenciones y GET /recetas?atencion={id}
+    protected override void OnInitialized() {
+        List<AtencionViewModel> atenciones = DatosEjemplo.Atenciones();
+        Atendidos = atenciones.Select(a => a.IdDetalleCita).ToHashSet();
+        Fotos = DatosEjemplo.Mascotas().ToDictionary(m => m.Id, m => m.Foto);
+        AgendaHoy = AgendaVeterinario.DelDia(Sesion.NombreUsuario, DateTime.Today);
+        AtencionesHoy = atenciones
+            .Where(a => a.NombreVeterinario == Sesion.NombreUsuario && a.FechaHora?.Date == DateTime.Today)
+            .OrderBy(a => a.FechaHora)
+            .ToList();
+    }
+
+    private string? Foto(int idMascota) => Fotos.GetValueOrDefault(idMascota);
+}
