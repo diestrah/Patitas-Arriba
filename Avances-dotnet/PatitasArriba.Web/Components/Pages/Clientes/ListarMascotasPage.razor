@@ -1,4 +1,5 @@
 @page "/mascotas"
+@attribute [Authorize(Policy = "Mascotas")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject IMascotaService MascotaService;

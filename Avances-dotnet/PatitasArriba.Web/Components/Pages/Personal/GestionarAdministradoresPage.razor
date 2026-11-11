@@ -1,5 +1,6 @@
 @page "/administradores/nuevo"
 @page "/administradores/editar/{Id:int}"
+@attribute [Authorize(Policy = "Personal")]
 @inject NavigationManager Nav;
 @inject IAdministradorService AdministradorService;
 @inject IHorarioService HorarioService;

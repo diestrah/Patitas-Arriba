@@ -1,5 +1,6 @@
 @page "/articulos/nuevo"
 @page "/articulos/editar/{Id:int}"
+@attribute [Authorize(Policy = "Articulos")]
 @inject NavigationManager Nav;
 @inject IArticuloService ArticuloService;
 @inject ICategoriaService CategoriaService;
@@ -26,12 +27,12 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Nombre</label>
-                        <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" @bind-Value:event="oninput" />
+                        <PaInputText tabindex="1" class="form-control" @bind-Value="ViewModel.Nombre" />
                         <ValidationMessage For="() => ViewModel.Nombre" />
                     </div>
                     <div class="mb-0">
                         <label class="form-label">Descripción</label>
-                        <PaInputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" @bind-Value:event="oninput" />
+                        <PaInputTextArea tabindex="2" class="form-control" rows="3" @bind-Value="ViewModel.Descripcion" />
                         <div class="form-text text-end">@(ViewModel.Descripcion?.Length ?? 0) / 200</div>
                         <ValidationMessage For="() => ViewModel.Descripcion" />
                     </div>
@@ -44,12 +45,12 @@
                     <div class="row">
                         <div class="col-md-4 mb-3 mb-md-0">
                             <label class="form-label">Precio (S/)</label>
-                            <PaInputNumber tabindex="3" class="form-control" @bind-Value="ViewModel.PrecioBase" @bind-Value:event="oninput" />
+                            <PaInputNumber tabindex="3" class="form-control" @bind-Value="ViewModel.PrecioBase" />
                             <ValidationMessage For="() => ViewModel.PrecioBase" />
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
                             <label class="form-label">Stock actual</label>
-                            <PaInputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.StockActual" @bind-Value:event="oninput" disabled="@(Id != null)" />
+                            <PaInputNumber tabindex="4" class="form-control" @bind-Value="ViewModel.StockActual" disabled="@(Id != null)" />
                             @if (Id != null) {
                                 <div class="form-text">Use el − y + del listado para actualizarlo.</div>
                             }
@@ -57,7 +58,7 @@
                         </div>
                         <div class="col-md-4">
                             <label class="form-label">Stock mínimo</label>
-                            <PaInputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.StockMinimo" @bind-Value:event="oninput" />
+                            <PaInputNumber tabindex="5" class="form-control" @bind-Value="ViewModel.StockMinimo" />
                             <div class="form-text">Avisa cuando baje de este número.</div>
                             <ValidationMessage For="() => ViewModel.StockMinimo" />
                         </div>

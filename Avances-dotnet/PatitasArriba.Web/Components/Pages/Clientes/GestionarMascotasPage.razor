@@ -1,5 +1,6 @@
 @page "/mascotas/nuevo"
 @page "/mascotas/editar/{Id:int}"
+@attribute [Authorize(Policy = "Mascotas")]
 @inject NavigationManager Nav;
 @inject IMascotaService MascotaService;
 @inject IClienteService ClienteService;

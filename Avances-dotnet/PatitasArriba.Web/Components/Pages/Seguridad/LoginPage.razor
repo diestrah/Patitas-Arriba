@@ -3,9 +3,7 @@
 @implements IAsyncDisposable
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
-@inject ICuentaService CuentaService;
 @inject IJSRuntime JS;
-@using System.Net
 
 <PageTitle>Iniciar sesión · Patitas Arriba</PageTitle>
 
@@ -70,6 +68,13 @@
 
                 <p class="login-registro">¿No tienes una cuenta? <a href="registro" tabindex="5">Crea una</a></p>
             </EditForm>
+            @* Validado el formulario, login-patitas.js (enviarLogin) copia los datos aquí y lo envía a POST /cuenta/login,
+               que crea la cookie de sesión (Seguridad/SeguridadExtensions.cs) *@
+            <form id="form-sesion" method="post" action="cuenta/login" hidden>
+                <AntiforgeryToken />
+                <input type="hidden" name="correo" />
+                <input type="hidden" name="password" />
+            </form>
             <p class="lema">Cuidamos a tu mejor amigo con mucho cariño <span>♥</span></p>
         </div>
     </section>
@@ -81,8 +86,22 @@
     private string? MensajeError { get; set; }
     private bool Enviando { get; set; }
 
+    // POST /cuenta/login vuelve aquí con ?error=credenciales o ?error=conexion si no pudo iniciar sesión
+    [SupplyParameterFromQuery(Name = "error")]
+    private string? Error { get; set; }
+
     protected override void OnInitialized() {
         Contexto = new EditContext(ViewModel);
+        if (Sesion.HaIniciadoSesion) {
+            Nav.NavigateTo("/", replace: true);
+            return;
+        }
+        // Si las credenciales fallan el mensaje es siempre el mismo, sin decir si falló el correo o la contraseña (RN-CU-05)
+        MensajeError = Error switch {
+            "credenciales" => "Correo o contraseña incorrectos",
+            "conexion" => ErrorServicio.SinConexion,
+            _ => null
+        };
     }
 
     // Al salir de un campo se valida, aunque no se haya escrito nada
@@ -101,29 +120,18 @@
     }
 
 
-    // POST /login: el backend valida la contraseña y deduce el rol de la cuenta.
-    // Si las credenciales fallan el mensaje es siempre el mismo, sin decir si falló el correo o la contraseña (RN-CU-05)
+    // POST /cuenta/login: el backend valida la contraseña y deduce el rol de la cuenta; si sale bien
+    // se guarda la cookie y se va al inicio, si no se vuelve aquí con ?error=...
     private async Task Ingresar() {
         if (Enviando) return;
         MensajeError = null;
         Enviando = true;
         try {
-            Sesion.Iniciar(await CuentaService.Login(ViewModel.Correo.Trim(), ViewModel.Password));
-        } catch (HttpRequestException ex) when (ex.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.BadRequest) {
-            MensajeError = "Correo o contraseña incorrectos";
-            return;
-        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
-            MensajeError = ErrorServicio.Desde(ex);
-            return;
-        } finally {
-            Enviando = false;
-        }
-        try {
-            await JS.InvokeVoidAsync("celebrarLogin");
-            await Task.Delay(700);
+            await JS.InvokeVoidAsync("enviarLogin", ViewModel.Correo.Trim(), ViewModel.Password);
         } catch (JSException) {
+            Enviando = false;
+            MensajeError = ErrorServicio.SinConexion;
         }
-        Nav.NavigateTo("/");
     }
 
     public async ValueTask DisposeAsync() {

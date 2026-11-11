@@ -548,6 +548,15 @@
         if (celebrar) celebrar();
     };
 
+    // LoginPage ya validó el formulario: se envía a POST /cuenta/login, que crea la cookie de sesión
+    window.enviarLogin = function (correo, password) {
+        const form = document.getElementById('form-sesion');
+        form.elements.correo.value = correo;
+        form.elements.password.value = password;
+        if (celebrar) celebrar();
+        setTimeout(() => form.submit(), 400);
+    };
+
     window.detenerSalaLogin = function () {
         if (detener) detener();
         detener = null;

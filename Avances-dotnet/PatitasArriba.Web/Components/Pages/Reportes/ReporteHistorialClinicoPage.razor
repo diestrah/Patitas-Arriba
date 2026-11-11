@@ -1,5 +1,6 @@
 @page "/reportes/historial-clinico"
 @page "/reportes/historial-clinico/{IdMascota:int}"
+@attribute [Authorize(Policy = "ReporteHistorial")]
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
 @inject IMascotaService MascotaService;

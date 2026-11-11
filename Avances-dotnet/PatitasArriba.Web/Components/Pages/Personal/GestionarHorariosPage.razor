@@ -1,5 +1,6 @@
 @page "/horarios/nuevo"
 @page "/horarios/editar/{Id:int}"
+@attribute [Authorize(Policy = "Horarios")]
 @inject NavigationManager Nav;
 @inject IHorarioService HorarioService;
 @inject IVeterinarioService VeterinarioService;

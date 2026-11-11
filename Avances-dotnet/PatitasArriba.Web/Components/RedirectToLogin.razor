@@ -1,0 +1,8 @@
+@inject NavigationManager Nav
+
+@code {
+    // Sin sesión, una página protegida manda al login (Routes.razor, AuthorizeRouteView)
+    protected override void OnInitialized() {
+        Nav.NavigateTo("/login");
+    }
+}

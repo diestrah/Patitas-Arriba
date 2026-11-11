@@ -1,4 +1,5 @@
 @page "/boletas"
+@attribute [Authorize(Policy = "Boletas")]
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
 @inject IBoletaService BoletaService;

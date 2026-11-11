@@ -1,22 +1,14 @@
 @page "/"
+@attribute [Authorize]
 @inject SesionDemo Sesion;
-@inject NavigationManager Nav;
 
 <PageTitle>Inicio</PageTitle>
 
-@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized). Cada rol tiene su inicio en Components/Inicio *@
+@* Sin sesión Routes.razor redirige al login. Cada rol tiene su inicio en Components/Inicio *@
 @if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
     <InicioAdministrador />
 } else if (Sesion.Rol == RolUsuario.CLIENTE) {
     <InicioCliente />
 } else if (Sesion.Rol == RolUsuario.VETERINARIO) {
     <InicioVeterinario />
-}
-
-@code {
-    protected override void OnInitialized() {
-        if (Sesion.Rol == null) {
-            Nav.NavigateTo("login", replace: true);
-        }
-    }
 }

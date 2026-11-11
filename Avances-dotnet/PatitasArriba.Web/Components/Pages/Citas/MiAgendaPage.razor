@@ -1,4 +1,5 @@
 @page "/mi-agenda"
+@attribute [Authorize(Policy = "Agenda")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject ICitaService CitaService;

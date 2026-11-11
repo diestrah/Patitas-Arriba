@@ -8,4 +8,4 @@ Se conserva el comportamiento actual de Java: registro de personas por /con-cuen
 
 Las consultas adicionales de citas (atenciones y recetas) y de propietarios de cuentas se ven directamente en los métodos públicos. Son necesarias para completar los campos de los ViewModels que no llegan en el DTO principal. Las conversiones de colecciones usan foreach.
 
-Las pantallas conservan su funcionamiento actual. No se modifican las reglas de negocio ni se sustituye la sesión de demostración como parte de esta reorganización.
+Las pantallas conservan su funcionamiento actual y no se modifican las reglas de negocio. La sesión del usuario se lee de la cookie de autenticación (ver Seguridad/SeguridadExtensions.cs y Seguridad/SesionDemo.cs), que se crea con los datos que devuelve POST /login.

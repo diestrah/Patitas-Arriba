@@ -1,4 +1,5 @@
 @page "/articulos"
+@attribute [Authorize(Policy = "Articulos")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject IArticuloService ArticuloService;

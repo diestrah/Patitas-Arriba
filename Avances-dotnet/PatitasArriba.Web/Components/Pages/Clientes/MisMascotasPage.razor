@@ -1,4 +1,5 @@
 @page "/mis-mascotas"
+@attribute [Authorize(Policy = "MisMascotas")]
 @inject SesionDemo Sesion;
 @inject IMascotaService MascotaService;
 @inject ICitaService CitaService;

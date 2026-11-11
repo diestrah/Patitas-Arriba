@@ -1,6 +1,5 @@
 @inherits LayoutComponentBase
 @inject SesionDemo Sesion;
-@inject NavigationManager Nav;
 
 <nav class="navbar navbar-expand barra-principal px-3 sticky-top">
     <a class="navbar-brand marca-barra" href="">
@@ -51,9 +50,13 @@
                     <li><NavLink class="dropdown-item" href="" Match="NavLinkMatch.All"><Icono Nombre="home" /><span>Inicio</span></NavLink></li>
                     <li><hr class="dropdown-divider" /></li>
                     <li>
-                        <button class="dropdown-item" type="button" @onclick="() => CerrarSesion()">
-                            <Icono Nombre="log-out" /><span>Cerrar sesión</span>
-                        </button>
+                        @* POST /cuenta/logout borra la cookie de sesión (Seguridad/SeguridadExtensions.cs) *@
+                        <form method="post" action="cuenta/logout">
+                            <AntiforgeryToken />
+                            <button class="dropdown-item" type="submit">
+                                <Icono Nombre="log-out" /><span>Cerrar sesión</span>
+                            </button>
+                        </form>
                     </li>
                 </ul>
             </li>
@@ -79,10 +82,5 @@
     // Hay otra opción del mismo grupo cuya ruta empieza con la de esta (por ejemplo "boletas" y "boletas/nueva")
     private static bool TieneOpcionHija(List<OpcionMenu> opciones, OpcionMenu opcion) {
         return opciones.Any(o => o.Href.StartsWith(opcion.Href + "/"));
-    }
-
-    private void CerrarSesion() {
-        Sesion.CerrarSesion();
-        Nav.NavigateTo("/login");
     }
 }

@@ -1,4 +1,5 @@
 @page "/cuentas-usuario"
+@attribute [Authorize(Policy = "CuentasUsuario")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject ICuentaService CuentaService;

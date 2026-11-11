@@ -1,4 +1,5 @@
 @page "/clientes"
+@attribute [Authorize(Policy = "Clientes")]
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 @inject IClienteService ClienteService;

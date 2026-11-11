@@ -1,5 +1,6 @@
 @page "/citas/nueva"
 @page "/citas/editar/{Id:int}"
+@attribute [Authorize(Policy = "Citas")]
 @inject NavigationManager Nav;
 @inject ICitaService CitaService;
 @inject IClienteService ClienteService;
