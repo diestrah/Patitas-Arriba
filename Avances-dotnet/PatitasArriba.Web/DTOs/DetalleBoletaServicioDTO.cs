@@ -1,4 +1,4 @@
-﻿namespace PatitasArriba.Web.DTOs;
+namespace PatitasArriba.Web.DTOs;
 
 public class DetalleBoletaServicioDTO {
     public int Id { get; set; }
@@ -6,7 +6,7 @@ public class DetalleBoletaServicioDTO {
     public int Cantidad { get; set; }
     public double PrecioUnitario { get; set; }
     public double Subtotal { get; set; }
-    public DetalleCitaDTO DetalleCita{ get; set; }
+    public DetalleCitaDTO? DetalleCita { get; set; }
 
 }
 
