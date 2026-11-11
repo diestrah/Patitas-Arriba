@@ -4,111 +4,19 @@
 
 <PageTitle>Inicio</PageTitle>
 
-@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized). Cada rol tiene su inicio *@
+@* Sin sesión no hay pantalla de inicio: se redirige al login (ver OnInitialized). Cada rol tiene su inicio en Components/Inicio *@
 @if (Sesion.Rol == RolUsuario.ADMINISTRADOR) {
     <InicioAdministrador />
 } else if (Sesion.Rol == RolUsuario.CLIENTE) {
     <InicioCliente />
 } else if (Sesion.Rol == RolUsuario.VETERINARIO) {
-    <BannerInicio Nombre="@Sesion.Nombres" Texto="Aquí tiene un resumen de hoy y sus accesos más usados." />
-
-    <div class="row g-3 mb-4">
-        @foreach (Indicador indicador in Indicadores) {
-            <div class="col-sm-6 col-xl-3">
-                <a class="@($"indicador indicador-{indicador.Color}")" href="@indicador.Href">
-                    <span class="indicador-icono"><Icono Nombre="@indicador.Icono" /></span>
-                    <span class="indicador-valor">@indicador.Valor</span>
-                    <span class="indicador-texto">@indicador.Texto</span>
-                </a>
-            </div>
-        }
-    </div>
-
-    <div class="row g-4">
-        <div class="col-lg-7">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span class="fw-bold">Mi agenda de hoy</span>
-                    <a class="small fw-bold" href="mi-agenda">Ver todo</a>
-                </div>
-                <div class="card-body">
-                    @if (Lista.Count == 0) {
-                        <p class="text-muted mb-0">No tiene servicios programados para hoy.</p>
-                    } else {
-                        <ul class="lista-agenda">
-                            @foreach (ItemInicio item in Lista) {
-                                <li>
-                                    <span class="lista-hora">@item.Hora</span>
-                                    <div class="flex-grow-1">
-                                        <div class="fw-bold">@item.Titulo</div>
-                                        <div class="small text-muted">@item.Detalle</div>
-                                    </div>
-                                    <span class="estado @item.ClaseEstado">@item.Estado</span>
-                                </li>
-                            }
-                        </ul>
-                    }
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-5">
-            <div class="card h-100">
-                <div class="card-header fw-bold">Accesos rápidos</div>
-                <div class="card-body">
-                    <div class="accesos">
-                        @foreach (OpcionMenu opcion in Accesos) {
-                            <a class="acceso" href="@opcion.Href">
-                                <span class="acceso-icono"><Icono Nombre="@opcion.Icono" /></span>
-                                <span>@opcion.Texto</span>
-                            </a>
-                        }
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <InicioVeterinario />
 }
 
 @code {
-    // Una tarjeta de resumen (número grande) y una fila de la lista del día
-    private record Indicador(string Icono, string Valor, string Texto, string Href, string Color);
-    private record ItemInicio(string Hora, string Titulo, string Detalle, string Estado, string ClaseEstado);
-
-    private List<Indicador> Indicadores { get; set; } = [];
-    private List<ItemInicio> Lista { get; set; } = [];
-    private List<OpcionMenu> Accesos { get; set; } = [];
-
-    // Mientras no se enlaza con el backend, el resumen se arma con los datos de ejemplo.
-    // El inicio del administrador y el del cliente están en Components/Inicio.
     protected override void OnInitialized() {
         if (Sesion.Rol == null) {
             Nav.NavigateTo("login", replace: true);
-            return;
         }
-        if (Sesion.Rol != RolUsuario.VETERINARIO) {
-            return;
-        }
-        Accesos = Permisos.MenuDelRol(Sesion.Rol).SelectMany(g => g.Value).ToList();
-        HashSet<int> atendidos = DatosEjemplo.DetallesAtendidos();
-
-        List<ItemAgendaViewModel> agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario);
-        int porAtender = agenda.Count(i => !atendidos.Contains(i.IdDetalleCita));
-        Indicadores = [
-            new("clock", agenda.Count.ToString(), "Servicios de hoy", "mi-agenda", "verde"),
-            new("activity", porAtender.ToString(), "Por atender", "mi-agenda", "mostaza"),
-            new("check-circle", (agenda.Count - porAtender).ToString(), "Atendidos hoy", "atenciones", "salvia"),
-            new("file-text", DatosEjemplo.Recetas().Count(r => r.NombreVeterinario == Sesion.NombreUsuario).ToString(), "Recetas emitidas", "recetas", "terracota")
-        ];
-        Lista = agenda.Select(i => ItemDeAgenda(i, atendidos)).ToList();
-    }
-
-    private static ItemInicio ItemDeAgenda(ItemAgendaViewModel item, HashSet<int> atendidos) {
-        bool atendido = atendidos.Contains(item.IdDetalleCita);
-        string detalle = item.NombreCliente;
-        if (item.EsEmergencia) {
-            detalle += " · Emergencia";
-        }
-        return new ItemInicio(item.FechaHora.ToString("HH:mm"), $"{item.NombreMascota} · {item.NombreServicio}", detalle,
-            atendido ? "Atendido" : "Por atender", atendido ? "estado-aprobado" : "estado-pendiente");
     }
 }

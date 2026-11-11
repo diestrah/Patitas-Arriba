@@ -475,3 +475,32 @@ img.avatar-mascota { object-fit: cover; object-position: center 30%; display: bl
 .opcion-persona:hover { background: #f7faf4; }
 .opcion-persona.activa { background: var(--pa-salvia); border-color: var(--pa-verde); color: var(--pa-verde-oscuro); font-weight: 700; }
 .opcion-persona.activa .ini { background: var(--pa-verde); color: #fff; }
+
+/* ---------- Listas desplegables con la paleta (en lugar del azul del sistema) ----------
+   appearance: base-select solo existe en Chrome/Edge 135+ y Safari 27+. En los demás navegadores
+   el @supports no aplica y queda la lista nativa de siempre, que sigue funcionando igual. */
+@supports (appearance: base-select) {
+    .form-select:not([multiple]):not([size]),
+    .form-select:not([multiple]):not([size])::picker(select) { appearance: base-select; }
+
+    /* La flecha ya la pone Bootstrap como imagen de fondo: se oculta la del navegador */
+    .form-select::picker-icon { display: none; }
+
+    /* Deshabilitada: el texto en gris, como en la lista nativa */
+    .form-select:disabled { color: #8a857a; }
+
+    /* Panel que se abre */
+    .form-select::picker(select) {
+        margin-top: .25rem; padding: .3rem;
+        border: 1px solid #ddd5c6; border-radius: .7rem;
+        background: #fff; box-shadow: 0 .6rem 1.4rem rgba(31, 42, 36, .14);
+    }
+    .form-select option { padding: .4rem .7rem; border-radius: .5rem; color: var(--pa-texto); }
+    .form-select option::checkmark { display: none; }
+
+    /* La opción elegida queda en salvia; la que está bajo el mouse o el teclado, en verde */
+    .form-select option:checked { background: var(--pa-salvia); color: var(--pa-verde-oscuro); font-weight: 700; }
+    .form-select option:hover,
+    .form-select option:focus-visible { background: var(--pa-verde); color: #fff; outline: none; }
+    .form-select option:disabled { color: #9c978c; }
+}

@@ -2,55 +2,86 @@
 @inject NavigationManager Nav;
 @inject SesionDemo Sesion;
 
+@using System.Globalization
 @using Microsoft.AspNetCore.Components.QuickGrid
 
 <PageTitle>Mi agenda</PageTitle>
 
-<h3 class="mb-3">Mi agenda</h3>
-
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">Fecha:</label>
-    <input tabindex="1" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
-        <Icono Nombre="search" /><span>Filtrar</span>
-    </button>
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Mi agenda</h3>
+    <a class="btn btn-warning btn-texto" href="reportes/agenda-diaria">
+        <Icono Nombre="file-text" /><span>Generar reporte</span>
+    </a>
 </div>
 
-@if (!Agenda.Any()) {
-    <div class="alert alert-info">No tiene servicios programados para la fecha seleccionada.</div>
+@* Misma navegación por días que la Agenda diaria del administrador *@
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <button class="btn btn-outline-primary btn-icono" title="Día anterior" aria-label="Día anterior" @onclick="() => CambiarDia(-1)">
+        <Icono Nombre="chevron-left" />
+    </button>
+    <strong class="text-center" style="min-width: 15rem">@TextoFecha</strong>
+    <button class="btn btn-outline-primary btn-icono" title="Día siguiente" aria-label="Día siguiente" @onclick="() => CambiarDia(1)">
+        <Icono Nombre="chevron-right" />
+    </button>
+    <input type="date" class="form-control w-auto" aria-label="Elegir fecha" @bind="Fecha" @bind:format="yyyy-MM-dd" @bind:after="Cargar" />
+    <button class="btn btn-outline-primary" @onclick="() => IrAHoy()">Hoy</button>
+</div>
+
+@if (Lista.Count == 0) {
+    <div class="alert alert-info">No tiene servicios programados para este día.</div>
 }
 else {
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+        <strong class="me-1">@Lista.Count servicio@(Lista.Count == 1 ? "" : "s")</strong>
+        <span class="estado estado-pendiente">@Contar(EstadoServicioAgenda.PorAtender) por atender</span>
+        <span class="estado estado-aprobado">@Contar(EstadoServicioAgenda.Atendido) atendido@(Contar(EstadoServicioAgenda.Atendido) == 1 ? "" : "s")</span>
+        @if (Contar(EstadoServicioAgenda.PorAprobar) > 0) {
+            <span class="estado estado-por-aprobar">@Contar(EstadoServicioAgenda.PorAprobar) por aprobar</span>
+        }
+    </div>
+
     <QuickGrid Items="Agenda" Class="table table-striped table-hover align-middle">
-        <PropertyColumn Title="Hora" Property="i => i.FechaHora" Format="HH:mm" Sortable="true" />
+        <TemplateColumn Title="Hora">
+            <span class="text-nowrap">@context.FechaHora.ToString("HH:mm") – @context.FechaHoraFin.ToString("HH:mm")</span>
+        </TemplateColumn>
         <TemplateColumn Title="Mascota">
-            @context.NombreMascota
-            @if (context.EsEmergencia) {
-                <span class="badge text-bg-danger ms-1">Emergencia</span>
-            }
+            <div class="d-flex align-items-center gap-2">
+                <AvatarMascota Nombre="@context.NombreMascota" Foto="@Foto(context.IdMascota)" Tamano="chico" />
+                <span>
+                    @context.NombreMascota
+                    @if (context.EsEmergencia) {
+                        <span class="badge text-bg-danger ms-1">Emergencia</span>
+                    }
+                </span>
+            </div>
         </TemplateColumn>
         <PropertyColumn Title="Dueño" Property="i => i.NombreCliente" />
         <PropertyColumn Title="Servicio" Property="i => i.NombreServicio" />
-        @* El estado va en su propia columna (no es un botón) *@
+        @* Por aprobar, por atender o atendido: igual que en la Agenda diaria del administrador *@
         <TemplateColumn Title="Estado">
-            @if (Atenciones.ContainsKey(context.IdDetalleCita)) {
-                <span class="estado estado-aprobado">Atendido</span>
-            } else {
-                <span class="estado estado-pendiente">Por atender</span>
-            }
+            <span class="estado @ClaseEstado(context)">@TextoEstado(context)</span>
         </TemplateColumn>
         <TemplateColumn Title="Acciones">
-            @* Espacios fijos: atender o editar la atención | historial *@
+            @* Espacios fijos: ver cita | atender o ver la atención | historial. Si una acción no aplica, queda un guion *@
             <div class="acciones-fija">
+                <span class="slot-icono">
+                    <button class="btn btn-outline-primary btn-icono" title="Ver cita" aria-label="Ver cita" @onclick="() => VerCita(context.IdCita)">
+                        <Icono Nombre="eye" />
+                    </button>
+                </span>
                 <span class="slot-texto">
-                    @* Cada servicio se atiende una sola vez (RN-AT-02); después solo se edita su atención *@
+                    @* Cada servicio se atiende una sola vez (RN-AT-02); después solo se edita su atención.
+                       Solo se atiende con la cita aprobada, o pendiente si es emergencia (RN-AT-04), y desde su hora (RN-AT-05) *@
                     @if (Atenciones.ContainsKey(context.IdDetalleCita)) {
                         <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => EditarAtencion(Atenciones[context.IdDetalleCita])">
                             <Icono Nombre="edit" /><span>Ver atención</span>
                         </button>
-                    } else {
+                    } else if (MotivoSinAtender(context) == null) {
                         <button class="btn btn-primary btn-sm btn-texto" @onclick="() => Atender(context.IdDetalleCita)">
                             <Icono Nombre="activity" /><span>Atender</span>
                         </button>
+                    } else {
+                        <span class="slot-guion" title="@MotivoSinAtender(context)">—</span>
                     }
                 </span>
                 <span class="slot-texto">
@@ -63,24 +94,66 @@ else {
     </QuickGrid>
 }
 
+@* La cita completa: un servicio puede ser solo una parte de una cita con varios servicios y veterinarios *@
+@if (CitaSeleccionada != null) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <DetalleCita Cita="CitaSeleccionada" Atendidos="Atendidos">
+                    <button type="button" class="btn btn-outline-primary ms-auto" @onclick="() => CitaSeleccionada = null">Cerrar</button>
+                </DetalleCita>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
-    // Agenda del veterinario que inició sesión (al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id})
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    // Agenda del veterinario que inició sesión. Al enlazar: GET /citas?fecha=AAAA-MM-DD&veterinario={id}
+    private List<ItemAgendaViewModel> Lista { get; set; } = [];
     private IQueryable<ItemAgendaViewModel> Agenda { get; set; } = Enumerable.Empty<ItemAgendaViewModel>().AsQueryable();
-    private DateTime FechaFiltro { get; set; } = DateTime.Today;
+    private DateTime Fecha { get; set; } = DateTime.Today;
+    private CitaViewModel? CitaSeleccionada { get; set; }
 
     // Id del servicio de la cita (detalle_cita) -> id de su atención
-    private Dictionary<int, int> Atenciones { get; set; } = new();
+    private Dictionary<int, int> Atenciones { get; set; } = [];
+    private HashSet<int> Atendidos { get; set; } = [];
+    private Dictionary<int, string?> Fotos { get; set; } = [];
+
+    private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
 
     protected override void OnInitialized() {
         Atenciones = DatosEjemplo.Atenciones().ToDictionary(a => a.IdDetalleCita, a => a.Id);
-        Filtrar();
+        Atendidos = Atenciones.Keys.ToHashSet();
+        Fotos = DatosEjemplo.Mascotas().ToDictionary(m => m.Id, m => m.Foto);
+        Cargar();
     }
 
-    // Los datos de ejemplo solo traen la agenda de hoy
-    private void Filtrar() {
-        Agenda = DatosEjemplo.AgendaDeVeterinario(Sesion.NombreUsuario)
-            .Where(i => i.FechaHora.Date == FechaFiltro.Date)
-            .AsQueryable();
+    private void Cargar() {
+        Lista = AgendaVeterinario.DelDia(Sesion.NombreUsuario, Fecha);
+        Agenda = Lista.AsQueryable();
+    }
+
+    private void CambiarDia(int dias) {
+        Fecha = Fecha.AddDays(dias);
+        Cargar();
+    }
+
+    private void IrAHoy() {
+        Fecha = DateTime.Today;
+        Cargar();
+    }
+
+    private int Contar(EstadoServicioAgenda estado) => Lista.Count(i => AgendaTexto.De(i, Atendidos) == estado);
+    private string ClaseEstado(ItemAgendaViewModel item) => AgendaTexto.ClaseEstado(AgendaTexto.De(item, Atendidos));
+    private string TextoEstado(ItemAgendaViewModel item) => AgendaTexto.Texto(AgendaTexto.De(item, Atendidos));
+    private string? MotivoSinAtender(ItemAgendaViewModel item) => AgendaVeterinario.MotivoSinAtender(item, Atendidos, DateTime.Now);
+    private string? Foto(int idMascota) => Fotos.GetValueOrDefault(idMascota);
+
+    private void VerCita(int idCita) {
+        CitaSeleccionada = DatosEjemplo.Citas().FirstOrDefault(c => c.Id == idCita);
     }
 
     private void Atender(int idDetalleCita) {

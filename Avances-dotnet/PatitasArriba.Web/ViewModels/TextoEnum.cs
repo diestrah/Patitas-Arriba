@@ -72,6 +72,8 @@ namespace PatitasArriba.Web.ViewModels {
             };
         }
 
+        public static string De(RolUsuario? rol) => rol.HasValue ? De(rol.Value) : "Sin asignar";
+
         public static string De(RolUsuario rol) {
             return rol switch {
                 RolUsuario.ADMINISTRADOR => "Administrador",

@@ -1,5 +1,6 @@
 @page "/recetas"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -7,13 +8,17 @@
 
 <h3 class="mb-3">Recetas médicas</h3>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
+    <div class="form-check mb-0 text-nowrap">
+        <input id="filtro-mias" tabindex="2" type="checkbox" class="form-check-input" @bind="SoloMias" />
+        <label class="form-check-label" for="filtro-mias">Solo mis recetas</label>
+    </div>
+    <button tabindex="3" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
-    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <button tabindex="4" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
 @if (MensajeExito != null) {
@@ -59,6 +64,8 @@ else {
     private RecetaViewModel? RecetaAEliminar { get; set; }
     private string? MensajeExito { get; set; }
     private string Filtro { get; set; } = string.Empty;
+    // Por defecto el veterinario ve las recetas que emitió él
+    private bool SoloMias { get; set; } = true;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
     protected override void OnInitialized() {
@@ -71,11 +78,13 @@ else {
         Recetas = Todas
             .Where(r => r.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
                      || r.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .Where(r => !SoloMias || r.NombreVeterinario == Sesion.NombreUsuario)
             .AsQueryable();
     }
 
     private void LimpiarFiltro() {
         Filtro = string.Empty;
+        SoloMias = true;
         Filtrar();
     }
 

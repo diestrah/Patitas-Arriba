@@ -30,6 +30,9 @@ import patitasarriba.modelo.producto.Servicio;
 
 public class BoletaBLImpl implements BoletaBL {
 
+    // Serie de las boletas: el número completo es B001-000123 (RN-BO-03)
+    private static final String SERIE = "B001";
+
     private final BoletaDAO boletaDAO = new BoletaDAOImpl();
     // Inicialización de DAOs concretos para la validación de productos
     private final ArticuloDAO articuloDAO = new ArticuloDAOImpl();
@@ -61,6 +64,7 @@ public class BoletaBLImpl implements BoletaBL {
 
     @Override
     public void insert(Boleta boleta) throws BLException {
+        asignarNumeroSiFalta(boleta);
         // Validar datos, recalcular total y verificar disponibilidad
         validarYCalcular(boleta);
         validarNoRepetidos(boleta);
@@ -341,6 +345,20 @@ public class BoletaBLImpl implements BoletaBL {
                 // sostiene el insert del detalle por la FK hacia ARTICULO)
                 articuloDAO.update(TransactionsManager.getConnection(), art);
             }
+        }
+    }
+
+    // RN-BO-03: si la boleta llega sin número, recibe el siguiente de la serie (B001-000123 -> B001-000124).
+    // El procedure cuenta también las anuladas, así un número nunca se repite
+    private void asignarNumeroSiFalta(Boleta boleta) throws BLException {
+        if (boleta == null || (boleta.getSerieCorrelativo() != null && !boleta.getSerieCorrelativo().isBlank())) {
+            return;
+        }
+        try {
+            int ultimo = boletaDAO.obtenerUltimoCorrelativo(SERIE);
+            boleta.setSerieCorrelativo(String.format("%s-%06d", SERIE, ultimo + 1));
+        } catch (SQLException e) {
+            throw new BLException("No se pudo obtener el número de la boleta", e);
         }
     }
 

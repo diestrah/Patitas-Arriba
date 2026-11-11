@@ -1,5 +1,6 @@
 @page "/atenciones"
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
 
@@ -7,13 +8,18 @@
 
 <h3 class="mb-3">Atenciones</h3>
 
-<div class="barra-filtros d-flex align-items-center gap-2 mb-3">
-    <label class="text-nowrap">Mascota o dueño:</label>
-    <input tabindex="1" class="form-control" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
-    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="Filtro" />
+    <label class="text-nowrap" for="filtro-fecha">Fecha:</label>
+    <input id="filtro-fecha" tabindex="2" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
+    <div class="form-check mb-0 text-nowrap">
+        <input id="filtro-mias" tabindex="3" type="checkbox" class="form-check-input" @bind="SoloMias" />
+        <label class="form-check-label" for="filtro-mias">Solo mis atenciones</label>
+    </div>
+    <button tabindex="4" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
-    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <button tabindex="5" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
 </div>
 
 @if (MensajeExito != null) {
@@ -30,18 +36,26 @@ else {
         <PropertyColumn Title="Dueño" Property="a => a.NombreCliente" />
         <PropertyColumn Title="Servicio" Property="a => a.NombreServicio" />
         <PropertyColumn Title="Veterinario" Property="a => a.NombreVeterinario" />
-        <PropertyColumn Title="Motivo" Property="a => a.MotivoConsulta" />
         <TemplateColumn Title="Acciones">
-            @* Espacios fijos: editar | receta (positiva) | anular (negativa). Si una acción no aplica, queda un guion *@
+            @* Espacios fijos: ver | editar | receta (positiva) | anular (negativa). Si una acción no aplica, queda un guion *@
             <div class="acciones-fija">
+                <span class="slot-icono">
+                    <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => AtencionSeleccionada = context">
+                        <Icono Nombre="eye" />
+                    </button>
+                </span>
                 <span class="slot-icono">
                     <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
                         <Icono Nombre="edit" />
                     </button>
                 </span>
                 <span class="slot-texto">
-                    @* RN-RE-02: no se emiten recetas en servicios estéticos *@
-                    @if (context.EsServicioMedico) {
+                    @* RN-RE-02: no se emiten recetas en servicios estéticos. Si ya tiene receta, se abre la existente *@
+                    @if (RecetaDe(context) is RecetaViewModel receta) {
+                        <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => VerReceta(receta.Id)">
+                            <Icono Nombre="file-text" /><span>Ver receta</span>
+                        </button>
+                    } else if (context.EsServicioMedico) {
                         <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => NuevaReceta(context.Id)">
                             <Icono Nombre="file-text" /><span>Receta</span>
                         </button>
@@ -65,6 +79,56 @@ else {
     <Paginador State="Paginacion" />
 }
 
+@* Detalle de la atención elegida con "Ver": se abre en una ventana encima de la tabla *@
+@if (AtencionSeleccionada != null) {
+    RecetaViewModel? recetaSeleccionada = RecetaDe(AtencionSeleccionada);
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <span class="fw-bold">@AtencionSeleccionada.NombreMascota · @AtencionSeleccionada.NombreServicio</span>
+                        <span class="text-muted small">@(AtencionSeleccionada.FechaHora?.ToString("dd/MM/yyyy HH:mm"))</span>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled small mb-3">
+                            <li><strong>Dueño:</strong> @AtencionSeleccionada.NombreCliente</li>
+                            <li><strong>Veterinario:</strong> @AtencionSeleccionada.NombreVeterinario</li>
+                            @if (!string.IsNullOrWhiteSpace(AtencionSeleccionada.MotivoConsulta)) {
+                                <li><strong>Motivo:</strong> @AtencionSeleccionada.MotivoConsulta</li>
+                            }
+                            <li><strong>Observaciones:</strong> @(AtencionSeleccionada.Observaciones ?? "—")</li>
+                        </ul>
+
+                        @if (AtencionSeleccionada.EsServicioMedico) {
+                            <h6>Diagnósticos</h6>
+                            <TablaDiagnosticos Diagnosticos="AtencionSeleccionada.Diagnosticos" SoloLectura="true" />
+                        }
+
+                        <h6>Insumos utilizados</h6>
+                        <TablaInsumos Insumos="AtencionSeleccionada.Insumos" SoloLectura="true" />
+
+                        @if (recetaSeleccionada != null) {
+                            <h6>Receta N.° @recetaSeleccionada.Id.ToString("D6")</h6>
+                            <DetalleReceta Receta="recetaSeleccionada" />
+                        }
+                    </div>
+                    <div class="card-footer d-flex flex-wrap gap-2">
+                        <button type="button" class="btn btn-outline-primary btn-texto" @onclick="() => EditarAtencion(AtencionSeleccionada.Id)">
+                            <Icono Nombre="edit" /><span>Editar</span>
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-texto" @onclick="() => VerHistorial(AtencionSeleccionada.IdMascota)">
+                            <Icono Nombre="clipboard" /><span>Historial</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary ms-auto" @onclick="() => AtencionSeleccionada = null">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
 <ConfirmarDialogo Visible="AtencionAAnular != null"
                   Titulo="¿Anular la atención?"
                   Mensaje="@($"{AtencionAAnular?.NombreServicio} de {AtencionAAnular?.NombreMascota}: sus insumos vuelven al stock y el servicio queda como no realizado (no se puede volver a atender).")"
@@ -74,15 +138,23 @@ else {
 
 @code {
     private List<AtencionViewModel> Todas { get; set; } = [];
+    private List<RecetaViewModel> Recetas { get; set; } = [];
     private IQueryable<AtencionViewModel> Atenciones { get; set; } = Enumerable.Empty<AtencionViewModel>().AsQueryable();
+    private AtencionViewModel? AtencionSeleccionada { get; set; }
     private AtencionViewModel? AtencionAAnular { get; set; }
     private HashSet<int> InsumosCobrados { get; set; } = [];
     private string? MensajeExito { get; set; }
-    private string Filtro { get; set; } = string.Empty;
     private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
 
+    // Filtros: se aplican al presionar "Filtrar". Por defecto el veterinario ve las suyas
+    private string Filtro { get; set; } = string.Empty;
+    private DateTime? FechaFiltro { get; set; }
+    private bool SoloMias { get; set; } = true;
+
+    // Al enlazar: GET /atenciones y GET /recetas?atencion={id}
     protected override void OnInitialized() {
-        Todas = DatosEjemplo.Atenciones();
+        Todas = DatosEjemplo.Atenciones().OrderByDescending(a => a.FechaHora).ToList();
+        Recetas = DatosEjemplo.Recetas();
         InsumosCobrados = DatosEjemplo.InsumosCobrados();
         Filtrar();
     }
@@ -92,16 +164,24 @@ else {
         Atenciones = Todas
             .Where(a => a.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
                      || a.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .Where(a => FechaFiltro == null || a.FechaHora?.Date == FechaFiltro.Value.Date)
+            .Where(a => !SoloMias || a.NombreVeterinario == Sesion.NombreUsuario)
             .AsQueryable();
     }
 
     private void LimpiarFiltro() {
         Filtro = string.Empty;
+        FechaFiltro = null;
+        SoloMias = true;
         Filtrar();
     }
 
+    private RecetaViewModel? RecetaDe(AtencionViewModel atencion) {
+        return Recetas.FirstOrDefault(r => r.IdAtencion == atencion.Id);
+    }
+
     private bool PuedeAnularse(AtencionViewModel atencion) {
-        return DatosEjemplo.RecetaDeAtencion(atencion.Id) == null
+        return RecetaDe(atencion) == null
             && !atencion.Insumos.Any(i => InsumosCobrados.Contains(i.Id));
     }
 
@@ -111,6 +191,14 @@ else {
 
     private void NuevaReceta(int idAtencion) {
         Nav.NavigateTo($"/recetas/nueva/{idAtencion}");
+    }
+
+    private void VerReceta(int idReceta) {
+        Nav.NavigateTo($"/recetas/{idReceta}");
+    }
+
+    private void VerHistorial(int idMascota) {
+        Nav.NavigateTo($"/reportes/historial-clinico/{idMascota}");
     }
 
     private void PedirAnulacion(AtencionViewModel atencion) {

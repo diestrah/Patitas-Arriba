@@ -19,7 +19,7 @@ namespace PatitasArriba.Web.ViewModels {
         public string? Password { get; set; }
 
         // El rol se deduce de a quién pertenece la cuenta (cliente, veterinario o administrador)
-        public RolUsuario Rol { get; set; }
+        public RolUsuario? Rol { get; set; }
         public string NombrePersona { get; set; } = "";
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {

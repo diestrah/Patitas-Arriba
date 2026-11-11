@@ -80,7 +80,10 @@ public final class BoletaMapper {
             boleta.setId(dto.getId());
             boleta.setActivo(dto.isActivo());
             boleta.setCliente(cliente);
-            boleta.setSerieCorrelativo(dto.getSerieCorrelativo());
+            // Al registrar puede venir vacío: el número lo asigna la capa de negocio (RN-BO-03)
+            if (dto.getSerieCorrelativo() != null && !dto.getSerieCorrelativo().isBlank()) {
+                boleta.setSerieCorrelativo(dto.getSerieCorrelativo());
+            }
             boleta.setFecha(LocalDateTime.parse(dto.getFecha()));
             boleta.setMetodoPago(MetodoPago.valueOf(dto.getMetodoPago()));
         } catch (IllegalArgumentException | DateTimeParseException e) {
