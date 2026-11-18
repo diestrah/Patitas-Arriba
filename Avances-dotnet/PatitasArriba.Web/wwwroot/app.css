@@ -552,7 +552,7 @@ img.avatar-mascota { object-fit: cover; object-position: center 30%; display: bl
 .chip-mascota .avatar-mascota { width: 24px; height: 24px; font-size: .7rem; }
 .tarjeta-info.sel { outline: 2px solid var(--pa-verde); }
 .seg-pago button { white-space: nowrap; }
-.seg-pago { flex-wrap: nowrap; flex: none; }
+.seg-pago { flex-wrap: wrap; }
 
 /* ---- Servicios y diagnósticos ---- */
 .precio-tarjeta { font-size: 1.4rem; font-weight: 800; color: var(--pa-verde-oscuro); }

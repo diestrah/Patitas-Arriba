@@ -11,7 +11,6 @@
             Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.
             Es válido por 30 minutos y solo se puede usar una vez.
         </div>
-        <p class="login-registro"><a href="login">Volver a iniciar sesión</a></p>
     } else {
         <EditForm Model="ViewModel" OnValidSubmit="Enviar">
             <DataAnnotationsValidator />
@@ -25,7 +24,6 @@
             <button class="login-boton" type="submit" tabindex="2" disabled="@Enviando">
                 @(Enviando ? "Enviando..." : "Enviar enlace")
             </button>
-            <p class="login-registro"><a href="login">Volver a iniciar sesión</a></p>
         </EditForm>
     }
 </AccesoMarco>
