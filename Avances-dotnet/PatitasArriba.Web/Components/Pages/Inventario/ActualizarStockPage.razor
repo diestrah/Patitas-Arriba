@@ -1,5 +1,5 @@
 @page "/articulos/stock/{Id:int}"
-@attribute [Authorize(Policy = "Articulos")]
+@attribute [Authorize(Policy = "ArticulosGestion")]
 @inject NavigationManager Nav;
 @inject IArticuloService ArticuloService;
 

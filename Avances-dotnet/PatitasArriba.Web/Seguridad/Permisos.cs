@@ -19,6 +19,13 @@ namespace PatitasArriba.Web.Seguridad {
             ["Servicios"] = [Administrador, Veterinario],
             ["Diagnosticos"] = [Administrador, Veterinario],
             ["Articulos"] = [Administrador, Veterinario],
+            // Alta, edición y actualización de stock: solo el administrador. Los veterinarios únicamente consultan
+            // (RF02, RF03, RF06, RF07, RF08). Las listas siguen con la política de consulta, que sí incluye al veterinario.
+            ["ServiciosGestion"] = [Administrador],
+            ["DiagnosticosGestion"] = [Administrador],
+            ["ArticulosGestion"] = [Administrador],
+            ["ClientesGestion"] = [Administrador],
+            ["MascotasGestion"] = [Administrador],
             ["Categorias"] = [Administrador],
             ["Personal"] = [Administrador],
             ["Horarios"] = [Administrador],
