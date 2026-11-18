@@ -154,16 +154,31 @@
         }
         CitaViewModel cita = CitaAReprogramar;
         DateTime? anterior = cita.FechaHora;
+        EstadoCita estadoAnterior = cita.Estado;
+        int? adminAnterior = cita.IdAdministrador;
+        string? nombreAdminAnterior = cita.NombreAdministrador;
         MensajeReprogramar = null;
         MensajeExito = null;
         Guardando = true;
         cita.FechaHora = Reprogramar.FechaHora;
+        // RN-CI-16: si la cita ya estaba aprobada y cambia de fecha u hora, vuelve a PENDIENTE para que el
+        // administrador la revise de nuevo
+        bool vuelveAPendiente = cita.Estado == EstadoCita.APROBADO && cita.FechaHora != anterior;
+        if (vuelveAPendiente) {
+            cita.Estado = EstadoCita.PENDIENTE;
+            cita.IdAdministrador = null;
+            cita.NombreAdministrador = null;
+        }
         try {
             await CitaService.Update(cita);
-            MensajeExito = $"Se modificó la cita de {cita.NombreMascota} para el {cita.FechaHora:dd/MM/yyyy HH:mm}.";
+            MensajeExito = $"Se modificó la cita de {cita.NombreMascota} para el {cita.FechaHora:dd/MM/yyyy HH:mm}."
+                + (vuelveAPendiente ? " Quedó pendiente hasta que la clínica la vuelva a aprobar." : "");
             CitaAReprogramar = null;
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             cita.FechaHora = anterior;
+            cita.Estado = estadoAnterior;
+            cita.IdAdministrador = adminAnterior;
+            cita.NombreAdministrador = nombreAdminAnterior;
             MensajeReprogramar = ErrorServicio.Desde(ex);
         } finally {
             Guardando = false;

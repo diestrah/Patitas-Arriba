@@ -25,6 +25,14 @@ namespace PatitasArriba.Web.ViewModels {
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
             if (HoraInicio >= HoraFin) {
                 yield return new ValidationResult("La hora de fin debe ser posterior a la hora de inicio", [nameof(HoraFin)]);
+                yield break;
+            }
+            // RN-HO-05 (RF09): dentro del horario de la clínica (08:00 a 20:00) y entre 1 y 12 horas
+            if (HoraInicio < new TimeOnly(8, 0) || HoraFin > new TimeOnly(20, 0)) {
+                yield return new ValidationResult("El turno debe estar dentro del horario de atención de la clínica (08:00 a 20:00)", [nameof(HoraInicio)]);
+            }
+            if (Horas < 1 || Horas > 12) {
+                yield return new ValidationResult("El turno debe durar entre 1 y 12 horas", [nameof(HoraFin)]);
             }
         }
     }

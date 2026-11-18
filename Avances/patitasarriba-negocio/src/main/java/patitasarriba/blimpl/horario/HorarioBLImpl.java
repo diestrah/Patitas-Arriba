@@ -15,9 +15,17 @@ import patitasarriba.modelo.usuario.Administrador;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.util.List;
 
 public class HorarioBLImpl implements HorarioBL {
+    // RN-HO-05 (RF09): horario de atencion de la clinica y duracion permitida de un turno
+    private static final LocalTime APERTURA = LocalTime.of(8, 0);
+    private static final LocalTime CIERRE = LocalTime.of(20, 0);
+    private static final long MIN_HORAS = 1;
+    private static final long MAX_HORAS = 12;
+
     private final HorarioDAO horarioDAO = new HorarioDAOImpl();
     private final VeterinarioDAO veterinarioDAO = new VeterinarioDAOImpl();
     private final AdministradorDAO administradorDAO = new AdministradorDAOImpl();
@@ -92,6 +100,13 @@ public class HorarioBLImpl implements HorarioBL {
         }
         if (!horario.getHoraInicio().isBefore(horario.getHoraFin())) {
             throw new ValidacionException("La hora de inicio debe ser anterior a la hora de fin");
+        }
+        if (horario.getHoraInicio().isBefore(APERTURA) || horario.getHoraFin().isAfter(CIERRE)) {
+            throw new ValidacionException("El turno debe estar dentro del horario de atención de la clínica (08:00 a 20:00)");
+        }
+        long minutos = Duration.between(horario.getHoraInicio(), horario.getHoraFin()).toMinutes();
+        if (minutos < MIN_HORAS * 60 || minutos > MAX_HORAS * 60) {
+            throw new ValidacionException("El turno debe durar entre 1 y 12 horas");
         }
     }
 

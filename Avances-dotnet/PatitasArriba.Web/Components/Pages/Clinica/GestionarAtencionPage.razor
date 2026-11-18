@@ -171,7 +171,8 @@
             if (Id != null) {
                 // GET /atenciones/{Id}
                 AtencionViewModel? atencion = await AtencionService.FindById(Id.Value);
-                if (atencion == null) {
+                // Solo el veterinario que hizo la atención puede editarla
+                if (atencion == null || atencion.IdVeterinario != Sesion.IdPersona) {
                     Nav.NavigateTo("/atenciones");
                     return;
                 }
@@ -211,7 +212,9 @@
         ItemAgendaViewModel? item = AgendaClinica.DelDia(cita.FechaHora.Value, [cita], await servicios)
             .FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
         HashSet<int> atendidos = (await atenciones).Keys.ToHashSet();
-        if (item == null || !AgendaVeterinario.PuedeAtenderse(item, atendidos, DateTime.Now)) {
+        // Solo el veterinario asignado al servicio puede atenderlo
+        if (item == null || item.IdVeterinario != Sesion.IdPersona
+                || !AgendaVeterinario.PuedeAtenderse(item, atendidos, DateTime.Now)) {
             return false;
         }
         ViewModel = new AtencionViewModel {

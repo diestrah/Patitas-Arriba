@@ -149,7 +149,17 @@ public class CitaBLImpl implements CitaBL {
         // La fecha solo se exige al reprogramar (completar una cita cuya hora ya paso es valido);
         // el horario y el solapamiento, al reprogramar o al cambiar servicios o veterinarios
         boolean reprogramada = !actual.getFechaHora().equals(cita.getFechaHora());
-        if (reprogramada || cambiaronAsignaciones(actual, cita)) {
+        boolean cambiaronServicios = cambiaronAsignaciones(actual, cita);
+        // RN-CI-16: una cita APROBADO que se modifica vuelve a PENDIENTE para que el administrador la revise de
+        // nuevo; la aprobacion anterior ya no vale, asi que se quita el administrador que la habia aprobado
+        if (actual.getEstado() == EstadoCita.APROBADO && cita.getEstado() == EstadoCita.PENDIENTE) {
+            if (!reprogramada && !cambiaronServicios) {
+                throw new ValidacionException("Una cita aprobada solo vuelve a PENDIENTE si se modifica");
+            }
+            validarSinAtenciones(actual);
+            cita.setAdministrador(null);
+        }
+        if (reprogramada || cambiaronServicios) {
             validarAgenda(cita, reprogramada);
         }
         marcarActiva(cita);
@@ -439,7 +449,8 @@ public class CitaBLImpl implements CitaBL {
         if (a != de) {
             boolean valido = (de == EstadoCita.PENDIENTE
                     && (a == EstadoCita.APROBADO || a == EstadoCita.RECHAZADO || a == EstadoCita.CANCELADO))
-                    || (de == EstadoCita.APROBADO && (a == EstadoCita.CANCELADO || a == EstadoCita.COMPLETADO));
+                    || (de == EstadoCita.APROBADO
+                        && (a == EstadoCita.CANCELADO || a == EstadoCita.COMPLETADO || a == EstadoCita.PENDIENTE));
             if (!valido) {
                 throw new ValidacionException("No se puede pasar una cita de " + de + " a " + a);
             }

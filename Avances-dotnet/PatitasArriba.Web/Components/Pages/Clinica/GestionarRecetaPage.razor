@@ -2,6 +2,7 @@
 @page "/recetas/editar/{Id:int}"
 @attribute [Authorize(Policy = "Recetas")]
 @inject NavigationManager Nav;
+@inject SesionDemo Sesion;
 @inject IRecetaService RecetaService;
 @inject IAtencionService AtencionService;
 @inject IArticuloService ArticuloService;
@@ -173,7 +174,8 @@
 
             if (Id != null) {
                 RecetaViewModel? receta = await RecetaService.FindById(Id.Value);
-                if (receta == null) {
+                // Solo el veterinario que emitió la receta puede editarla
+                if (receta == null || receta.IdVeterinario != Sesion.IdPersona) {
                     Nav.NavigateTo("/recetas");
                     return;
                 }
@@ -181,7 +183,8 @@
             } else {
                 AtencionViewModel? atencion = await AtencionService.FindById(IdAtencion!.Value);
                 // RN-RE-02: no se emiten recetas en servicios estéticos
-                if (atencion == null || !atencion.EsServicioMedico) {
+                // Solo el veterinario que hizo la atención puede emitir su receta
+                if (atencion == null || !atencion.EsServicioMedico || atencion.IdVeterinario != Sesion.IdPersona) {
                     Nav.NavigateTo("/atenciones");
                     return;
                 }

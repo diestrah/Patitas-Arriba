@@ -49,12 +49,15 @@ else {
                 <button class="btn btn-outline-primary btn-icono" title="Ver e imprimir" aria-label="Ver e imprimir" @onclick="() => VerReceta(context.Id)">
                     <Icono Nombre="eye" />
                 </button>
-                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarReceta(context.Id)">
-                    <Icono Nombre="edit" />
-                </button>
-                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
-                    <Icono Nombre="trash" />
-                </button>
+                @* Solo el veterinario que emitió la receta puede editarla o eliminarla (RF15) *@
+                @if (context.IdVeterinario == Sesion.IdPersona) {
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarReceta(context.Id)">
+                        <Icono Nombre="edit" />
+                    </button>
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                }
             </div>
         </TemplateColumn>
     </QuickGrid>
