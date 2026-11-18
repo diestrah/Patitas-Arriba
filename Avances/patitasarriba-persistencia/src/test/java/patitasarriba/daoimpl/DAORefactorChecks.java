@@ -53,6 +53,8 @@ public final class DAORefactorChecks {
             allMasterDaosReadEmptyResults();
             compoundWritesKeepDetails();
             compoundFailureRollsBackOwnedTransaction();
+            nestedReadsShareConnectionAndCache();
+            filteredListsUseTheirProcedures();
             System.out.println("DAO checks passed: " + checks);
         } finally {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
@@ -348,6 +350,66 @@ public final class DAORefactorChecks {
         protected CallableStatement comandoListar(Connection c) throws SQLException { return c.prepareCall("{call relacion()}"); }
         protected NoId mapear(ResultSet r) { return new NoId(); }
         protected void procesarResultadoInsertar(CallableStatement c, NoId m) { m.processed = true; }
+    }
+
+    // Fuera de una transaccion, las consultas anidadas reutilizan la conexion del hilo y
+    // findById no repite la misma busqueda; una escritura descarta lo recordado
+    private static void nestedReadsShareConnectionAndCache() throws Exception {
+        db.row = Map.of("activo", true, "id_diagnostico", 7, "nombre_enfermedad", "Alergia", "descripcion", "Control");
+        DiagnosticoDAOImpl dao = new DiagnosticoDAOImpl();
+        int start = db.connections.size();
+        boolean[] misma = new boolean[1];
+        Diagnostico[] leidos = new Diagnostico[3];
+        ConexionDAO.ejecutarComando(externa -> {
+            misma[0] = ConexionDAO.ejecutarComando(anidada -> anidada == externa);
+            leidos[0] = dao.findById(7);
+            leidos[1] = dao.findById(7);
+            dao.update(leidos[0]);
+            leidos[2] = dao.findById(7);
+            return null;
+        });
+        FakeConnection conn = db.connections.get(start);
+        long busquedas = conn.commands.stream().filter(c -> c.sql.contains("buscar_diagnostico_por_id")).count();
+        check(misma[0], "Una consulta anidada debe reutilizar la conexion del hilo");
+        check(db.connections.size() == start + 1 && conn.closed, "Una sola conexion propia, cerrada al terminar");
+        check(leidos[0] == leidos[1], "Dentro de la consulta, el mismo id se busca una sola vez");
+        check(busquedas == 2 && leidos[2] != leidos[0], "Una escritura descarta lo recordado");
+        Diagnostico despues = dao.findById(7);
+        check(despues != leidos[2] && db.connections.size() == start + 2, "Terminada la consulta no se reutiliza nada");
+        TransactionsManager.iniciar();
+        try {
+            check(dao.findById(7) != dao.findById(7), "Dentro de una transaccion no se recuerda nada");
+        } finally {
+            TransactionsManager.rollback();
+        }
+        db.row = Map.of();
+        checks++;
+    }
+
+    // Los listados filtrados llaman a su procedure con el filtro, sin traer toda la tabla
+    private static void filteredListsUseTheirProcedures() throws Exception {
+        db.row = Map.of();
+        int start = db.connections.size();
+        check(new CitaDAOImpl().listarPorCliente(5).isEmpty(), "Lista vacia de citas del cliente");
+        check(new CitaDAOImpl().listarPorRango(LocalDateTime.of(2026, 11, 18, 0, 0),
+                LocalDateTime.of(2026, 11, 19, 0, 0), null).isEmpty(), "Lista vacia de citas del dia");
+        check(new CitaDAOImpl().listarPorRango(LocalDateTime.of(2026, 11, 18, 0, 0),
+                LocalDateTime.of(2026, 11, 19, 0, 0), 3).isEmpty(), "Lista vacia de la agenda");
+        check(new AtencionDAOImpl().listarPorMascota(8).isEmpty(), "Historial vacio");
+        check(new RecetaDAOImpl().listarPorAtencion(9).isEmpty(), "Recetas vacias");
+        List<FakeStatement> comandos = new ArrayList<>();
+        for (FakeConnection c : db.connections.subList(start, db.connections.size())) {
+            check(c.closed, "Debe cerrarse cada conexion propia");
+            comandos.addAll(c.commands);
+        }
+        check(comandos.size() == 5 && comandos.stream().allMatch(c -> c.executed && c.closed), "Un comando por listado, cerrado");
+        check(comandos.get(0).sql.contains("listar_cita_por_cliente(") && comandos.get(0).parameters.get("p_id_cliente").equals(5), "Citas por cliente");
+        check(comandos.get(1).sql.contains("listar_cita_por_rango(") && comandos.get(1).parameters.containsKey("p_id_veterinario")
+                && comandos.get(1).parameters.get("p_desde").equals(LocalDateTime.of(2026, 11, 18, 0, 0)), "Citas por rango sin veterinario");
+        check(comandos.get(2).parameters.get("p_id_veterinario").equals(3), "Citas por rango de un veterinario");
+        check(comandos.get(3).sql.contains("listar_atenciones_por_mascota(") && comandos.get(3).parameters.get("p_id_mascota").equals(8), "Atenciones por mascota");
+        check(comandos.get(4).sql.contains("listar_recetas_por_atencion(") && comandos.get(4).parameters.get("p_id_atencion").equals(9), "Recetas por atencion");
+        checks++;
     }
 
     private static class FakeDatabase extends DBManager {

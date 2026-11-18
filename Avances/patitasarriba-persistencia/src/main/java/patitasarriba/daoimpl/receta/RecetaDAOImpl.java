@@ -14,6 +14,13 @@ import java.util.List;
 
 public class RecetaDAOImpl extends BaseDAOImpl<Receta> implements RecetaDAO {
 
+    // El filtro por atencion lo hace la base de datos
+    @Override
+    public List<Receta> listarPorAtencion(int idAtencion) throws SQLException {
+        return listarConFiltro("{call listar_recetas_por_atencion(?)}",
+                cmd -> cmd.setInt("p_id_atencion", idAtencion));
+    }
+
     @Override
     public void insert(Receta receta) throws SQLException {
         if (receta == null) {

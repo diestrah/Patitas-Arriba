@@ -1,10 +1,15 @@
 package conexion;
 
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
+
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.ResourceBundle;
 
+// Entrega las conexiones a MySQL desde un pool (HikariCP): abrir una conexion nueva a la base
+// en AWS cuesta varios viajes de red, asi que se reutilizan. Cerrar la conexion (close) no la
+// corta: la devuelve al pool. El pool se crea la primera vez que se pide una conexion.
 public class DBManager {
     protected String servidor;
     protected int puerto;
@@ -13,6 +18,8 @@ public class DBManager {
     protected String password;
 
     private static DBManager instance;
+
+    private HikariDataSource pool;
 
     protected DBManager() {
     }
@@ -41,16 +48,47 @@ public class DBManager {
     }
 
     public Connection getConnection() throws SQLException {
-        try {
-            Class.forName("com.mysql.cj.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            throw new SQLException("No se encontró el driver de MySQL", e);
+        return pool().getConnection();
+    }
+
+    private synchronized HikariDataSource pool() {
+        if (pool == null || pool.isClosed()) {
+            HikariConfig config = new HikariConfig();
+            config.setPoolName("patitasarriba");
+            config.setDriverClassName("com.mysql.cj.jdbc.Driver");
+            config.setJdbcUrl("jdbc:mysql://" + servidor + ":" + puerto + "/" + esquema
+                    + "?useSSL=false&allowPublicKeyRetrieval=true");
+            config.setUsername(usuario);
+            config.setPassword(password);
+            // Cada consulta usa una sola conexion (las anidadas la comparten), asi que pocas bastan.
+            // Pocas tambien porque la base de AWS la comparten todos los del grupo
+            config.setMaximumPoolSize(8);
+            config.setMinimumIdle(1);
+            config.setConnectionTimeout(30_000);   // espera maxima por una conexion libre (ms)
+            config.setMaxLifetime(600_000);        // renueva cada conexion a los 10 min
+            config.setKeepaliveTime(120_000);      // mantiene viva la conexion inactiva
+            // Los DAO usan {call ...} con parametros por nombre: sin esta cache, MySQL Connector/J
+            // consulta la definicion del procedure en cada llamada (un viaje de red extra)
+            config.addDataSourceProperty("cacheCallableStmts", "true");
+            config.addDataSourceProperty("callableStmtCacheSize", "250");
+            pool = new HikariDataSource(config);
         }
-        return DriverManager.getConnection(
-                "jdbc:mysql://" + servidor + ":" + puerto + "/" + esquema
-                        + "?useSSL=false&allowPublicKeyRetrieval=true",
-                usuario,
-                password
-        );
+        return pool;
+    }
+
+    // Cierra el pool y sus conexiones (al detener o volver a desplegar la aplicacion)
+    public static void cerrarPool() {
+        DBManager actual;
+        synchronized (DBManager.class) {
+            actual = instance;
+        }
+        if (actual != null) actual.cerrar();
+    }
+
+    private synchronized void cerrar() {
+        if (pool != null) {
+            pool.close();
+            pool = null;
+        }
     }
 }

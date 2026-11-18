@@ -41,14 +41,14 @@ Hay que levantar las tres piezas en este orden: **base de datos → API REST en 
 
 ### 1. Base de datos
 
-Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`Avances/sql/`](Avances/sql/):
+Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`Avances/sql/`](Avances/sql/). Atajo para una base nueva: [`instalar-desde-cero.sql`](Avances/sql/instalar-desde-cero.sql) hace los cuatro pasos de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
 
 1. [`patitasarriba-mysql.sql`](Avances/sql/patitasarriba-mysql.sql): crea el esquema `patitasarriba` y sus tablas.
 2. Todos los archivos `procedures-*.sql` (el orden entre ellos no importa).
 3. [`datos-iniciales.sql`](Avances/sql/datos-iniciales.sql): crea el primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso).
 4. Opcional, para tener datos con qué probar: [`datos-prueba.sql`](Avances/sql/datos-prueba.sql). Se corre **una sola vez**; para recargarlo, primero `limpiar-tablas.sql`.
 
-Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr una vez los scripts `actualizacion-*.sql` que falten. Para empezar de cero, `borrar-tablas.sql` elimina todas las tablas. Los detalles están en el [README de SQL](Avances/sql/README.md).
+Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr una vez los scripts `actualizacion-*.sql` que falten (el último es `actualizacion-rendimiento.sql`: sin él fallan Mis citas, Mi agenda y el registro de citas). Para empezar de cero, `borrar-tablas.sql` elimina todas las tablas. Los detalles están en el [README de SQL](Avances/sql/README.md).
 
 **Cuentas de `datos-prueba.sql`** (todas con la contraseña `Patitas123`):
 

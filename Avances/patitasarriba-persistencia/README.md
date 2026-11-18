@@ -147,7 +147,9 @@ Los DAO principales recuperan el identificador generado en `procesarResultadoIns
 `ConexionDAO.ejecutarComando` sigue esta regla:
 
 1. Si `TransactionsManager.activa()` es verdadero, utiliza la conexión de esa transacción. No la cierra ni hace commit o rollback.
-2. Si no existe una transacción activa, abre una conexión propia y la cierra al terminar.
+2. Si no existe una transacción activa, pide una conexión propia a `DBManager` y la cierra al terminar. `DBManager` entrega las conexiones desde un pool (HikariCP): cerrarla la devuelve al pool, no la corta.
+3. Las consultas anidadas del mismo hilo fuera de una transacción (mapear una cita busca su mascota, la mascota a su cliente...) reutilizan esa conexión propia en vez de pedir otra.
+4. Mientras dura esa conexión propia, `findById` recuerda lo que ya buscó (`CacheConsulta`): en una lista de citas, cada veterinario, servicio o mascota se pide una sola vez. Se descarta al terminar la consulta o ante cualquier escritura, y nunca se usa dentro de una transacción.
 
 Esto conserva la participación de las consultas y escrituras de los DAO sencillos en una transacción iniciada por el BL. El callback se ejecuta de forma síncrona; no crea otro hilo. La conexión de ThreadLocal no se comparte automáticamente con tareas lanzadas en otros hilos.
 

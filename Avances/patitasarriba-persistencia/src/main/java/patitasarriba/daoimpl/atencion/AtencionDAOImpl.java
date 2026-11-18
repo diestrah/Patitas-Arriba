@@ -13,6 +13,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.List;
 
 public class AtencionDAOImpl extends BaseDAOImpl<Atencion> implements AtencionDAO {
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
@@ -31,6 +32,13 @@ public class AtencionDAOImpl extends BaseDAOImpl<Atencion> implements AtencionDA
                     }
                 }
             });
+    }
+
+    // Historial clinico: el filtro por mascota lo hace la base de datos
+    @Override
+    public List<Atencion> listarPorMascota(int idMascota) throws SQLException {
+        return listarConFiltro("{call listar_atenciones_por_mascota(?)}",
+                cmd -> cmd.setInt("p_id_mascota", idMascota));
     }
 
     // Inserta en la tabla maestra y orquesta sus 2 listas de detalle (insumos

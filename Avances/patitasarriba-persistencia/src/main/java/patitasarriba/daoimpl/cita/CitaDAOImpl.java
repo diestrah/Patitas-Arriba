@@ -9,6 +9,7 @@ import patitasarriba.daoimpl.usuario.AdministradorDAOImpl;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.EstadoCita;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,17 +19,48 @@ public class CitaDAOImpl extends BaseDAOImpl<Cita> implements CitaDAO {
     @Override
     public List<Cita> findAll() throws SQLException {
         return ejecutarComando(conn -> {
-                try (CallableStatement cmd = comandoListar(conn);
-                ResultSet rs = cmd.executeQuery()) {
-                    List<Cita> citas = new ArrayList<>();
-                    while (rs.next()) {
-                        Cita cita = mapear(rs);
-                        cita.setDetalles(detalleDAO.listarPorCita(conn, cita));
-                        citas.add(cita);
-                    }
-                    return citas;
+                try (CallableStatement cmd = comandoListar(conn)) {
+                    return leerCitas(conn, cmd);
                 }
             });
+    }
+
+    // El filtro lo hace la base de datos: antes se traian TODAS las citas para quedarse con unas pocas
+    @Override
+    public List<Cita> listarPorCliente(int idCliente) throws SQLException {
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_cita_por_cliente(?)}")) {
+                    cmd.setInt("p_id_cliente", idCliente);
+                    return leerCitas(conn, cmd);
+                }
+            });
+    }
+
+    @Override
+    public List<Cita> listarPorRango(LocalDateTime desde, LocalDateTime hasta, Integer idVeterinario) throws SQLException {
+        if (desde == null || hasta == null) throw new IllegalArgumentException("El rango de fechas no puede ser nulo");
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_cita_por_rango(?,?,?)}")) {
+                    cmd.setObject("p_desde", desde);
+                    cmd.setObject("p_hasta", hasta);
+                    if (idVeterinario == null) cmd.setNull("p_id_veterinario", Types.INTEGER);
+                    else cmd.setInt("p_id_veterinario", idVeterinario);
+                    return leerCitas(conn, cmd);
+                }
+            });
+    }
+
+    // Cada cita con sus servicios (detalles), usando la misma conexion
+    private List<Cita> leerCitas(Connection conn, CallableStatement cmd) throws SQLException {
+        try (ResultSet rs = cmd.executeQuery()) {
+            List<Cita> citas = new ArrayList<>();
+            while (rs.next()) {
+                Cita cita = mapear(rs);
+                cita.setDetalles(detalleDAO.listarPorCita(conn, cita));
+                citas.add(cita);
+            }
+            return citas;
+        }
     }
 
     @Override

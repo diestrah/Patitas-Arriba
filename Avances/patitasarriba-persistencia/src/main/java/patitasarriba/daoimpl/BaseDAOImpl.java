@@ -33,6 +33,7 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
 
     protected void ejecutarComandoInsertar(Connection conn, T modelo) throws SQLException {
 
+        CacheConsulta.limpiar();
         try (CallableStatement cmd = comandoInsertar(conn, modelo)) {
             cmd.execute();
             procesarResultadoInsertar(cmd, modelo);
@@ -41,6 +42,7 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
 
     protected boolean ejecutarComandoActualizar(Connection conn, T modelo) throws SQLException {
 
+        CacheConsulta.limpiar();
         try (CallableStatement cmd = comandoActualizar(conn, modelo)) {
             return cmd.executeUpdate() > 0;
         }
@@ -48,6 +50,7 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
 
     protected boolean ejecutarComandoEliminar(Connection conn, Integer id) throws SQLException {
 
+        CacheConsulta.limpiar();
         try (CallableStatement cmd = comandoEliminar(conn, id)) {
             return cmd.executeUpdate() > 0;
         }
@@ -71,9 +74,30 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
             });
     }
 
+    // Listado filtrado por la base de datos: llama al procedure indicado y mapea cada fila
+    protected List<T> listarConFiltro(String llamada, Parametros parametros) throws SQLException {
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall(llamada)) {
+                    parametros.asignar(cmd);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<T> modelos = new ArrayList<>();
+                        while (rs.next()) {
+                            modelos.add(mapear(rs));
+                        }
+                        return modelos;
+                    }
+                }
+            });
+    }
+
+    protected interface Parametros {
+        void asignar(CallableStatement cmd) throws SQLException;
+    }
+
+    // Dentro de una misma consulta, el mismo id se busca una sola vez (CacheConsulta)
     @Override
     public T findById(Integer id) throws SQLException {
-        return ejecutarComando(conn -> {
+        return ejecutarComando(conn -> CacheConsulta.obtener(getClass(), id, () -> {
                 try (
                 CallableStatement cmd = comandoBuscar(conn, id);
                 ResultSet rs = cmd.executeQuery()
@@ -84,7 +108,7 @@ public abstract class BaseDAOImpl<T extends Registro> implements DAO<T, Integer>
 
                     return mapear(rs);
                 }
-            });
+            }));
     }
 
     @Override

@@ -49,11 +49,12 @@ public class RecetaBLImpl implements RecetaBL {
     @Override
     public List<Receta> findByAtencion(Integer idAtencion) throws BLException {
         if (idAtencion == null) throw new ValidacionException("El id de la atención no puede ser nulo");
-        List<Receta> recetas = new ArrayList<>();
-        for (Receta receta : findAll()) {
-            if (receta.getAtencion().getId() == idAtencion) recetas.add(receta);
+        try {
+            // El filtro por atencion lo hace la base de datos
+            return recetaDAO.listarPorAtencion(idAtencion);
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar las recetas de la atención", e);
         }
-        return recetas;
     }
 
     @Override

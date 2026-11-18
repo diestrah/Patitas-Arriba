@@ -95,26 +95,28 @@ public class CitaBLImpl implements CitaBL {
     @Override
     public List<Cita> findByCliente(Integer idCliente) throws BLException {
         if (idCliente == null) throw new ValidacionException("El id del cliente no puede ser nulo");
-        List<Cita> citas = new ArrayList<>();
-        for (Cita cita : findAll()) {
-            if (cita.getMascota().getCliente().getId() == idCliente) citas.add(cita);
+        try {
+            // El filtro lo hace la base de datos (antes se traian todas las citas)
+            List<Cita> citas = new ArrayList<>(citaDAO.listarPorCliente(idCliente));
+            citas.sort(Comparator.comparing(Cita::getFechaHora));
+            return citas;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar las citas del cliente", e);
         }
-        citas.sort(Comparator.comparing(Cita::getFechaHora));
-        return citas;
     }
 
     @Override
     public List<Cita> findByFecha(LocalDate fecha, Integer idVeterinario) throws BLException {
         if (fecha == null) throw new ValidacionException("La fecha no puede ser nula");
-        List<Cita> citas = new ArrayList<>();
-        for (Cita cita : findAll()) {
-            if (!cita.getFechaHora().toLocalDate().equals(fecha)) continue;
-            if (idVeterinario != null && cita.getDetalles().stream()
-                    .noneMatch(d -> d.getVeterinario().getId() == idVeterinario)) continue;
-            citas.add(cita);
+        try {
+            // Solo las citas de ese dia (y de ese veterinario): el filtro lo hace la base de datos
+            List<Cita> citas = new ArrayList<>(citaDAO.listarPorRango(
+                    fecha.atStartOfDay(), fecha.plusDays(1).atStartOfDay(), idVeterinario));
+            citas.sort(Comparator.comparing(Cita::getFechaHora));
+            return citas;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar las citas del día", e);
         }
-        citas.sort(Comparator.comparing(Cita::getFechaHora));
-        return citas;
     }
 
     @Override
@@ -324,8 +326,13 @@ public class CitaBLImpl implements CitaBL {
     private void validarSinSolapamiento(Cita cita) throws BLException {
         try {
             Map<Integer, Integer> propios = minutosPorVeterinario(cita);
+            if (propios.isEmpty()) return;
             LocalDateTime inicio = cita.getFechaHora();
-            for (Cita otra : citaDAO.findAll()) {
+            int maximo = Collections.max(propios.values());
+            // Solo pueden cruzarse las citas que empiezan antes de que esta termine y menos de un
+            // dia antes de que empiece (ninguna cita dura un dia): no hace falta revisar todas
+            List<Cita> cercanas = citaDAO.listarPorRango(inicio.minusDays(1), inicio.plusMinutes(maximo), null);
+            for (Cita otra : cercanas) {
                 if (otra.getId() == cita.getId()) continue;
                 if (otra.getEstado() != EstadoCita.PENDIENTE && otra.getEstado() != EstadoCita.APROBADO) continue;
                 Map<Integer, Integer> ajenos = minutosPorVeterinario(otra);
@@ -427,12 +434,13 @@ public class CitaBLImpl implements CitaBL {
 
     private void validarSinAtenciones(Cita cita) throws BLException {
         try {
-            for (Atencion atencion : atencionDAO.findAll()) {
-                for (DetalleCita detalle : cita.getDetalles()) {
-                    if (atencion.getDetalleCita().getId() == detalle.getId()) {
-                        throw new ValidacionException("La cita tiene el servicio " + detalle.getServicio().getNombre()
-                                + " ya atendido: no se puede eliminar, cancelar ni rechazar");
-                    }
+            // Cada servicio tiene a lo mas una atencion (id_detalle_cita es UNIQUE): se busca por servicio
+            // en vez de traer todas las atenciones. Solo cuenta la atencion activa
+            for (DetalleCita detalle : cita.getDetalles()) {
+                Atencion atencion = atencionDAO.findByDetalleCita(detalle.getId());
+                if (atencion != null && atencion.isActivo()) {
+                    throw new ValidacionException("La cita tiene el servicio " + detalle.getServicio().getNombre()
+                            + " ya atendido: no se puede eliminar, cancelar ni rechazar");
                 }
             }
         } catch (SQLException e) {

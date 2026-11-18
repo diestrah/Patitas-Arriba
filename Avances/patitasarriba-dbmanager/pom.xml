@@ -17,5 +17,11 @@
             <artifactId>mysql-connector-j</artifactId>
             <version>26.7.0</version>
         </dependency>
+        <!-- Pool de conexiones: reutiliza las conexiones a MySQL en vez de abrir una por consulta -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>7.0.2</version>
+        </dependency>
     </dependencies>
 </project>

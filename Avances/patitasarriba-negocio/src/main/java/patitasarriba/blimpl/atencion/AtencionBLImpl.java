@@ -91,12 +91,14 @@ public class AtencionBLImpl implements AtencionBL {
     @Override
     public List<Atencion> findByMascota(Integer idMascota) throws BLException {
         if (idMascota == null) throw new ValidacionException("El id de la mascota no puede ser nulo");
-        List<Atencion> atenciones = new ArrayList<>();
-        for (Atencion atencion : findAll()) {
-            if (atencion.getDetalleCita().getCita().getMascota().getId() == idMascota) atenciones.add(atencion);
+        try {
+            // Historial clinico: el filtro por mascota lo hace la base de datos
+            List<Atencion> atenciones = new ArrayList<>(atencionDAO.listarPorMascota(idMascota));
+            atenciones.sort(Comparator.comparing(Atencion::getFechaHora));
+            return atenciones;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar el historial de la mascota", e);
         }
-        atenciones.sort(Comparator.comparing(Atencion::getFechaHora));
-        return atenciones;
     }
 
     @Override
