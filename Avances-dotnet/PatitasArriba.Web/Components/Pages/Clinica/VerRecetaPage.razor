@@ -3,12 +3,16 @@
 @inject NavigationManager Nav;
 @inject IJSRuntime JS;
 @inject IRecetaService RecetaService;
+@inject SesionDemo Sesion;
 
 <PageTitle>Receta médica</PageTitle>
 
 <div class="d-flex gap-2 mb-3 no-print">
     <a class="btn btn-outline-primary btn-texto" href="recetas"><Icono Nombre="arrow-left" /><span>Volver</span></a>
-    <a class="btn btn-outline-primary btn-texto" href="@($"recetas/editar/{Id}")"><Icono Nombre="edit" /><span>Editar</span></a>
+    @* Solo el veterinario que emitió la receta puede editarla (RF15) *@
+    @if (Receta?.IdVeterinario == Sesion.IdPersona) {
+        <a class="btn btn-outline-primary btn-texto" href="@($"recetas/editar/{Id}")"><Icono Nombre="edit" /><span>Editar</span></a>
+    }
     <button class="btn btn-secondary btn-texto" @onclick="() => Imprimir()" disabled="@(Receta == null)"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
 </div>
 

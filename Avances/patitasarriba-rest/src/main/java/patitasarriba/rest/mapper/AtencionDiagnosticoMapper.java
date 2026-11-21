@@ -1,10 +1,10 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.DiagnosticoBL;
-import patitasarriba.bl.NoEncontradoException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.atencion.DiagnosticoBLImpl;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.atencion.DiagnosticoBL;
+import patitasarriba.bl.excepciones.NoEncontradoException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.atencion.DiagnosticoBLImpl;
 import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.Diagnostico;

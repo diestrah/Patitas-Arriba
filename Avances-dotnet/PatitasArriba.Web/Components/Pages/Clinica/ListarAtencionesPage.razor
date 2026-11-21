@@ -55,9 +55,14 @@ else {
                     </button>
                 </span>
                 <span class="slot-icono">
-                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
-                        <Icono Nombre="edit" />
-                    </button>
+                    @* Solo el veterinario que hizo la atención puede editarla, emitir su receta o anularla *@
+                    @if (EsMia(context)) {
+                        <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarAtencion(context.Id)">
+                            <Icono Nombre="edit" />
+                        </button>
+                    } else {
+                        <span class="slot-guion" title="Atención de otro veterinario">—</span>
+                    }
                 </span>
                 <span class="slot-texto">
                     @* RN-RE-02: no se emiten recetas en servicios estéticos. Si ya tiene receta, se abre la existente *@
@@ -65,22 +70,24 @@ else {
                         <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => VerReceta(receta.Id)">
                             <Icono Nombre="file-text" /><span>Ver receta</span>
                         </button>
-                    } else if (context.EsServicioMedico) {
+                    } else if (context.EsServicioMedico && EsMia(context)) {
                         <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => NuevaReceta(context.Id)">
                             <Icono Nombre="file-text" /><span>Receta</span>
                         </button>
+                    } else if (context.EsServicioMedico) {
+                        <span class="slot-guion" title="Solo el veterinario que la atendió puede emitir la receta">—</span>
                     } else {
                         <span class="slot-guion" title="Los servicios estéticos no llevan receta">—</span>
                     }
                 </span>
                 <span class="slot-texto">
                     @* RN-AT-10: no se anula si tiene recetas emitidas o insumos cobrados *@
-                    @if (PuedeAnularse(context)) {
+                    @if (EsMia(context) && PuedeAnularse(context)) {
                         <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
                             <Icono Nombre="ban" /><span>Anular</span>
                         </button>
                     } else {
-                        <span class="slot-guion" title="Tiene receta o insumos ya cobrados">—</span>
+                        <span class="slot-guion" title="@(EsMia(context) ? "Tiene receta o insumos ya cobrados" : "Atención de otro veterinario")">—</span>
                     }
                 </span>
             </div>
@@ -124,9 +131,11 @@ else {
                         }
                     </div>
                     <div class="card-footer d-flex flex-wrap gap-2">
-                        <button type="button" class="btn btn-outline-primary btn-texto" @onclick="() => EditarAtencion(AtencionSeleccionada.Id)">
-                            <Icono Nombre="edit" /><span>Editar</span>
-                        </button>
+                        @if (EsMia(AtencionSeleccionada)) {
+                            <button type="button" class="btn btn-outline-primary btn-texto" @onclick="() => EditarAtencion(AtencionSeleccionada.Id)">
+                                <Icono Nombre="edit" /><span>Editar</span>
+                            </button>
+                        }
                         <button type="button" class="btn btn-secondary btn-texto" @onclick="() => VerHistorial(AtencionSeleccionada.IdMascota)">
                             <Icono Nombre="clipboard" /><span>Historial</span>
                         </button>
@@ -210,6 +219,11 @@ else {
 
     private RecetaViewModel? RecetaDe(AtencionViewModel atencion) {
         return Recetas.FirstOrDefault(r => r.IdAtencion == atencion.Id);
+    }
+
+    // Solo el veterinario que hizo la atención puede modificarla (RF14, RF15)
+    private bool EsMia(AtencionViewModel atencion) {
+        return atencion.IdVeterinario == Sesion.IdPersona;
     }
 
     private bool PuedeAnularse(AtencionViewModel atencion) {

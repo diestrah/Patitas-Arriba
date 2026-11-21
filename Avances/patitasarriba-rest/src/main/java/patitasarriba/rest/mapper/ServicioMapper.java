@@ -1,6 +1,6 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.excepciones.ValidacionException;
 import patitasarriba.modelo.producto.Servicio;
 import patitasarriba.modelo.producto.TipoServicio;
 import patitasarriba.rest.dto.ServicioDTO;

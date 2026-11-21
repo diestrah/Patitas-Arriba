@@ -1,12 +1,12 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.AdministradorBL;
-import patitasarriba.bl.BLException;
-import patitasarriba.bl.MascotaBL;
-import patitasarriba.bl.NoEncontradoException;
-import patitasarriba.bl.ValidacionException;
-import patitasarriba.bl.impl.mascota.MascotaBLImpl;
-import patitasarriba.bl.impl.usuario.AdministradorBLImpl;
+import patitasarriba.bl.usuario.AdministradorBL;
+import patitasarriba.bl.excepciones.BLException;
+import patitasarriba.bl.mascota.MascotaBL;
+import patitasarriba.bl.excepciones.NoEncontradoException;
+import patitasarriba.bl.excepciones.ValidacionException;
+import patitasarriba.blimpl.mascota.MascotaBLImpl;
+import patitasarriba.blimpl.usuario.AdministradorBLImpl;
 import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.cita.EstadoCita;

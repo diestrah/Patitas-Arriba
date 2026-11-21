@@ -1,6 +1,6 @@
 package patitasarriba.rest.mapper;
 
-import patitasarriba.bl.ValidacionException;
+import patitasarriba.bl.excepciones.ValidacionException;
 import patitasarriba.modelo.atencion.Diagnostico;
 import patitasarriba.rest.dto.DiagnosticoDTO;
 
