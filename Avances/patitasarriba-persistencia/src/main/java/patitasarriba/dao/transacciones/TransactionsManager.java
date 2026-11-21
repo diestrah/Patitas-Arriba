@@ -64,11 +64,12 @@ public final class TransactionsManager {
         return conexion.get() != null;
     }
 
+    // Devuelve la conexion al pool. try-with-resources garantiza el close() aunque falle
+    // setAutoCommit (si no, la conexion quedaria prestada para siempre y el pool se vaciaria)
     private static void cerrar(Connection conn) {
         conexion.remove();
-        try {
+        try (conn) {//hace que pase lo que pase, al final se haga close si o si
             conn.setAutoCommit(true);
-            conn.close();
         } catch (SQLException ex) {
             throw new RuntimeException("No se pudo cerrar la conexion", ex);
         }
