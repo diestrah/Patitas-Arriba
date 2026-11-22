@@ -463,6 +463,8 @@ public class Tester {
 
         regla("Emergencia registrada con 3 horas de antiguedad",
                 () -> citaBL.insert(citaNueva(luna, ahora().minusHours(3), true, veterinario, consulta)));
+        regla("Emergencia registrada con 2 horas de anticipacion",
+                () -> citaBL.insert(citaNueva(luna, ahora().plusHours(2), true, veterinario, consulta)));
 
         // Llego hace 30 minutos: se atiende de inmediato y el administrador la aprueba despues
         Cita cita = citaNueva(luna, ahora().minusMinutes(30), true, veterinario, consulta, bano);

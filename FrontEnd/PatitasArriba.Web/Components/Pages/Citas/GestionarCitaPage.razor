@@ -60,7 +60,7 @@
             <div class="col-md-3 mb-3">
                 @* Una cita no pasa de normal a emergencia ni al revés (RN-CI-07) *@
                 <div class="form-check">
-                    <InputCheckbox tabindex="4" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" disabled="@(Id != null)" />
+                    <InputCheckbox tabindex="4" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" @bind-Value:after="CambiarEmergencia" disabled="@(Id != null)" />
                     <label class="form-check-label" for="es-emergencia">Es emergencia</label>
                 </div>
             </div>
@@ -70,7 +70,8 @@
         }
 
         @* Sin servicios, ServiciosCita ya muestra «Agregue al menos un servicio» y la validación del ViewModel impide guardar *@
-        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos" />
+        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos"
+                       IdServicioSugerido="IdServicioSugerido" />
 
         <div class="d-flex gap-2 mt-3">
             <button tabindex="5" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
@@ -97,6 +98,17 @@
     private bool Guardando { get; set; }
 
     private IEnumerable<MascotaViewModel> MascotasDelClienteElegido => Mascotas.Where(m => m.IdCliente == ViewModel.IdCliente);
+
+    // En una cita nueva de emergencia se sugiere el servicio de tipo EMERGENCIA (se busca por tipo, no por nombre)
+    private int IdServicioSugerido {
+        get {
+            if (Id != null || !ViewModel.EsEmergencia) {
+                return 0;
+            }
+            ServicioViewModel? emergencia = Servicios.Find(s => s.TipoServicio == TipoServicio.EMERGENCIA);
+            return emergencia != null ? emergencia.Id : 0;
+        }
+    }
 
     // GET /clientes, /mascotas, /servicios y /veterinarios para los selectores; al editar, GET /citas/{Id}
     // y GET /atenciones (un servicio ya atendido no se puede quitar)
@@ -137,6 +149,14 @@
     // Al cambiar de cliente se limpia la mascota elegida
     private void CambiarCliente() {
         ViewModel.IdMascota = 0;
+    }
+
+    // Al marcar una cita nueva como emergencia, la fecha y hora pasa a la actual.
+    // Al desmarcarla no se deshace nada
+    private void CambiarEmergencia() {
+        if (Id == null && ViewModel.EsEmergencia) {
+            ViewModel.AsignarFechaEmergencia();
+        }
     }
 
     // POST /citas (queda PENDIENTE) o PUT /citas/{Id}. El backend revisa el horario de cada veterinario

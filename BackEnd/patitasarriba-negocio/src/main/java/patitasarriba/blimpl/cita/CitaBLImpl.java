@@ -214,10 +214,15 @@ public class CitaBLImpl implements CitaBL {
     private void validarFecha(Cita cita) throws BLException {
         LocalDateTime ahora = LocalDateTime.now();
         if (cita.isEsEmergencia()) {
-            // La emergencia se registra al llegar el paciente, con hasta 1 hora de margen
+            // La emergencia se registra al llegar el paciente, con hasta 1 hora de margen antes o despues
             if (cita.getFechaHora().isBefore(ahora.minusHours(MARGEN_EMERGENCIA_HORAS))) {
                 throw new ValidacionException("Una cita de emergencia no puede registrarse con más de "
                         + MARGEN_EMERGENCIA_HORAS + " hora de antigüedad");
+            }
+            // Tampoco se agenda a futuro: una emergencia ocurre ahora, con el mismo margen hacia adelante
+            if (cita.getFechaHora().isAfter(ahora.plusHours(MARGEN_EMERGENCIA_HORAS))) {
+                throw new ValidacionException("Una cita de emergencia no puede registrarse con más de "
+                        + MARGEN_EMERGENCIA_HORAS + " hora de anticipación");
             }
         } else if (cita.getFechaHora().isBefore(ahora)) {
             throw new ValidacionException("La fecha y hora de la cita no puede ser en el pasado");
