@@ -59,6 +59,7 @@ public class AdministradorBLImpl implements AdministradorBL {
     public void insert(Administrador admin) throws BLException {
         validar(admin);
         validarCuentaActiva (admin);
+        CuentaLibre.paraAdministrador(admin.getCuenta().getId(), null);
         validarUnicos(admin);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)
@@ -78,6 +79,7 @@ public class AdministradorBLImpl implements AdministradorBL {
         validar(admin);
         findById(admin.getId());
         validarCuentaActiva(admin);
+        CuentaLibre.paraAdministrador(admin.getCuenta().getId(), admin.getId());
         validarUnicos(admin);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)
