@@ -173,21 +173,9 @@ public class ClienteBLImpl implements ClienteBL {
 
     void validarUnicos(Cliente cliente) throws BLException {
         try {
-            Cliente porDni;
-            try {
-                porDni = clienteDAO.findByDni(cliente.getDni());
-            } catch (IllegalArgumentException e) {
-                // El DAO falla al leer un cliente dado de baja cuya cuenta tambien se dio de baja:
-                // igual significa que el DNI ya existe
-                throw new ValidacionException("Ya existe un cliente dado de baja con el DNI " + cliente.getDni());
-            }
-            if (porDni != null && porDni.getId() != cliente.getId()) {
-                throw new ValidacionException("Ya existe un cliente con el DNI " + cliente.getDni());
-            }
-            for (Cliente otro : clienteDAO.findAll()) {
-                if (otro.getId() != cliente.getId() && otro.getTelefono().equals(cliente.getTelefono())) {
-                    throw new ValidacionException("Ya existe un cliente con el teléfono " + cliente.getTelefono());
-                }
+            DatoUnico.verificarLibre(() -> clienteDAO.findByDni(cliente.getDni()), cliente.getId(), "El DNI " + cliente.getDni());
+            if (DatoUnico.tieneValor(cliente.getTelefono())) {
+                DatoUnico.verificarLibre(() -> clienteDAO.findByTelefono(cliente.getTelefono()), cliente.getId(), "El teléfono " + cliente.getTelefono());
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del cliente", e);

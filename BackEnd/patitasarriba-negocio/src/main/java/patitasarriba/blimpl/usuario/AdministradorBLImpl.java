@@ -142,20 +142,9 @@ public class AdministradorBLImpl implements AdministradorBL {
     // dni y telefono son UNIQUE en la base
     void validarUnicos(Administrador admin) throws BLException {
         try {
-            Administrador porDni;
-            try {
-                porDni = administradorDAO.findByDni(admin.getDni());
-            } catch (IllegalArgumentException e) {
-                // El DAO falla al leer un administrador dado de baja cuya cuenta tambien se dio de baja
-                throw new ValidacionException("Ya existe un administrador dado de baja con el DNI " + admin.getDni());
-            }
-            if (porDni != null && porDni.getId() != admin.getId()) {
-                throw new ValidacionException("Ya existe un administrador con el DNI " + admin.getDni());
-            }
-            for (Administrador otro : administradorDAO.findAll()) {
-                if (otro.getId() != admin.getId() && otro.getTelefono().equals(admin.getTelefono())) {
-                    throw new ValidacionException("Ya existe un administrador con el teléfono " + admin.getTelefono());
-                }
+            DatoUnico.verificarLibre(() -> administradorDAO.findByDni(admin.getDni()), admin.getId(), "El DNI " + admin.getDni());
+            if (DatoUnico.tieneValor(admin.getTelefono())) {
+                DatoUnico.verificarLibre(() -> administradorDAO.findByTelefono(admin.getTelefono()), admin.getId(), "El teléfono " + admin.getTelefono());
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del administrador", e);
