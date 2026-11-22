@@ -206,6 +206,11 @@ public class AtencionBLImpl implements AtencionBL {
                     throw new ValidacionException("No se puede anular la atención: tiene la receta " + receta.getId());
                 }
             }
+            // Un servicio ya cobrado no puede pasar a no realizado (RN-AT-10, RN-BO-07)
+            if (boletaDAO.boletaConServicio(actual.getDetalleCita().getId()) != 0) {
+                throw new ValidacionException("No se puede anular la atención: el servicio "
+                        + actual.getDetalleCita().getServicio().getNombre() + " ya fue facturado");
+            }
             // Un insumo ya cobrado no puede desaparecer de la atencion
             for (InsumoUtilizado insumo : actual.getInsumosUtilizados()) {
                 if (boletaDAO.boletaConInsumo(insumo.getId()) != 0) {
