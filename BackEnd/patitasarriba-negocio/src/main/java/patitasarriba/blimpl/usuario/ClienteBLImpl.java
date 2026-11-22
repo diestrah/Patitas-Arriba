@@ -172,10 +172,30 @@ public class ClienteBLImpl implements ClienteBL {
     }
 
     void validarUnicos(Cliente cliente) throws BLException {
+        // Las busquedas por campo UNIQUE no filtran activo: tambien detectan registros dados de baja
         try {
-            DatoUnico.verificarLibre(() -> clienteDAO.findByDni(cliente.getDni()), cliente.getId(), "El DNI " + cliente.getDni());
-            if (DatoUnico.tieneValor(cliente.getTelefono())) {
-                DatoUnico.verificarLibre(() -> clienteDAO.findByTelefono(cliente.getTelefono()), cliente.getId(), "El teléfono " + cliente.getTelefono());
+            Cliente porDni;
+            try {
+                porDni = clienteDAO.findByDni(cliente.getDni());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                throw new ValidacionException("El DNI " + cliente.getDni() + " ya se encuentra en uso");
+            }
+            if (porDni != null && porDni.getId() != cliente.getId()) {
+                throw new ValidacionException("El DNI " + cliente.getDni() + " ya se encuentra en uso");
+            }
+            // El telefono es opcional: solo se busca si se ingreso
+            if (cliente.getTelefono() != null && !cliente.getTelefono().isBlank()) {
+                Cliente porTelefono;
+                try {
+                    porTelefono = clienteDAO.findByTelefono(cliente.getTelefono());
+                } catch (IllegalArgumentException e) {
+                    // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                    throw new ValidacionException("El teléfono " + cliente.getTelefono() + " ya se encuentra en uso");
+                }
+                if (porTelefono != null && porTelefono.getId() != cliente.getId()) {
+                    throw new ValidacionException("El teléfono " + cliente.getTelefono() + " ya se encuentra en uso");
+                }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del cliente", e);

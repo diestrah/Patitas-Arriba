@@ -160,12 +160,41 @@ public class VeterinarioBLImpl implements VeterinarioBL {
 
     // dni, telefono y numero_colegiatura son UNIQUE en la base
     void validarUnicos(Veterinario vet) throws BLException {
+        // Las busquedas por campo UNIQUE no filtran activo: tambien detectan registros dados de baja
         try {
-            DatoUnico.verificarLibre(() -> veterinarioDAO.findByDni(vet.getDni()), vet.getId(), "El DNI " + vet.getDni());
-            if (DatoUnico.tieneValor(vet.getTelefono())) {
-                DatoUnico.verificarLibre(() -> veterinarioDAO.findByTelefono(vet.getTelefono()), vet.getId(), "El teléfono " + vet.getTelefono());
+            Veterinario porDni;
+            try {
+                porDni = veterinarioDAO.findByDni(vet.getDni());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                throw new ValidacionException("El DNI " + vet.getDni() + " ya se encuentra en uso");
             }
-            DatoUnico.verificarLibre(() -> veterinarioDAO.findByColegiatura(vet.getNumeroColegiatura()), vet.getId(), "La colegiatura " + vet.getNumeroColegiatura());
+            if (porDni != null && porDni.getId() != vet.getId()) {
+                throw new ValidacionException("El DNI " + vet.getDni() + " ya se encuentra en uso");
+            }
+            // El telefono es opcional: solo se busca si se ingreso
+            if (vet.getTelefono() != null && !vet.getTelefono().isBlank()) {
+                Veterinario porTelefono;
+                try {
+                    porTelefono = veterinarioDAO.findByTelefono(vet.getTelefono());
+                } catch (IllegalArgumentException e) {
+                    // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                    throw new ValidacionException("El teléfono " + vet.getTelefono() + " ya se encuentra en uso");
+                }
+                if (porTelefono != null && porTelefono.getId() != vet.getId()) {
+                    throw new ValidacionException("El teléfono " + vet.getTelefono() + " ya se encuentra en uso");
+                }
+            }
+            Veterinario porColegiatura;
+            try {
+                porColegiatura = veterinarioDAO.findByColegiatura(vet.getNumeroColegiatura());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                throw new ValidacionException("La colegiatura " + vet.getNumeroColegiatura() + " ya se encuentra en uso");
+            }
+            if (porColegiatura != null && porColegiatura.getId() != vet.getId()) {
+                throw new ValidacionException("La colegiatura " + vet.getNumeroColegiatura() + " ya se encuentra en uso");
+            }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI, el teléfono o la colegiatura del veterinario", e);
         }
