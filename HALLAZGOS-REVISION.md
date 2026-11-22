@@ -93,12 +93,15 @@ Los puntos 2.2, 2.3 y 2.4 tratan el mismo tema (las anulaciones de atenciones y 
   - Origen: pruebas en el navegador (comprobado).
   - En Citas, Boletas y Artículos, y en la vista «Tabla» de Clientes, Mascotas, Veterinarios, Administradores y Horarios, la tabla QuickGrid se sale del ancho y arrastra toda la página (ancho de 870 a 992 px en una pantalla de 375 px).
   - Las tablas no están dentro de un contenedor con desplazamiento horizontal (`.table-responsive`).
+  - Estado: descartado. La aplicación no está orientada a móvil.
 - **Enter no filtra en Gestión de citas.**
   - Origen: pruebas en el navegador (comprobado).
   - En `ListarCitasPage.razor` el buscador «Mascota o dueño» no tiene `@onkeydown`. Es el único listado que faltó cuando se agregó Enter a los buscadores.
+  - Estado: resuelto en la rama `fix/hallazgos-revision`. El buscador filtra con Enter (`TeclaEnFiltro`), como el resto de listados.
 - **`procedures-reportes.sql` no figura en la instalación.**
   - Origen: revisión previa al merge (comprobado).
   - No aparece en `instalar-desde-cero.sql`, en `BackEnd/sql/README.md` ni en el README principal. Sin ese script, `GET /reportes/agenda-diaria` falla porque los procedures no existen.
+  - Estado: resuelto en la rama `fix/hallazgos-revision`. Se agregó su sección a `instalar-desde-cero.sql`, entre `registro_pendiente` y `servicio`, y se probó en un esquema temporal: se crean los 5 procedures `reporte_*`. Los dos README lo mencionan y advierten que sin él fallan los tres reportes: agenda diaria, historial clínico y boleta. Las bases ya instaladas deben ejecutarlo una vez; la base local de la revisión todavía tenía los procedures de receta, ya retirados.
 
 ---
 
