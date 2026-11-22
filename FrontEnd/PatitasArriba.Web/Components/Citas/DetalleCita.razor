@@ -8,12 +8,9 @@
             <li><strong>Cliente:</strong> @Cita.NombreCliente</li>
             <li><strong>Fecha y hora:</strong> @(Cita.FechaHora?.ToString("dd/MM/yyyy HH:mm"))</li>
             <li>
+                @* Sin @if: Blazor borra el espacio pegado a un bloque @if y quedaba «Emergencia:No» *@
                 <strong>Emergencia:</strong>
-                @if (Cita.EsEmergencia) {
-                    <span class="badge text-bg-danger">Sí</span>
-                } else {
-                    <span>No</span>
-                }
+                <span class="@(Cita.EsEmergencia ? "badge text-bg-danger" : "")">@(Cita.EsEmergencia ? "Sí" : "No")</span>
             </li>
             <li><strong>Revisada por:</strong> @(Cita.NombreAdministrador ?? "Pendiente de revisión")</li>
         </ul>
