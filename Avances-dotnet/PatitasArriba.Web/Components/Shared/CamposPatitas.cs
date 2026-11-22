@@ -41,6 +41,11 @@ namespace PatitasArriba.Web.Components.Shared {
     public class PaInputNumber<TValue> : InputNumber<TValue> {
         protected override void OnParametersSet() {
             base.OnParametersSet();
+            // Si se borra el número o se escribe algo que no es número, Blazor muestra por defecto
+            // "The PrecioBase field must be a number." (en inglés y con el nombre interno de la propiedad)
+            if (ParsingErrorMessage.StartsWith("The ", StringComparison.Ordinal)) {
+                ParsingErrorMessage = "Ingrese un número válido";
+            }
             AdditionalAttributes = ValidacionAlSalir.Agregar(AdditionalAttributes,
                 EventCallback.Factory.Create<FocusEventArgs>(this, () => ValidacionAlSalir.Validar(EditContext, FieldIdentifier)));
         }
@@ -57,6 +62,15 @@ namespace PatitasArriba.Web.Components.Shared {
     public class PaInputDate<TValue> : InputDate<TValue> {
         protected override void OnParametersSet() {
             base.OnParametersSet();
+            // Igual que en PaInputNumber: el mensaje por defecto es "The HoraInicio field must be a time."
+            if (ParsingErrorMessage.StartsWith("The ", StringComparison.Ordinal)) {
+                ParsingErrorMessage = Type switch {
+                    InputDateType.Time => "Ingrese una hora válida",
+                    InputDateType.DateTimeLocal => "Ingrese una fecha y hora válidas",
+                    InputDateType.Month => "Ingrese un mes válido",
+                    _ => "Ingrese una fecha válida"
+                };
+            }
             AdditionalAttributes = ValidacionAlSalir.Agregar(AdditionalAttributes,
                 EventCallback.Factory.Create<FocusEventArgs>(this, () => ValidacionAlSalir.Validar(EditContext, FieldIdentifier)));
         }
