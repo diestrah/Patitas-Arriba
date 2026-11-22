@@ -65,6 +65,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
 
 ### 2.3 Se puede anular una atención cuyo servicio ya fue cobrado
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. `AtencionBLImpl.delete` rechaza con 400 si el servicio aparece en una boleta (`boletaConServicio`), y la lista de atenciones (`ListarAtencionesPage.razor`) ya no muestra «Anular» en ese caso. RN-AT-10 actualizada.
 - **Origen:** revisión de código del backend (comprobado).
 - **Dónde:** `AtencionBLImpl.delete`. Revisa la receta y los insumos cobrados (`boletaConInsumo`), pero no el servicio (`boletaConServicio`).
 - **Escenario:** se emite la boleta con el servicio atendido y después se anula la atención.

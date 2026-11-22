@@ -240,7 +240,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-AT-07 | Cada diagnóstico indica una enfermedad activa del catálogo y su **nivel de gravedad**: Leve, Moderado, Grave o Crítico. Cada insumo indica el artículo, una cantidad mayor a 0 y si es **cobrable** o no. |
 | RN-AT-08 | Al registrar la atención, sus insumos **se descuentan del stock**; si no hay stock suficiente, la atención no se registra. Al modificarla, el stock se ajusta según la diferencia por artículo: si se usa más se descuenta y si se usa menos se devuelve. Los insumos retirados se dan de baja. |
 | RN-AT-09 | Un insumo que ya se cobró no puede quitarse ni cambiarse (artículo, cantidad ni si es cobrable). |
-| RN-AT-10 | No se puede anular una atención que tenga recetas emitidas o insumos cobrados. Al anular una atención, sus insumos se devuelven al stock. |
+| RN-AT-10 | No se puede anular una atención que tenga recetas emitidas, su servicio cobrado o insumos cobrados (también si la boleta se anuló, RN-BO-07 y RN-BO-08). Al anular una atención, sus insumos se devuelven al stock. |
 | RN-AT-11 | **[Rol]** Solo el veterinario registra, modifica y anula atenciones. |
 
 ---
