@@ -41,8 +41,7 @@ Alcance del sistema según el catálogo de requerimientos del equipo.
 | RNF03 | Compatibilidad de Interfaz (Solo Web) | El sistema será desarrollado con una interfaz web diseñada exclusivamente para computadoras de escritorio (resolución recomendada de 1366x768 o superior), garantizando compatibilidad con navegadores modernos (Chrome, Edge). No incluirá diseño móvil. | Alta |
 | RNF04 | Disponibilidad y mantenimiento | El sistema deberá compilar y ejecutarse correctamente de forma local (o en el servidor de pruebas asignado) sin caídas durante las sesiones de operación. | Alta |
 | RNF05 | Seguridad | Para garantizar la seguridad del acceso, el sistema almacenará las contraseñas de los usuarios cifradas en la base de datos utilizando algoritmos de hashing (ej. BCrypt o SHA-256). Esto será demostrable consultando directamente los registros de la base de datos. Los enlaces de verificación y recuperación también se guardan solo como hash. | Alta |
-| RNF06 | Respaldo (Backup) Manual | El proyecto incluirá scripts de base de datos (SQL Dump) que permitirán al administrador o desarrollador realizar copias de seguridad manuales de las tablas y registros para evitar pérdida de datos. | Alta |
-| RNF07 | Conservación del historial | El sistema conservará toda la información registrada: cuando se elimine un registro dejará de mostrarse en las consultas, pero permanecerá almacenado para preservar el historial clínico y comercial de la clínica. | Alta |
+| RNF06 | Conservación del historial | El sistema conservará toda la información registrada: cuando se elimine un registro dejará de mostrarse en las consultas, pero permanecerá almacenado para preservar el historial clínico y comercial de la clínica. | Alta |
 
 ## Estructura del repositorio
 
