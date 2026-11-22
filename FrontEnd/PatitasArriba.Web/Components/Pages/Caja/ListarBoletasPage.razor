@@ -41,7 +41,7 @@
 </div>
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
-    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Cliente, DNI o N.° de boleta" aria-label="Buscar boleta" @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Cliente, DNI o N.° de boleta" aria-label="Buscar boleta" @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
     <label class="text-nowrap" for="filtro-estado">Estado:</label>
     <select id="filtro-estado" tabindex="2" class="form-select w-auto" @bind="EstadoFiltro">
         <option value="">Todos</option>
@@ -231,6 +231,13 @@ else {
             .Where(b => EstadoAplicado == "" || (EstadoAplicado == "Emitida") == b.IsActivo)
             .Where(b => PagoAplicado == "" || b.MetodoPago.ToString() == PagoAplicado)
             .AsQueryable();
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
     }
 
     private void Filtrar() {

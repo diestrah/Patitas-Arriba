@@ -21,7 +21,7 @@
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">DNI o nombre:</label>
-    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el DNI o el nombre..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
     <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
         <Icono Nombre="search" /><span>Filtrar</span>
     </button>
@@ -174,6 +174,13 @@ else {
         ClienteViewModel? inicial = Todos.FirstOrDefault(c => c.Id == IdClienteInicial);
         if (inicial != null) {
             await SeleccionarCliente(inicial);
+        }
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
         }
     }
 
