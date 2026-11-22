@@ -187,7 +187,7 @@ No se cambian las reglas del BL, los contratos REST, el esquema de la BD ni las 
 
 ## Verificación
 
-Se requiere un JDK compatible con el proyecto (compilación configurada para Java 25) y Maven. Desde `Avances`:
+Se requiere un JDK compatible con el proyecto (compilación configurada para Java 25) y Maven. Desde `BackEnd`:
 
 ```powershell
 mvn -pl patitasarriba-negocio -am test

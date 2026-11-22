@@ -41,7 +41,7 @@ Sin configurar nada, los correos **no se envían**: se imprimen en la consola de
 
 1. Ejecutar `sql/actualizacion-acceso.sql` en la base.
 2. Correr `ejecucion.Tester`: debe terminar con "Sin fallas." (incluye la sección "ACCESO").
-3. Front: `dotnet run` en `Avances-dotnet/PatitasArriba.Web`. Iniciar sesión con `diego.lopez@patasarriba.pe` (administrador), `carla.vega@patasarriba.pe` (veterinaria) o `ana.torres@gmail.com` (cliente), con cualquier contraseña.
+3. Front: `dotnet run` en `FrontEnd/PatitasArriba.Web`. Iniciar sesión con `diego.lopez@patasarriba.pe` (administrador), `carla.vega@patasarriba.pe` (veterinaria) o `ana.torres@gmail.com` (cliente), con cualquier contraseña.
 
 ## Sin probar o pendiente
 

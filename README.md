@@ -8,11 +8,11 @@ Repositorio del trabajo de aplicación (TA) del curso **Programación 3**.
 
 | Carpeta | Contenido |
 |---|---|
-| [`Avances/`](Avances/) | Backend en **Java** (Maven multimódulo) y servicios REST. |
-| [`Avances/sql/`](Avances/sql/) | Script de creación de la base de datos MySQL, stored procedures, datos iniciales/de prueba y diagrama físico. |
-| [`Avances-dotnet/`](Avances-dotnet/) | Frontend en **Blazor (.NET 10)** y sus pruebas con Playwright + NUnit. |
+| [`BackEnd/`](BackEnd/) | Backend en **Java** (Maven multimódulo) y servicios REST. |
+| [`BackEnd/sql/`](BackEnd/sql/) | Script de creación de la base de datos MySQL, stored procedures, datos iniciales/de prueba y diagrama físico. |
+| [`FrontEnd/`](FrontEnd/) | Frontend en **Blazor (.NET 10)** y sus pruebas con Playwright + NUnit. |
 
-### Módulos del backend (`Avances/`)
+### Módulos del backend (`BackEnd/`)
 
 | Módulo | Capa |
 |---|---|
@@ -24,7 +24,7 @@ Repositorio del trabajo de aplicación (TA) del curso **Programación 3**.
 | `patitasarriba-app` | Programas de prueba por consola (`Principal`, `PruebaConexion`). |
 
 ```
-Blazor (Avances-dotnet)  →  REST /api/v1  →  negocio  →  persistencia (DAOs)  →  MySQL (procedures)
+Blazor (FrontEnd)  →  REST /api/v1  →  negocio  →  persistencia (DAOs)  →  MySQL (procedures)
 ```
 
 ## Requisitos
@@ -41,14 +41,14 @@ Hay que levantar las tres piezas en este orden: **base de datos → API REST en 
 
 ### 1. Base de datos
 
-Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`Avances/sql/`](Avances/sql/). Atajo para una base nueva: [`instalar-desde-cero.sql`](Avances/sql/instalar-desde-cero.sql) hace los cuatro pasos de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
+Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`BackEnd/sql/`](BackEnd/sql/). Atajo para una base nueva: [`instalar-desde-cero.sql`](BackEnd/sql/instalar-desde-cero.sql) hace los cuatro pasos de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
 
-1. [`patitasarriba-mysql.sql`](Avances/sql/patitasarriba-mysql.sql): crea el esquema `patitasarriba` y sus tablas.
+1. [`patitasarriba-mysql.sql`](BackEnd/sql/patitasarriba-mysql.sql): crea el esquema `patitasarriba` y sus tablas.
 2. Todos los archivos `procedures-*.sql` (el orden entre ellos no importa).
-3. [`datos-iniciales.sql`](Avances/sql/datos-iniciales.sql): crea el primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso).
-4. Opcional, para tener datos con qué probar: [`datos-prueba.sql`](Avances/sql/datos-prueba.sql). Se corre **una sola vez**; para recargarlo, primero `limpiar-tablas.sql`.
+3. [`datos-iniciales.sql`](BackEnd/sql/datos-iniciales.sql): crea el primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso).
+4. Opcional, para tener datos con qué probar: [`datos-prueba.sql`](BackEnd/sql/datos-prueba.sql). Se corre **una sola vez**; para recargarlo, primero `limpiar-tablas.sql`.
 
-Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr una vez los scripts `actualizacion-*.sql` que falten (el último es `actualizacion-rendimiento.sql`: sin él fallan Mis citas, Mi agenda y el registro de citas). Para empezar de cero, `borrar-tablas.sql` elimina todas las tablas. Los detalles están en el [README de SQL](Avances/sql/README.md).
+Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr una vez los scripts `actualizacion-*.sql` que falten (el último es `actualizacion-rendimiento.sql`: sin él fallan Mis citas, Mi agenda y el registro de citas). Para empezar de cero, `borrar-tablas.sql` elimina todas las tablas. Los detalles están en el [README de SQL](BackEnd/sql/README.md).
 
 **Cuentas de `datos-prueba.sql`** (todas con la contraseña `Patitas123`):
 
@@ -60,7 +60,7 @@ Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr u
 
 ### 2. Conexión a la base
 
-Los archivos `db.properties` **no se suben a git** (cada integrante usa su propia base). En `Avances/patitasarriba-rest/src/main/resources/` (y en `Avances/patitasarriba-app/src/main/resources/` si vas a usar los programas de consola), copia `db.properties.example` como `db.properties` y completa tus datos:
+Los archivos `db.properties` **no se suben a git** (cada integrante usa su propia base). En `BackEnd/patitasarriba-rest/src/main/resources/` (y en `BackEnd/patitasarriba-app/src/main/resources/` si vas a usar los programas de consola), copia `db.properties.example` como `db.properties` y completa tus datos:
 
 ```properties
 servidor=localhost
@@ -77,18 +77,18 @@ password=<tu_password>
 Compilar todos los módulos con el JDK 25:
 
 ```bash
-cd Avances
+cd BackEnd
 mvn clean install
 ```
 
-Esto genera `Avances/patitasarriba-rest/target/patitasarriba-rest-1.0.war`. Para desplegarlo en GlassFish:
+Esto genera `BackEnd/patitasarriba-rest/target/patitasarriba-rest-1.0.war`. Para desplegarlo en GlassFish:
 
 ```bash
 asadmin start-domain
 ```
 
 ```bash
-asadmin deploy --force=true --contextroot patitasarriba-rest-1.0-SNAPSHOT Avances/patitasarriba-rest/target/patitasarriba-rest-1.0.war
+asadmin deploy --force=true --contextroot patitasarriba-rest-1.0-SNAPSHOT BackEnd/patitasarriba-rest/target/patitasarriba-rest-1.0.war
 ```
 
 También se puede subir el `.war` desde la consola de administración de GlassFish (`http://localhost:4848`), o desplegarlo desde IntelliJ con una configuración de GlassFish.
@@ -101,7 +101,7 @@ http://localhost:8080/patitasarriba-rest-1.0-SNAPSHOT/api/v1
 
 Para comprobar que responde y que llega a la base, abre `http://localhost:8080/patitasarriba-rest-1.0-SNAPSHOT/api/v1/servicios` en el navegador: debe devolver un JSON. Si devuelve error 500, revisa `db.properties` y el log de GlassFish (`glassfish/domains/domain1/logs/server.log`).
 
-Los programas de consola de `patitasarriba-app` (`Principal.java`, `PruebaConexion.java`) sirven para probar el modelo y la conexión sin GlassFish. Más detalle en el [README del backend](Avances/README.md).
+Los programas de consola de `patitasarriba-app` (`Principal.java`, `PruebaConexion.java`) sirven para probar el modelo y la conexión sin GlassFish. Más detalle en el [README del backend](BackEnd/README.md).
 
 #### Correos (opcional)
 
@@ -118,7 +118,7 @@ Si falta el host, el usuario o la clave, los correos **no se envían**: se escri
 
 ### 4. Frontend (Blazor)
 
-La dirección de la API se configura en [`Avances-dotnet/PatitasArriba.Web/appsettings.json`](Avances-dotnet/PatitasArriba.Web/appsettings.json):
+La dirección de la API se configura en [`FrontEnd/PatitasArriba.Web/appsettings.json`](FrontEnd/PatitasArriba.Web/appsettings.json):
 
 ```json
 "RestApiBaseUrl": "http://localhost:8080/patitasarriba-rest-1.0-SNAPSHOT/api/v1"
@@ -129,7 +129,7 @@ Debe incluir el contexto con que se desplegó el `.war` y terminar en `/api/v1`.
 Con la API ya corriendo:
 
 ```bash
-cd Avances-dotnet/PatitasArriba.Web
+cd FrontEnd/PatitasArriba.Web
 dotnet run --launch-profile http
 ```
 
@@ -138,7 +138,7 @@ El sitio queda en `http://localhost:5118`. Inicia sesión con una de las cuentas
 ### 5. Pruebas
 
 ```bash
-cd Avances-dotnet
+cd FrontEnd
 dotnet test
 ```
 
@@ -148,7 +148,7 @@ dotnet test
 Para correr solo las pruebas que no necesitan nada levantado:
 
 ```bash
-cd Avances-dotnet
+cd FrontEnd
 dotnet test --filter "FullyQualifiedName~RestServicesTests"
 ```
 
@@ -157,7 +157,7 @@ dotnet test --filter "FullyQualifiedName~RestServicesTests"
 Sigue la clase de despliegue: dos servidores EC2 con Windows Server, uno con GlassFish para el backend y otro con IIS para el frontend.
 
 - **Backend:** los `pom.xml` ya no usan `-SNAPSHOT`. Con `db.properties` apuntando a RDS, `mvn clean package` genera `patitasarriba-rest-1.0.war`. En la consola de GlassFish del servidor (`http://localhost:4848`) se despliega con la ruta de contexto `patitasarriba-rest`, así que la API queda en `http://<servidor>:8080/patitasarriba-rest/api/v1`.
-- **Frontend:** [`appsettings.Production.json`](Avances-dotnet/PatitasArriba.Web/appsettings.Production.json) reemplaza `RestApiBaseUrl` cuando la app corre fuera de desarrollo, como en IIS. Antes de publicar, cambia `IP-PRIVADA-DEL-BACKEND` por la IP privada del servidor del backend: a diferencia del DNS público, no cambia cuando la instancia se detiene y se vuelve a encender. En local (`dotnet run` o Visual Studio) se sigue usando `appsettings.json`.
+- **Frontend:** [`appsettings.Production.json`](FrontEnd/PatitasArriba.Web/appsettings.Production.json) reemplaza `RestApiBaseUrl` cuando la app corre fuera de desarrollo, como en IIS. Antes de publicar, cambia `IP-PRIVADA-DEL-BACKEND` por la IP privada del servidor del backend: a diferencia del DNS público, no cambia cuando la instancia se detiene y se vuelve a encender. En local (`dotnet run` o Visual Studio) se sigue usando `appsettings.json`.
 - Cada vez que se reinicia el servidor del backend hay que volver a ejecutar `asadmin start-domain`.
 
 ### Problemas comunes
@@ -171,7 +171,7 @@ Sigue la clase de despliegue: dos servidores EC2 con Windows Server, uno con Gla
 
 ## Documentación
 
-- [Reglas de negocio](Avances/REGLAS-DE-NEGOCIO.md): reglas `RN-XX-nn` y conceptos clave del dominio.
-- [Propuesta de login](Avances/PROPUESTA-LOGIN.md): registro, verificación de correo y recuperación de contraseña.
-- [Cambios del diagrama](Avances/sql/cambios-diagrama.md).
+- [Reglas de negocio](BackEnd/REGLAS-DE-NEGOCIO.md): reglas `RN-XX-nn` y conceptos clave del dominio.
+- [Propuesta de login](BackEnd/PROPUESTA-LOGIN.md): registro, verificación de correo y recuperación de contraseña.
+- [Cambios del diagrama](BackEnd/sql/cambios-diagrama.md).
 - [Carpeta de Google Drive](https://drive.google.com/drive/folders/1DKZuonEXVqVJXOim5KmGmPvpVRSVrPI0?usp=sharing): listado de requerimientos y diagrama de clases.

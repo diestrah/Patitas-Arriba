@@ -17,7 +17,7 @@ Los nombres de módulo siguen la convención minúscula-con-guiones (`<proyecto>
 
 ## Cómo abrir y correr el proyecto
 
-1. Abrir la carpeta `Avances` como proyecto en IntelliJ.
+1. Abrir la carpeta `BackEnd` como proyecto en IntelliJ.
 2. Recargar el proyecto Maven (ícono de flechas circulares en el panel de Maven).
 3. Para probar el modelo: correr `patitasarriba-app/src/main/java/ejecucion/Principal.java`.
 4. Para probar la conexión a la base de datos: correr `PruebaConexion.java` (ver sección siguiente).
