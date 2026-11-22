@@ -6,7 +6,7 @@
     <parent>
         <groupId>pe.edu.pucp.patitasarriba</groupId>
         <artifactId>PatitasArriba</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
     </parent>
 
     <artifactId>patitasarriba-negocio</artifactId>
@@ -21,7 +21,7 @@
         <dependency>
             <groupId>pe.edu.pucp.patitasarriba</groupId>
             <artifactId>patitasarriba-persistencia</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0</version>
         </dependency>
     </dependencies>
 </project>

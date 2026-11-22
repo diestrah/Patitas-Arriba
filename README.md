@@ -81,19 +81,19 @@ cd Avances
 mvn clean install
 ```
 
-Esto genera `Avances/patitasarriba-rest/target/patitasarriba-rest-1.0-SNAPSHOT.war`. Para desplegarlo en GlassFish:
+Esto genera `Avances/patitasarriba-rest/target/patitasarriba-rest-1.0.war`. Para desplegarlo en GlassFish:
 
 ```bash
 asadmin start-domain
 ```
 
 ```bash
-asadmin deploy --force=true Avances/patitasarriba-rest/target/patitasarriba-rest-1.0-SNAPSHOT.war
+asadmin deploy --force=true --contextroot patitasarriba-rest-1.0-SNAPSHOT Avances/patitasarriba-rest/target/patitasarriba-rest-1.0.war
 ```
 
 También se puede subir el `.war` desde la consola de administración de GlassFish (`http://localhost:4848`), o desplegarlo desde IntelliJ con una configuración de GlassFish.
 
-Sin `--contextroot`, la API queda en:
+En local se mantiene el contexto `patitasarriba-rest-1.0-SNAPSHOT` (el mismo de `appsettings.json` y de la configuración de GlassFish en IntelliJ), aunque los `pom.xml` ya no usen `-SNAPSHOT`. La API queda en:
 
 ```
 http://localhost:8080/patitasarriba-rest-1.0-SNAPSHOT/api/v1
@@ -151,6 +151,14 @@ Para correr solo las pruebas que no necesitan nada levantado:
 cd Avances-dotnet
 dotnet test --filter "FullyQualifiedName~RestServicesTests"
 ```
+
+### 6. Despliegue en AWS
+
+Sigue la clase de despliegue: dos servidores EC2 con Windows Server, uno con GlassFish para el backend y otro con IIS para el frontend.
+
+- **Backend:** los `pom.xml` ya no usan `-SNAPSHOT`. Con `db.properties` apuntando a RDS, `mvn clean package` genera `patitasarriba-rest-1.0.war`. En la consola de GlassFish del servidor (`http://localhost:4848`) se despliega con la ruta de contexto `patitasarriba-rest`, así que la API queda en `http://<servidor>:8080/patitasarriba-rest/api/v1`.
+- **Frontend:** [`appsettings.Production.json`](Avances-dotnet/PatitasArriba.Web/appsettings.Production.json) reemplaza `RestApiBaseUrl` cuando la app corre fuera de desarrollo, como en IIS. Antes de publicar, cambia `IP-PRIVADA-DEL-BACKEND` por la IP privada del servidor del backend: a diferencia del DNS público, no cambia cuando la instancia se detiene y se vuelve a encender. En local (`dotnet run` o Visual Studio) se sigue usando `appsettings.json`.
+- Cada vez que se reinicia el servidor del backend hay que volver a ejecutar `asadmin start-domain`.
 
 ### Problemas comunes
 

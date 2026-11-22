@@ -6,7 +6,7 @@
     <parent>
         <groupId>pe.edu.pucp.patitasarriba</groupId>
         <artifactId>PatitasArriba</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
     </parent>
 
     <artifactId>patitasarriba-app</artifactId>
@@ -16,12 +16,12 @@
         <dependency>
             <groupId>pe.edu.pucp.patitasarriba</groupId>
             <artifactId>patitasarriba-modelo</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0</version>
         </dependency>
         <dependency>
             <groupId>pe.edu.pucp.patitasarriba</groupId>
             <artifactId>patitasarriba-negocio</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0</version>
         </dependency>
 
 
