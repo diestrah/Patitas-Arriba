@@ -58,3 +58,7 @@
 - Procedures nuevos: `listar_servicios_por_cobrar_por_cliente` (en `procedures-detalle_cita.sql`) y `listar_insumos_por_cobrar_por_cliente` (en `procedures-insumo_utilizado.sql`). Los usa `GET /boletas/pendientes?cliente={id}`. Algo que ya estuvo en una boleta no vuelve a quedar pendiente, aunque la boleta se haya anulado o la línea se haya quitado (RN-BO-07, RN-BO-08).
 - Se borró `listar_insumos_cobrables_pendientes_por_atencion`: nadie lo usaba y contaba como pendiente lo cobrado en boletas anuladas.
 - En una base **ya instalada** (la local o la de AWS), volver a ejecutar `procedures-detalle_cita.sql` y `procedures-insumo_utilizado.sql` antes de correr el backend nuevo; sin eso, Nueva boleta no carga los pendientes. Solo cambian procedures.
+
+## Atenciones anuladas (citas y agendas)
+- Procedure nuevo `listar_estados_atencion` (en `procedures-atencion.sql`): devuelve todas las atenciones, también las anuladas, con su `id_detalle_cita` y `activo`. Lo usa `GET /atenciones/estados`. Así el front sabe que un servicio con la atención anulada cuenta como no realizado (RN-CI-10, RN-AT-02).
+- En una base **ya instalada** (la local o la de AWS), volver a ejecutar `procedures-atencion.sql` antes de correr el backend nuevo; sin eso, la lista de citas y las agendas no cargan. Solo cambian procedures.

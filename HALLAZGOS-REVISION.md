@@ -63,6 +63,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
   - El botón «Completar» no aparece nunca y la cita queda APROBADA.
   - En «Mi agenda» el servicio anulado vuelve a mostrar «Atender», y el backend lo rechaza.
 - **Regla afectada:** RN-CI-10 y RN-AT-02. Un servicio con la atención anulada cuenta como no realizado y no impide completar la cita.
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. El front sabe qué servicios tienen atención, activa o anulada, con `GET /atenciones/estados` (procedure `listar_estados_atencion`, clase `AtencionesDeCitas`). «Completar» aparece cuando todos los servicios tienen atención y al menos una está activa. Si todas se anularon, aparece «Cancelar» aunque ya haya pasado la hora de la cita. En las agendas, el servicio anulado se ve como «Anulado» y ya no ofrece «Atender». El backend ya aplicaba bien la regla y no cambió.
 
 ### 2.3 Se puede anular una atención cuyo servicio ya fue cobrado
 
