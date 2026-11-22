@@ -1,6 +1,7 @@
 package patitasarriba.blimpl.boleta;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import patitasarriba.bl.excepciones.BLException;
@@ -11,8 +12,11 @@ import patitasarriba.dao.producto.ArticuloDAO;
 import patitasarriba.dao.atencion.AtencionDAO;
 import patitasarriba.dao.boleta.BoletaDAO;
 import patitasarriba.dao.producto.ServicioDAO;
+import patitasarriba.dao.usuario.ClienteDAO;
 import patitasarriba.daoimpl.atencion.AtencionDAOImpl;
+import patitasarriba.daoimpl.atencion.InsumoUtilizadoDAOImpl;
 import patitasarriba.daoimpl.boleta.BoletaDAOImpl;
+import patitasarriba.daoimpl.usuario.ClienteDAOImpl;
 import patitasarriba.daoimpl.cita.DetalleCitaDAOImpl;
 import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.daoimpl.producto.ServicioDAOImpl;
@@ -27,6 +31,7 @@ import patitasarriba.modelo.cita.Cita;
 import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.producto.Articulo;
 import patitasarriba.modelo.producto.Servicio;
+import patitasarriba.modelo.usuario.Cliente;
 
 public class BoletaBLImpl implements BoletaBL {
 
@@ -39,6 +44,8 @@ public class BoletaBLImpl implements BoletaBL {
     private final ServicioDAO servicioDAO = new ServicioDAOImpl();
     private final DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
     private final AtencionDAO atencionDAO = new AtencionDAOImpl();
+    private final InsumoUtilizadoDAOImpl insumoDAO = new InsumoUtilizadoDAOImpl();
+    private final ClienteDAO clienteDAO = new ClienteDAOImpl();
 
     @Override
     public List<Boleta> findAll() throws BLException {
@@ -59,6 +66,49 @@ public class BoletaBLImpl implements BoletaBL {
             return boleta;
         } catch (SQLException e) {
             throw new BLException("No se pudo recuperar la boleta", e);
+        }
+    }
+
+    // Servicios ya atendidos (RN-BO-07) e insumos cobrables (RN-BO-08) del cliente que no aparecen en
+    // ninguna boleta, aunque esta se haya anulado o la linea se haya quitado. Se devuelve como una boleta
+    // sin guardar (sin id, numero, fecha ni metodo de pago), con el precio del catalogo: al emitirla,
+    // insert vuelve a fijar los precios (RN-BO-05)
+    @Override
+    public Boleta pendientesPorCliente(Integer idCliente) throws BLException {
+        if (idCliente == null) throw new ValidacionException("El id del cliente no puede ser nulo");
+        try {
+            Cliente cliente = clienteDAO.findById(idCliente);
+            if (cliente == null) {
+                throw new NoEncontradoException("No existe un cliente activo con id " + idCliente);
+            }
+            List<DetalleBoleta> lineas = new ArrayList<>();
+            double total = 0;
+            for (DetalleCita detalleCita : detalleCitaDAO.listarPorCobrarPorCliente(idCliente)) {
+                DetalleBoletaServicio linea = new DetalleBoletaServicio();
+                linea.setDetalleCita(detalleCita);
+                linea.setCantidad(1);
+                linea.setPrecioUnitario(detalleCita.getServicio().getPrecioBase());
+                linea.setSubtotal(linea.getPrecioUnitario());
+                lineas.add(linea);
+                total += linea.getSubtotal();
+            }
+            for (InsumoUtilizado insumo : insumoDAO.listarPorCobrarPorCliente(idCliente)) {
+                DetalleBoletaArticulo linea = new DetalleBoletaArticulo();
+                linea.setArticulo(insumo.getArticulo());
+                linea.setInsumoUtilizado(insumo);
+                linea.setCantidad(insumo.getCantidadUtilizada());
+                linea.setPrecioUnitario(insumo.getArticulo().getPrecioBase());
+                linea.setSubtotal(linea.getPrecioUnitario() * linea.getCantidad());
+                lineas.add(linea);
+                total += linea.getSubtotal();
+            }
+            Boleta pendientes = new Boleta();
+            pendientes.setCliente(cliente);
+            pendientes.setDetalles(lineas);
+            pendientes.setTotal(total);
+            return pendientes;
+        } catch (SQLException e) {
+            throw new BLException("No se pudo consultar lo pendiente de cobro del cliente", e);
         }
     }
 

@@ -4306,6 +4306,68 @@
         }
       }
     },
+    "/boletas/pendientes": {
+      "get": {
+        "tags": [
+          "Boletas"
+        ],
+        "summary": "Pendientes de cobro de un cliente",
+        "description": "Servicios ya atendidos (atencion activa) e insumos cobrables del cliente que no aparecen en ninguna boleta, aunque esta se haya anulado o la linea se haya quitado (RN-BO-07, RN-BO-08). Se devuelve como una boleta sin guardar: sin id, serieCorrelativo, fecha ni metodoPago, con el precio del catalogo. En cada insumo, insumoUtilizado.idDetalleCita dice de que servicio de la cita viene.",
+        "operationId": "pendientesBoleta",
+        "parameters": [
+          {
+            "name": "cliente",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Boleta sin guardar con lo pendiente (las listas pueden estar vacias)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Boleta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Falta el parametro cliente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No existe un cliente activo con ese id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/boletas/{id}": {
       "parameters": [
         {
@@ -5481,6 +5543,13 @@
               "idAtencion": {
                 "type": "integer",
                 "example": 1
+              },
+              "idDetalleCita": {
+                "type": "integer",
+                "description": "Servicio de la cita del que viene el insumo. Solo en GET /boletas/pendientes",
+                "example": 1,
+                "nullable": true,
+                "readOnly": true
               }
             },
             "nullable": true

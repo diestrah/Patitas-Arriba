@@ -34,9 +34,10 @@ public final class BoletaMapper {
         dto.setActivo(boleta.isActivo());
         dto.setCliente(boleta.getCliente() != null ? ClienteMapper.toDTO(boleta.getCliente()) : null);
         dto.setSerieCorrelativo(boleta.getSerieCorrelativo());
-        dto.setFecha(boleta.getFecha().toString());
+        // Sin fecha ni metodo de pago: la boleta sin guardar de GET /boletas/pendientes
+        dto.setFecha(boleta.getFecha() != null ? boleta.getFecha().toString() : null);
         dto.setTotal(boleta.getTotal());
-        dto.setMetodoPago(boleta.getMetodoPago().name());
+        dto.setMetodoPago(boleta.getMetodoPago() != null ? boleta.getMetodoPago().name() : null);
 
         List<DetalleBoletaArticuloDTO> detallesArticulo = new ArrayList<>();
         List<DetalleBoletaServicioDTO> detallesServicio = new ArrayList<>();

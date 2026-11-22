@@ -92,6 +92,28 @@ public class DetalleCitaDAOImpl {
             });
     }
 
+    // Servicios ya atendidos de las citas de un cliente que todavia no aparecen en ninguna boleta,
+    // aunque esta se haya anulado (RN-BO-07). Cada detalle trae la cabecera de su cita (mascota).
+    public List<DetalleCita> listarPorCobrarPorCliente(int idCliente) throws SQLException {
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_servicios_por_cobrar_por_cliente(?)}")) {
+                    cmd.setInt("p_id_cliente", idCliente);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<DetalleCita> detalles = new ArrayList<>();
+                        CitaDAOImpl citaDAO = new CitaDAOImpl();
+                        while (rs.next()) {
+                            Cita cita = citaDAO.buscarCabecera(conn, rs.getInt("id_cita"));
+                            if (cita == null) throw new SQLException("No existe la cita activa del detalle " + rs.getInt("id_detalle_cita"));
+                            DetalleCita detalle = mapear(rs);
+                            detalle.setCita(cita);
+                            detalles.add(detalle);
+                        }
+                        return detalles;
+                    }
+                }
+            });
+    }
+
     // Optimizacion de ServicioBLImpl.validarSinCitas: antes esa validacion traia TODAS las citas
     // (con todos sus detalles, cada uno resolviendo su Servicio y Veterinario) solo para filtrarlas
     // en memoria. Aqui el filtro por id_servicio lo hace la base de datos (listar_detalle_cita_por_servicio)

@@ -102,10 +102,10 @@ END //
 
 -- Insumos cobrables de las atenciones activas de un cliente que todavia no se cobran (RN-BO-08).
 -- Cobrado es aparecer en cualquier linea de boleta, aunque la boleta se haya anulado o la linea se
--- haya quitado: por eso el NOT EXISTS no filtra activo
+-- haya quitado: por eso el NOT EXISTS no filtra activo. id_detalle_cita: de que servicio viene
 CREATE PROCEDURE listar_insumos_por_cobrar_por_cliente (IN p_id_cliente INT)
 BEGIN
-    SELECT iu.*
+    SELECT iu.*, a.id_detalle_cita
     FROM insumo_utilizado iu
     JOIN atencion a ON a.id_atencion = iu.id_atencion
     JOIN detalle_cita dc ON dc.id_detalle_cita = a.id_detalle_cita
