@@ -55,7 +55,7 @@
 .login-page [data-state="email"] .dog { animation: hop .8s ease-in-out infinite; }
 .login-page [data-state="email"] .dog.chi2 { animation-delay: .12s; }
 .login-page [data-state="email"] .dog.scottie { animation-delay: .24s; }
-.login-page [data-state="email"] .dog.corgi { animation-delay: .08s; }
+.login-page [data-state="email"] .dog.luna { animation-delay: .08s; }
 .login-page [data-state="email"] .dog.chi3 { animation-delay: .2s; }
 .login-page [data-state="email"] .dog.pug { animation-delay: .32s; }
 .login-page [data-state="email"] .dog.boston { animation: none; }

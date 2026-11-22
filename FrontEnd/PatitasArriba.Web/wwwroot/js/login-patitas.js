@@ -95,7 +95,7 @@
         ${ojo(`${o.cls}-ol`, 'l', CX - e.dx, e.y, e.r, e.lid || c.fur, e.iris)}${ojo(`${o.cls}-or`, 'r', CX + e.dx, e.y, e.r, e.lid || c.fur, e.iris)}
         ${o.brows !== false ? [-1, 1].map(s => `<path class="brow" d="M${CX + s * e.dx - e.r * .8} ${e.y - e.r - 6} Q${CX + s * e.dx} ${e.y - e.r - 12} ${CX + s * e.dx + e.r * .8} ${e.y - e.r - 6}" stroke="${c.brow}" stroke-width="4" fill="none" stroke-linecap="round"/>`).join('') : ''}
         ${o.face || ''}
-        ${boca(ny + 7, o.mouthW || 10, c.mouth || INK)}
+        ${o.mouth ? o.mouth(ny) : boca(ny + 7, o.mouthW || 10, c.mouth || INK)}
         ${nariz(ny, o.noseW || 11, c.nose)}
         ${o.overFace || ''}
         <ellipse class="blush" cx="${CX - e.dx - 6}" cy="${e.y + e.r + 9}" rx="10" ry="6" fill="#f58aa8"/>
@@ -154,16 +154,41 @@
       tail: 'M164 262 C190 252 198 232 192 206', tailW: 11
     });
 
-    // CORGI: naranja con pecho, antifaz y medias blancas, orejotas, collar azul (patitas cortas)
-    const corgi = () => perro({
-      cls: 'corgi', pw: 'down',
-      c: { fur: '#ea8b3d', shade: '#cc6f27', light: '#fff5e6', leg: '#fff5e6', paw: '#fff5e6', nose: '#2a1d17', collar: '#3b82f6', brow: '#b5571a' },
-      head: { cy: 100, rx: 57, ry: 48 }, eyes: { dx: 22, r: 12 }, muzzle: { rx: 27, ry: 19 },
-      sw: 42, hw: 58, legW: 22, legGap: 5, legTop: 226,
-      ear: `<path d="M80 74 L54 -4 C88 4 110 28 116 58Z" fill="#ea8b3d"/><path d="M82 62 L64 12 C86 20 102 36 108 56Z" fill="#f8cdb6"/>`,
-      marks: `<path d="M120 46 Q109 70 113 98 Q84 104 76 138 Q98 156 120 156 Q142 156 164 138 Q156 104 127 98 Q131 70 120 46Z" fill="#fff5e6"/>`,
-      body: `<ellipse cx="120" cy="190" rx="34" ry="50" fill="#fff5e6"/>`,
-      tail: 'M168 262 C186 256 192 244 188 232', tailW: 18
+    // LUNA: poodle toy color albaricoque, pelo enrulado, copete redondo, orejas largas y esponjosas, ojitos negros,
+    // moñito rojo en el cuello y ganchito de moño rojo en la oreja. Su seña: el colmillo de abajo siempre salido
+    const lunaRizos = (puntos, color) => puntos.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${color}"/>`).join('');
+    const lunaMono = (x, y, s, rot) => `<g transform="translate(${x} ${y}) rotate(${rot}) scale(${s})">
+        <path d="M0 0 L-17 -11 Q-21 0 -17 11Z" fill="#d61f2c"/><path d="M0 0 L17 -11 Q21 0 17 11Z" fill="#d61f2c"/>
+        <path d="M-3 0 L-14 -6 M-3 0 L-14 6 M3 0 L14 -6 M3 0 L14 6" stroke="#9f1420" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="-11" cy="-3" r="1.6" fill="#fff" opacity=".85"/><circle cx="12" cy="4" r="1.6" fill="#fff" opacity=".85"/>
+        <rect x="-4.5" y="-5" width="9" height="10" rx="3" fill="#b3121f"/></g>`;
+    const luna = () => perro({
+      cls: 'luna', pw: 'down',
+      c: { fur: '#e3b483', shade: '#c9965f', light: '#f0cfa6', paw: '#ecc497', nose: '#231815', brow: '#b9824c' },
+      head: { cy: 104, rx: 52, ry: 46 }, eyes: { dx: 21, r: 12, iris: '#1c120d' }, muzzle: { rx: 27, ry: 20 },
+      sw: 36, hw: 52, legW: 20, legGap: 5, legTop: 210, noseW: 10, mouthW: 9,
+      // Oreja larga de poodle: un racimo de rizos que cuelga por debajo de la mandíbula
+      ear: lunaRizos([[70, 84, 19], [60, 104, 21], [56, 128, 21], [58, 150, 19], [66, 168, 15], [76, 104, 14], [72, 136, 14]], '#d5a26c') +
+           lunaRizos([[56, 100, 6], [52, 124, 6], [55, 148, 5], [64, 166, 4]], '#c9965f'),
+      // Copete redondo y esponjoso sobre la cabeza
+      behindHead: lunaRizos([[88, 62, 20], [104, 50, 22], [120, 46, 23], [136, 50, 22], [152, 62, 20], [120, 62, 22]], '#e3b483') +
+                  lunaRizos([[100, 44, 5], [120, 38, 5], [140, 44, 5], [92, 56, 4], [148, 56, 4]], '#edc99d'),
+      marks: `<g stroke="#c9965f" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".55">
+                <path d="M96 66 q6 -6 12 0M114 60 q6 -6 12 0M132 66 q6 -6 12 0M104 78 q5 -5 10 0M126 78 q5 -5 10 0"/></g>`,
+      body: `<g stroke="#c9965f" stroke-width="2.6" fill="none" stroke-linecap="round" opacity=".5">
+               <path d="M92 196 q6 -6 12 0M130 188 q6 -6 12 0M106 222 q6 -6 12 0M142 214 q6 -6 12 0M84 236 q6 -6 12 0"/></g>`,
+      // Moñito rojo en el cuello en lugar del collar
+      gear: lunaMono(CX, 166, 1.15, 0),
+      // Su boca: la misma de todos, un poco más abajo para dejar sitio bajo la nariz, con el colmillo de abajo salido
+      // (debe verse siempre, siempre en el mismo lugar). Boca cerrada: la línea de la sonrisa pasa por encima de su base,
+      // así el colmillo asoma desde el labio sin cortar la sonrisa. Boca abierta: va delante y sale del borde de la mandíbula
+      mouth: ny => {
+        const diente = cls => `<path class="colmillo ${cls}" d="M111 ${ny + 19.8} Q110.7 ${ny + 14.4} 113 ${ny + 11} Q116.2 ${ny + 14.4} 116.5 ${ny + 19.6}Z" fill="#fffdf6" stroke="#8a6a4c" stroke-width="1.1" stroke-linejoin="round"/>`;
+        return diente('mouth-closed') + boca(ny + 10, 9, INK) + diente('mouth-open');
+      },
+      // El ganchito de moño rojo en su oreja
+      overFace: lunaMono(74, 78, .82, -24),
+      tail: 'M162 266 C182 258 190 238 186 220 c-2 -12 12 -16 16 -6 c4 10 -8 16 -14 10', tailW: 15
     });
 
     // PUG: crema con antifaz oscuro, orejitas dobladas, frente arrugadita, lengüita siempre afuera, cola enrulada
@@ -388,7 +413,7 @@
       ubicar(chiA(), 465, 478, .62, 50) +                            // sentada arriba del respaldo, frente a la ventana
       ubicar(chiB(), 318, 620, .76) +                                // en el sofá
       ubicar(scottie(), 610, 620, .8) +                              // en el sofá
-      ubicar(corgi(), 320, 942, .96) +                               // en la alfombra
+      ubicar(luna(), 320, 942, .96) +                                // Luna, en la alfombra
       ubicar(chiC(), 640, 946, 1) +                                  // al frente, en la alfombra
       cama.atras + ubicar(pug(), 935, 930, .9, 0) + cama.adelante +  // en su camita
       juguetes;
