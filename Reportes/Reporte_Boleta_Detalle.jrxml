@@ -1,0 +1,75 @@
+<!-- Subreporte (detalle) de la boleta (RF16): servicios y articulos. Lo imprime Reporte_Boleta; se llama con: CALL reporte_detalle_boleta(id_boleta) -->
+<jasperReport name="Reporte_Boleta_Detalle" whenNoDataType="NoPages" language="java" pageWidth="555" pageHeight="842" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="b2e50000-0000-4000-8000-000000000001">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="PatitasArriba"/>
+	<parameter name="id_boleta" class="java.lang.Integer">
+		<description><![CDATA[Boleta cuyo detalle se imprime. Lo envia el reporte maestro; el valor por defecto (1) es solo para la vista previa de Studio]]></description>
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<query language="SQL"><![CDATA[CALL reporte_detalle_boleta($P{id_boleta})]]></query>
+	<field name="tipo" class="java.lang.Integer">
+		<description><![CDATA[1 = servicio, 2 = articulo]]></description>
+	</field>
+	<field name="descripcion" class="java.lang.String"/>
+	<field name="insumo" class="java.lang.Integer">
+		<description><![CDATA[1 = insumo cobrable usado en una atencion, 0 = venta en caja]]></description>
+	</field>
+	<field name="cantidad" class="java.lang.Integer"/>
+	<field name="precio_unitario" class="java.math.BigDecimal"/>
+	<field name="subtotal" class="java.math.BigDecimal"/>
+	<variable name="SUBTOTAL_TIPO" resetType="Group" resetGroup="tipo" calculation="Sum" class="java.math.BigDecimal">
+		<expression><![CDATA[$F{subtotal}]]></expression>
+	</variable>
+	<group name="tipo">
+		<expression><![CDATA[$F{tipo}]]></expression>
+		<groupHeader>
+			<band height="22">
+				<element kind="textField" uuid="b2e50010-0000-4000-8000-000000000001" x="0" y="4" width="555" height="18" forecolor="#325642" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<expression><![CDATA[$F{tipo} == 1 ? "Servicios" : "Artículos"]]></expression>
+				</element>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="24">
+				<element kind="textField" uuid="b2e50011-0000-4000-8000-000000000001" x="315" y="2" width="140" height="18" forecolor="#5B6B62" fontSize="9.5" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[$F{tipo} == 1 ? "Subtotal servicios" : "Subtotal artículos"]]></expression>
+				</element>
+				<element kind="textField" uuid="b2e50011-0000-4000-8000-000000000002" x="455" y="2" width="100" height="18" forecolor="#5B6B62" fontSize="9.5" bold="true" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+					<expression><![CDATA[$V{SUBTOTAL_TIPO}]]></expression>
+				</element>
+			</band>
+		</groupFooter>
+	</group>
+	<background splitType="Stretch"/>
+	<title height="24" splitType="Stretch">
+		<element kind="staticText" uuid="b2e50003-0000-4000-8000-000000000001" x="0" y="2" width="300" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+			<text><![CDATA[Descripción]]></text>
+		</element>
+		<element kind="staticText" uuid="b2e50003-0000-4000-8000-000000000002" x="300" y="2" width="55" height="20" fontSize="10.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Cant.]]></text>
+		</element>
+		<element kind="staticText" uuid="b2e50003-0000-4000-8000-000000000003" x="355" y="2" width="100" height="20" fontSize="10.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[P. unitario]]></text>
+		</element>
+		<element kind="staticText" uuid="b2e50003-0000-4000-8000-000000000004" x="455" y="2" width="100" height="20" fontSize="10.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+			<text><![CDATA[Importe]]></text>
+		</element>
+		<element kind="line" uuid="b2e50003-0000-4000-8000-000000000005" x="0" y="23" width="555" height="1" forecolor="#E4DFCB"/>
+	</title>
+	<detail>
+		<band height="22" splitType="Stretch">
+			<element kind="textField" uuid="b2e50002-0000-4000-8000-000000000001" x="10" y="0" width="290" height="21" textAdjust="StretchHeight" fontSize="10.0" vTextAlign="Middle">
+				<expression><![CDATA[$F{descripcion} + (Integer.valueOf(1).equals($F{insumo}) ? " (insumo de atención)" : "")]]></expression>
+			</element>
+			<element kind="textField" uuid="b2e50002-0000-4000-8000-000000000002" x="300" y="0" width="55" height="21" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle">
+				<expression><![CDATA[$F{cantidad}]]></expression>
+			</element>
+			<element kind="textField" uuid="b2e50002-0000-4000-8000-000000000003" x="355" y="0" width="100" height="21" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+				<expression><![CDATA[$F{precio_unitario}]]></expression>
+			</element>
+			<element kind="textField" uuid="b2e50002-0000-4000-8000-000000000004" x="455" y="0" width="100" height="21" fontSize="10.0" bold="true" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+				<expression><![CDATA[$F{subtotal}]]></expression>
+			</element>
+			<element kind="line" uuid="b2e50002-0000-4000-8000-000000000005" positionType="Float" x="0" y="21" width="555" height="1" forecolor="#E4DFCB"/>
+		</band>
+	</detail>
+</jasperReport>

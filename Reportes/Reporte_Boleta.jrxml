@@ -1,0 +1,146 @@
+<!-- Reporte de boleta de venta (RF16), maestro. Formato Jaspersoft Studio 7.0.8, mismo estilo que Reporte_AgendaDiaria. Se llama con: CALL reporte_boleta(id_boleta); el detalle lo imprime el subreporte Reporte_Boleta_Detalle (CALL reporte_detalle_boleta(id_boleta)) -->
+<jasperReport name="Reporte_Boleta" whenNoDataType="NoDataSection" language="java" pageWidth="595" pageHeight="842" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="b2e40000-0000-4000-8000-000000000001">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="PatitasArriba"/>
+	<parameter name="id_boleta" class="java.lang.Integer">
+		<description><![CDATA[Boleta que se imprime. El valor por defecto (1) es solo para la vista previa de Studio]]></description>
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<parameter name="logo" class="java.awt.Image">
+		<description><![CDATA[Logo de la clinica. Lo envia el servlet; si no llega (vista previa de Studio) se usa imagenes/logo-patitas.png]]></description>
+	</parameter>
+	<parameter name="subreporte" class="java.lang.String">
+		<description><![CDATA[Ruta del subreporte compilado. El servlet envia "reportes/Reporte_Boleta_Detalle.jasper" (classpath); el valor por defecto es para la vista previa de Studio]]></description>
+		<defaultValueExpression><![CDATA["Reporte_Boleta_Detalle.jasper"]]></defaultValueExpression>
+	</parameter>
+	<parameter name="TASA_IGV" class="java.math.BigDecimal">
+		<description><![CDATA[Tasa del IGV. Los precios de la boleta ya la incluyen]]></description>
+		<defaultValueExpression><![CDATA[new java.math.BigDecimal("0.18")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="generado_por" class="java.lang.String">
+		<description><![CDATA[Nombre de quien genera el reporte (opcional)]]></description>
+	</parameter>
+	<query language="SQL"><![CDATA[CALL reporte_boleta($P{id_boleta})]]></query>
+	<field name="id_boleta" class="java.lang.Integer"/>
+	<field name="serie_correlativo" class="java.lang.String"/>
+	<field name="fecha" class="java.sql.Timestamp"/>
+	<field name="total" class="java.math.BigDecimal"/>
+	<field name="metodo_pago" class="java.lang.String"/>
+	<field name="cliente" class="java.lang.String"/>
+	<field name="dni_cliente" class="java.lang.String"/>
+	<field name="telefono_cliente" class="java.lang.String"/>
+	<variable name="OP_GRAVADA" calculation="Nothing" class="java.math.BigDecimal">
+		<description><![CDATA[Valor de venta sin IGV: total / (1 + tasa), redondeado a 2 decimales]]></description>
+		<expression><![CDATA[$F{total}.divide(java.math.BigDecimal.ONE.add($P{TASA_IGV}), 2, java.math.RoundingMode.HALF_UP)]]></expression>
+	</variable>
+	<variable name="IGV" calculation="Nothing" class="java.math.BigDecimal">
+		<description><![CDATA[IGV = total - operacion gravada, para que la suma cuadre siempre con el total]]></description>
+		<expression><![CDATA[$F{total}.subtract($V{OP_GRAVADA})]]></expression>
+	</variable>
+	<background splitType="Stretch"/>
+	<title height="150" splitType="Stretch">
+		<element kind="image" uuid="b2e40003-0000-4000-8000-000000000001" x="0" y="0" width="38" height="38" onErrorType="Blank">
+			<expression><![CDATA[$P{logo} != null ? (Object) $P{logo} : "imagenes/logo-patitas.png"]]></expression>
+		</element>
+		<element kind="staticText" uuid="b2e40003-0000-4000-8000-000000000002" x="48" y="1" width="230" height="24" forecolor="#325642" fontSize="17.0" bold="true">
+			<text><![CDATA[Patitas Arriba]]></text>
+		</element>
+		<element kind="staticText" uuid="b2e40003-0000-4000-8000-000000000003" x="48" y="25" width="230" height="14" forecolor="#5B6B62" fontSize="9.0" bold="true">
+			<text><![CDATA[Clínica veterinaria]]></text>
+		</element>
+		<element kind="staticText" uuid="b2e40003-0000-4000-8000-000000000004" x="290" y="1" width="265" height="24" fontSize="15.0" bold="true" hTextAlign="Right">
+			<text><![CDATA[Boleta de venta]]></text>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000005" x="290" y="25" width="265" height="14" forecolor="#3F6B52" fontSize="10.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA["N.° " + $F{serie_correlativo}]]></expression>
+		</element>
+		<element kind="rectangle" uuid="b2e40003-0000-4000-8000-000000000006" mode="Opaque" x="0" y="46" width="555" height="3" forecolor="#3F6B52" backcolor="#3F6B52">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="rectangle" uuid="b2e40003-0000-4000-8000-000000000010" x="0" y="60" width="272" height="76" radius="8" forecolor="#D8E3D2">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="staticText" uuid="b2e40003-0000-4000-8000-000000000011" x="12" y="66" width="250" height="14" forecolor="#5B6B62" fontSize="9.0" bold="true">
+			<text><![CDATA[CLIENTE]]></text>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000012" x="12" y="82" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>Nombre:</b> " + $F{cliente}]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000013" x="12" y="98" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>DNI:</b> " + ($F{dni_cliente} == null ? "-" : $F{dni_cliente})]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000014" x="12" y="114" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>Teléfono:</b> " + ($F{telefono_cliente} == null ? "-" : $F{telefono_cliente})]]></expression>
+		</element>
+		<element kind="rectangle" uuid="b2e40003-0000-4000-8000-000000000020" x="283" y="60" width="272" height="76" radius="8" forecolor="#D8E3D2">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="staticText" uuid="b2e40003-0000-4000-8000-000000000021" x="295" y="66" width="250" height="14" forecolor="#5B6B62" fontSize="9.0" bold="true">
+			<text><![CDATA[COMPROBANTE]]></text>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000022" x="295" y="82" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>N.° de boleta:</b> " + $F{serie_correlativo}]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000023" x="295" y="98" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>Fecha de emisión:</b> " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format($F{fecha})]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40003-0000-4000-8000-000000000024" x="295" y="114" width="250" height="16" fontSize="10.0" markup="html">
+			<expression><![CDATA["<b>Método de pago:</b> " + ("EFECTIVO".equals($F{metodo_pago}) ? "Efectivo" : "TARJETA_DE_CREDITO".equals($F{metodo_pago}) ? "Tarjeta de crédito" : "TARJETA_DE_DEBITO".equals($F{metodo_pago}) ? "Tarjeta de débito" : "YAPE".equals($F{metodo_pago}) ? "Yape" : $F{metodo_pago})]]></expression>
+		</element>
+	</title>
+	<detail>
+		<band height="104" splitType="Prevent">
+			<element kind="subreport" uuid="b2e40002-0000-4000-8000-000000000001" positionType="Float" x="0" y="4" width="555" height="20">
+				<parameter name="id_boleta">
+					<expression><![CDATA[$F{id_boleta}]]></expression>
+				</parameter>
+				<connectionExpression><![CDATA[$P{REPORT_CONNECTION}]]></connectionExpression>
+				<expression><![CDATA[$P{subreporte}]]></expression>
+			</element>
+			<element kind="frame" uuid="b2e40002-0000-4000-8000-000000000010" positionType="Float" x="0" y="32" width="555" height="72">
+				<element kind="staticText" uuid="b2e40002-0000-4000-8000-000000000011" x="315" y="0" width="140" height="18" forecolor="#5B6B62" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Op. gravada]]></text>
+				</element>
+				<element kind="textField" uuid="b2e40002-0000-4000-8000-000000000012" x="455" y="0" width="100" height="18" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+					<expression><![CDATA[$V{OP_GRAVADA}]]></expression>
+				</element>
+				<element kind="textField" uuid="b2e40002-0000-4000-8000-000000000013" x="315" y="18" width="140" height="18" forecolor="#5B6B62" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA["IGV (" + $P{TASA_IGV}.movePointRight(2).stripTrailingZeros().toPlainString() + " %)"]]></expression>
+				</element>
+				<element kind="textField" uuid="b2e40002-0000-4000-8000-000000000014" x="455" y="18" width="100" height="18" fontSize="10.0" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+					<expression><![CDATA[$V{IGV}]]></expression>
+				</element>
+				<element kind="rectangle" uuid="b2e40002-0000-4000-8000-000000000015" mode="Opaque" x="315" y="42" width="240" height="26" radius="6" forecolor="#D8E3D2" backcolor="#EEF3EA">
+					<pen lineWidth="0.75"/>
+				</element>
+				<element kind="staticText" uuid="b2e40002-0000-4000-8000-000000000016" x="315" y="42" width="140" height="26" forecolor="#325642" fontSize="12.0" bold="true" hTextAlign="Right" vTextAlign="Middle">
+					<text><![CDATA[Total a pagar]]></text>
+				</element>
+				<element kind="textField" uuid="b2e40002-0000-4000-8000-000000000017" x="455" y="42" width="92" height="26" forecolor="#1F2A24" fontSize="12.0" bold="true" hTextAlign="Right" vTextAlign="Middle" pattern="S/ #,##0.00">
+					<expression><![CDATA[$F{total}]]></expression>
+				</element>
+			</element>
+		</band>
+	</detail>
+	<pageFooter height="26" splitType="Stretch">
+		<element kind="line" uuid="b2e40004-0000-4000-8000-000000000001" x="0" y="2" width="555" height="1" forecolor="#E4DFCB"/>
+		<element kind="textField" uuid="b2e40004-0000-4000-8000-000000000002" x="0" y="8" width="400" height="14" forecolor="#5B6B62" fontSize="9.0">
+			<expression><![CDATA["Generado" + ($P{generado_por} != null && !$P{generado_por}.isBlank() ? " por " + $P{generado_por} : "") + " · " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date())]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40004-0000-4000-8000-000000000003" x="455" y="8" width="80" height="14" forecolor="#5B6B62" fontSize="9.0" hTextAlign="Right">
+			<expression><![CDATA["Página " + $V{PAGE_NUMBER} + " de"]]></expression>
+		</element>
+		<element kind="textField" uuid="b2e40004-0000-4000-8000-000000000004" x="535" y="8" width="20" height="14" forecolor="#5B6B62" fontSize="9.0" evaluationTime="Report">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="40" splitType="Stretch">
+		<element kind="staticText" uuid="b2e40005-0000-4000-8000-000000000001" x="0" y="12" width="555" height="18" forecolor="#5B6B62" fontSize="10.0" italic="true" hTextAlign="Center">
+			<text><![CDATA[Gracias por confiar en Patitas Arriba.]]></text>
+		</element>
+	</summary>
+	<noData height="60">
+		<element kind="staticText" uuid="b2e40006-0000-4000-8000-000000000001" x="0" y="20" width="555" height="22" fontSize="12.0" bold="true" hTextAlign="Center">
+			<text><![CDATA[La boleta no existe o está anulada.]]></text>
+		</element>
+	</noData>
+</jasperReport>

@@ -29,7 +29,7 @@ public class AtencionResource {
         atencionBL = new AtencionBLImpl();
     }
 
-    // RF16: GET /atenciones?mascota={id} es el historial clinico de una mascota (orden cronologico)
+    // RF15: GET /atenciones?mascota={id} es el historial clinico de una mascota (orden cronologico)
     @GET
     public Response findAll(@QueryParam("mascota") Integer idMascota) {
         try {

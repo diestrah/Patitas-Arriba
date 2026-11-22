@@ -30,8 +30,8 @@ Sistema de gestión para una clínica veterinaria de perros y gatos: clientes y 
 
 1. **Solicitud (RF10, RF11).** El cliente (o el administrador en su nombre) registra una cita para una mascota, con fecha, hora y uno o más servicios. Para cada servicio elige un veterinario que atienda en ese horario e indica si es una emergencia. La cita queda **PENDIENTE**.
 2. **Revisión (RF11).** El administrador la **aprueba** o la **rechaza**. El cliente o el administrador pueden **cancelarla** mientras no tenga servicios atendidos.
-3. **Atención (RF14, RF15).** Con la cita APROBADO, el veterinario asignado registra la atención de cada servicio: motivo, observaciones, diagnósticos e insumos utilizados, que se descuentan del stock. Si corresponde, emite una **receta**. Una emergencia se atiende de inmediato, aunque siga PENDIENTE.
-4. **Pago en caja (RF18).** El administrador emite la **boleta** al dueño de la mascota con los servicios ya atendidos, los insumos cobrables y los artículos que compre en caja, que se descuentan del stock.
+3. **Atención (RF13, RF14).** Con la cita APROBADO, el veterinario asignado registra la atención de cada servicio: motivo, observaciones, diagnósticos e insumos utilizados, que se descuentan del stock. Si corresponde, emite una **receta**. Una emergencia se atiende de inmediato, aunque siga PENDIENTE.
+4. **Pago en caja (RF17).** El administrador emite la **boleta** al dueño de la mascota con los servicios ya atendidos, los insumos cobrables y los artículos que compre en caja, que se descuentan del stock.
 5. **Cierre (RF11).** Cuando todos los servicios de la cita tienen su atención (las anuladas cuentan como servicios no realizados), el administrador marca la cita como **COMPLETADO**.
 
 ```
@@ -188,7 +188,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 
 ---
 
-## 9. Citas (RF10, RF11, RF13)
+## 9. Citas (RF10, RF11, RF12)
 
 ### 9.1 Registro
 
@@ -222,12 +222,12 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 
 | Código | Regla |
 |---|---|
-| RN-CI-14 | Se pueden consultar las citas de un cliente (ordenadas por fecha) y las citas de un día (ordenadas por hora), opcionalmente solo las de un veterinario. El reporte de agenda diaria (RF13) se arma con estas últimas. |
+| RN-CI-14 | Se pueden consultar las citas de un cliente (ordenadas por fecha) y las citas de un día (ordenadas por hora), opcionalmente solo las de un veterinario. El reporte de agenda diaria (RF12) se arma con estas últimas. |
 | RN-CI-15 | **[Rol]** El cliente registra, modifica y cancela las citas de sus mascotas, pero **no registra emergencias**: la cita de emergencia solo la registra el administrador (lo aplica el frontend; propuesta pendiente del JP). El administrador además las aprueba, rechaza y completa. El veterinario solo consulta y filtra su agenda diaria. |
 
 ---
 
-## 10. Atención (RF14)
+## 10. Atención (RF13)
 
 | Código | Regla |
 |---|---|
@@ -245,7 +245,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 
 ---
 
-## 11. Recetas (RF15, RF17)
+## 11. Recetas (RF14)
 
 | Código | Regla |
 |---|---|
@@ -257,7 +257,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 
 ---
 
-## 12. Historial clínico (RF16)
+## 12. Historial clínico (RF15)
 
 | Código | Regla |
 |---|---|
@@ -266,7 +266,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 
 ---
 
-## 13. Pago en caja: boletas (RF18)
+## 13. Pago en caja: boletas (RF17)
 
 Una boleta puede combinar tres tipos de línea:
 
@@ -335,8 +335,8 @@ Consultas de los requisitos:
 | RF02, RF04, RF05 | `POST /clientes/con-cuenta`, `POST /veterinarios/con-cuenta`, `POST /administradores/con-cuenta`: igual que el `POST` de cada uno, pero sin `cuenta.id`; solo `cuenta.correo` (RN-AC-07) |
 | RF03 | `GET /mascotas?cliente={id}` |
 | RF10 | `GET /citas?cliente={id}` |
-| RF11, RF13 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
-| RF16 | `GET /atenciones?mascota={id}` y `GET /recetas?atencion={id}` |
+| RF11, RF12 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
+| RF15 | `GET /atenciones?mascota={id}` y `GET /recetas?atencion={id}` |
 
 ---
 
@@ -345,5 +345,4 @@ Consultas de los requisitos:
 | Requisito | Dónde se resuelve |
 |---|---|
 | RF01 (cerrar sesión y restringir módulos por rol) | Frontend, con el `rol` que devuelve `POST /login` (RN-CU-04). |
-| RF12 (recordatorios por correo 24 h antes) | No implementado. El servicio de correo ya existe (`CorreoService`, RN-AC-09); falta el proceso programado, que puede usar las citas de un día (RN-CI-14). |
-| RF13, RF16, RF17, RF18 (reportes e impresión) | Frontend, con las consultas de §15. |
+| RF12, RF15, RF16 (reportes de agenda diaria, historial clínico y boleta) | Backend, módulo `patitasarriba-reportes`: un servlet por reporte (`GET /reportes/...`) que llena el `.jasper` con los procedures de `sql/procedures-reportes.sql`. Los diseños están en `Reportes/`. |

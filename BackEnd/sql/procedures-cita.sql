@@ -101,7 +101,7 @@ BEGIN
 END //
 
 -- Citas activas con fecha_hora en [p_desde, p_hasta). Con p_id_veterinario, solo las que tienen
--- algun servicio activo con ese veterinario; con NULL, de todos (RF11, RF13 y cruces de agenda)
+-- algun servicio activo con ese veterinario; con NULL, de todos (RF11, RF12 y cruces de agenda)
 CREATE PROCEDURE listar_cita_por_rango (
     IN p_desde DATETIME,
     IN p_hasta DATETIME,

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace PatitasArriba.Web.ViewModels {
-    // Auto-registro de un cliente (RF19). Al enlazar: POST /acceso/registro; la cuenta se crea al abrir el enlace del correo.
+    // Auto-registro de un cliente (RF18). Al enlazar: POST /acceso/registro; la cuenta se crea al abrir el enlace del correo.
     // Las reglas son las del backend (RN-AC-01): DNI de 8 dígitos, teléfono de 9 y contraseña de al menos 8 caracteres.
     public class RegistroViewModel {
         [Required(ErrorMessage = "El DNI es obligatorio")]

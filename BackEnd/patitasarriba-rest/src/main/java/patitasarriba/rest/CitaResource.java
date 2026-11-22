@@ -32,7 +32,7 @@ public class CitaResource {
     }
 
     // RF10: GET /citas?cliente={id} lista las citas de las mascotas de un cliente.
-    // RF11, RF13: GET /citas?fecha=AAAA-MM-DD[&veterinario={id}] es la agenda de un dia.
+    // RF11, RF12: GET /citas?fecha=AAAA-MM-DD[&veterinario={id}] es la agenda de un dia.
     @GET
     public Response findAll(@QueryParam("cliente") Integer idCliente,
                             @QueryParam("fecha") String fecha,

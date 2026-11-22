@@ -370,7 +370,7 @@ public class Tester {
         campo("rol", personaVet.getClass().getSimpleName() + " (id " + personaVet.getId() + ")");
         verificar("el login devuelve al veterinario", personaVet instanceof Veterinario);
 
-        // ------------------------------------------------------------ CITA PROGRAMADA (RF10, RF11, RF13)
+        // ------------------------------------------------------------ CITA PROGRAMADA (RF10, RF11, RF12)
         tituloSeccion("CITA PROGRAMADA");
 
         LocalDate manana = LocalDate.now().plusDays(1);
@@ -478,7 +478,7 @@ public class Tester {
         DetalleCita detalleConsulta = buscarDetalle(citaBL.findById(cita.getId()), consulta.getNombre());
         DetalleCita detalleBano = buscarDetalle(citaBL.findById(cita.getId()), bano.getNombre());
 
-        // ------------------------------------------------------------ ATENCION (RF14)
+        // ------------------------------------------------------------ ATENCION (RF13)
         tituloSeccion("ATENCION");
 
         regla("Diagnostico en el servicio estetico 'Bano y corte'", () -> {
@@ -534,7 +534,7 @@ public class Tester {
         bloque("UPDATE (aprobar la emergencia)");
         campo("estado", "PENDIENTE -> " + citaBL.findById(cita.getId()).getEstado());
 
-        // ------------------------------------------------------------ RECETA (RF15, RF17)
+        // ------------------------------------------------------------ RECETA (RF14)
         tituloSeccion("RECETA");
 
         Receta receta = new Receta();
@@ -560,7 +560,7 @@ public class Tester {
         regla("Anular la atencion de 'Consulta' (tiene receta)", () -> atencionBL.delete(atencionConsulta.getId()));
         mostrarReglas();
 
-        // ------------------------------------------------------------ MODIFICAR Y ANULAR ATENCIONES (RF14)
+        // ------------------------------------------------------------ MODIFICAR Y ANULAR ATENCIONES (RF13)
         tituloSeccion("MODIFICAR Y ANULAR ATENCIONES");
 
         Atencion modificada = atencionBL.findById(atencionConsulta.getId());
@@ -600,7 +600,7 @@ public class Tester {
         });
         mostrarReglas();
 
-        // ------------------------------------------------------------ HISTORIAL CLINICO (RF16)
+        // ------------------------------------------------------------ HISTORIAL CLINICO (RF15)
         tituloSeccion("HISTORIAL CLINICO DE " + luna.getNombre().toUpperCase());
 
         List<Atencion> historial = atencionBL.findByMascota(luna.getId());
@@ -621,7 +621,7 @@ public class Tester {
         verificar("el historial tiene la atencion de la consulta (la anulada no aparece)",
                 historial.size() == 1 && historial.get(0).getId() == atencionConsulta.getId());
 
-        // ------------------------------------------------------------ BOLETA (RF18)
+        // ------------------------------------------------------------ BOLETA (RF17)
         tituloSeccion("BOLETA");
 
         regla("Cobrar el bano (su atencion se anulo)", () -> {

@@ -1,0 +1,36 @@
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 7.0.8-6f896111  -->
+<jasperReport name="Reporte_HistorialClinico_Detalle" language="java" pageWidth="555" pageHeight="842" whenNoDataType="NoPages" columnWidth="555" leftMargin="0" rightMargin="0" topMargin="0" bottomMargin="0" uuid="b2e30000-0000-4000-8000-000000000001">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="PatitasArriba"/>
+	<parameter name="id_atencion" class="java.lang.Integer">
+		<description><![CDATA[Atencion cuyo detalle se imprime. Lo envia el reporte maestro; el valor por defecto (1) es solo para la vista previa de Studio]]></description>
+		<defaultValueExpression><![CDATA[1]]></defaultValueExpression>
+	</parameter>
+	<query language="SQL"><![CDATA[CALL reporte_detalle_historial($P{id_atencion})]]></query>
+	<field name="seccion" class="java.lang.Integer">
+		<description><![CDATA[1 = diagnosticos, 2 = insumos utilizados, 3 = receta]]></description>
+	</field>
+	<field name="descripcion" class="java.lang.String"/>
+	<field name="detalle" class="java.lang.String"/>
+	<group name="seccion">
+		<expression><![CDATA[$F{seccion}]]></expression>
+		<groupFooter>
+			<band height="2"/>
+		</groupFooter>
+	</group>
+	<background splitType="Stretch"/>
+	<detail>
+		<band height="16" splitType="Stretch">
+			<element kind="textField" uuid="b2e30002-0000-4000-8000-000000000001" x="10" y="0" width="95" height="16" forecolor="#5B6B62" fontSize="9.5" bold="true">
+				<printWhenExpression><![CDATA[$V{seccion_COUNT} == 1]]></printWhenExpression>
+				<expression><![CDATA[$F{seccion} == 1 ? "Diagnósticos" : $F{seccion} == 2 ? "Insumos" : "Receta"]]></expression>
+			</element>
+			<element kind="textField" uuid="b2e30002-0000-4000-8000-000000000002" x="110" y="0" width="200" height="16" fontSize="10.0" textAdjust="StretchHeight">
+				<expression><![CDATA[$F{descripcion} != null ? "• " + $F{descripcion} : $F{seccion} == 1 ? "Sin diagnósticos registrados" : $F{seccion} == 2 ? "Sin insumos utilizados" : "Sin receta"]]></expression>
+			</element>
+			<element kind="textField" uuid="b2e30002-0000-4000-8000-000000000003" x="315" y="0" width="240" height="16" forecolor="#5B6B62" fontSize="10.0" textAdjust="StretchHeight">
+				<printWhenExpression><![CDATA[$F{detalle} != null && !$F{detalle}.isBlank()]]></printWhenExpression>
+				<expression><![CDATA[$F{seccion} == 1 ? "Gravedad: " + $F{detalle}.substring(0, 1) + $F{detalle}.substring(1).toLowerCase() : $F{detalle}]]></expression>
+			</element>
+		</band>
+	</detail>
+</jasperReport>

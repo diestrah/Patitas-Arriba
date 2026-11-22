@@ -121,7 +121,8 @@
     private List<string> Veterinarios { get; set; } = [];
     private Dictionary<string, int> IdVeterinarios { get; set; } = [];
 
-    // RF13 con JasperReports: el navegador abre el PDF directo en el back (Reportes:BaseUrl, como el profesor)
+    // RF12 con JasperReports: el navegador abre el PDF directo en el servlet del modulo patitasarriba-reportes
+    // (Reportes:BaseUrl = contexto de ese .war, como en el proyecto del profesor)
     // GET /reportes/agenda-diaria?fecha=AAAA-MM-DD[&veterinario={id}][&generadoPor={nombre}]
     private string UrlReporte {
         get {
