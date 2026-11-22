@@ -3330,7 +3330,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "RF13: junto con fecha, solo las citas con algun servicio de ese veterinario (su agenda)",
+            "description": "RF12: junto con fecha, solo las citas con algun servicio de ese veterinario (su agenda)",
             "example": 3
           }
         ],

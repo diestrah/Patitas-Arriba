@@ -228,7 +228,7 @@ else {
         return Recetas.FirstOrDefault(r => r.IdAtencion == atencion.Id);
     }
 
-    // Solo el veterinario que hizo la atención puede modificarla (RF14, RF15)
+    // Solo el veterinario que hizo la atención puede modificarla (RF13, RF14)
     private bool EsMia(AtencionViewModel atencion) {
         return atencion.IdVeterinario == Sesion.IdPersona;
     }

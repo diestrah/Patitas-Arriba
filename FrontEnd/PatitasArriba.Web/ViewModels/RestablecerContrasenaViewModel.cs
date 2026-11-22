@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace PatitasArriba.Web.ViewModels {
-    // Contraseña nueva con el enlace del correo (RF20), también para activar una cuenta creada por el administrador.
+    // Contraseña nueva con el enlace del correo (RF19), también para activar una cuenta creada por el administrador.
     // Al enlazar: POST /acceso/recuperacion/restablecer con el token del enlace
     public class RestablecerContrasenaViewModel {
         [Required(ErrorMessage = "La contraseña es obligatoria")]

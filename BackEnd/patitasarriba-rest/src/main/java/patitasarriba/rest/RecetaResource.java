@@ -29,7 +29,7 @@ public class RecetaResource {
         recetaBL = new RecetaBLImpl();
     }
 
-    // RF16, RF17: GET /recetas?atencion={id} lista las recetas emitidas en una atencion
+    // RF15: GET /recetas?atencion={id} lista las recetas emitidas en una atencion
     @GET
     public Response findAll(@QueryParam("atencion") Integer idAtencion) {
         try {

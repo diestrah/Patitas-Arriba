@@ -1,6 +1,6 @@
 # Propuesta de login (rama `propuesta-login`)
 
-**Estado:** propuesta para revisar. **No mezclar con `main` hasta tener la aprobación del JP**: agrega requerimientos nuevos (RF19 y RF20) y modifica RF01, RF02, RF04 y RF05.
+**Estado:** propuesta para revisar. **No mezclar con `main` hasta tener la aprobación del JP**: agrega requerimientos nuevos (RF18 y RF19) y modifica RF01, RF02, RF04 y RF05.
 
 Reglas completas: `REGLAS-DE-NEGOCIO.md` §4.1 (RN-AC-01 a 09).
 
@@ -51,4 +51,4 @@ Sin configurar nada, los correos **no se envían**: se imprimen en la consola de
 - Las pantallas del front funcionan en **modo demostración**: aún no llaman a la API.
 - Sin límite de intentos ni captcha en el registro público.
 - Las contraseñas siguen con SHA-256 sin sal (cumple RNF05; BCrypt sería lo recomendable).
-- Informe: hay ajustes pendientes (RF19 y RF20, RF01/02/04/05, RNF05 y RNF08, diagramas de clases y físico, anexos).
+- Informe: hay ajustes pendientes (RF18 y RF19, RF01/02/04/05, RNF05 y RNF08, diagramas de clases y físico, anexos).

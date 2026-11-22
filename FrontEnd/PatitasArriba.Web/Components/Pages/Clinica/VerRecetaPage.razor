@@ -9,7 +9,7 @@
 
 <div class="d-flex gap-2 mb-3 no-print">
     <a class="btn btn-outline-primary btn-texto" href="recetas"><Icono Nombre="arrow-left" /><span>Volver</span></a>
-    @* Solo el veterinario que emitió la receta puede editarla (RF15) *@
+    @* Solo el veterinario que emitió la receta puede editarla (RF14) *@
     @if (Receta?.IdVeterinario == Sesion.IdPersona) {
         <a class="btn btn-outline-primary btn-texto" href="@($"recetas/editar/{Id}")"><Icono Nombre="edit" /><span>Editar</span></a>
     }

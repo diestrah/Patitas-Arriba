@@ -1,0 +1,3 @@
+# Studio compila los .jasper junto al .jrxml; el backend usa sus propias copias en patitasarriba-rest/src/main/resources/reportes
+*.jasper
+bin/

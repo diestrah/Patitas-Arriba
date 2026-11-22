@@ -80,7 +80,7 @@ namespace PatitasArriba.Web.Datos {
         }
 
         // Servicios de hoy de un veterinario: programados (detalles de las citas de hoy que no fueron
-        // rechazadas ni canceladas) y ya atendidos (con atención registrada). Agenda de RF11 y RF13.
+        // rechazadas ni canceladas) y ya atendidos (con atención registrada). Agenda de RF11 y RF12.
         public static (int Programados, int Atendidos) ServiciosDeHoy(int idVeterinario, IEnumerable<CitaViewModel> citasDeHoy, ISet<int> detallesAtendidos) {
             List<DetalleCitaViewModel> suyos = citasDeHoy
                 .Where(c => c.Estado != EstadoCita.RECHAZADO && c.Estado != EstadoCita.CANCELADO)
