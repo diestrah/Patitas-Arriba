@@ -45,8 +45,8 @@
         <div class="indicador indicador-terracota">
             <span class="indicador-icono"><Icono Nombre="paw" /></span>
             @if (AgendaDisponible) {
-                <span class="indicador-valor">@ServiciosHoy servicios hoy</span>
-                <span class="indicador-texto">@AtendidosHoy atendidos · @(ServiciosHoy - AtendidosHoy) pendientes</span>
+                <span class="indicador-valor">@ServiciosHoy servicio@(ServiciosHoy == 1 ? "" : "s") hoy</span>
+                <span class="indicador-texto">@AtendidosHoy atendido@(AtendidosHoy == 1 ? "" : "s") · @(ServiciosHoy - AtendidosHoy) pendiente@(ServiciosHoy - AtendidosHoy == 1 ? "" : "s")</span>
             } else {
                 <span class="indicador-valor">—</span>
                 <span class="indicador-texto">No se pudo cargar la agenda de hoy</span>
