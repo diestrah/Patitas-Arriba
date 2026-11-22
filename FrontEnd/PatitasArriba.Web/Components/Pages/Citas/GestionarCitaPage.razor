@@ -69,8 +69,8 @@
             <div class="form-text mb-2">El estado cambia con Aprobar, Rechazar, Completar o Cancelar cita en el listado.</div>
         }
 
+        @* Sin servicios, ServiciosCita ya muestra «Agregue al menos un servicio» y la validación del ViewModel impide guardar *@
         <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos" />
-        <ValidationMessage For="() => ViewModel.Detalles" />
 
         <div class="d-flex gap-2 mt-3">
             <button tabindex="5" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
