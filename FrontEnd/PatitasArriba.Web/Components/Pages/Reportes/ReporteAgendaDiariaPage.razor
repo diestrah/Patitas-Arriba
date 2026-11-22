@@ -1,6 +1,6 @@
 @page "/reportes/agenda-diaria"
 @attribute [Authorize(Policy = "ReporteAgenda")]
-@inject IJSRuntime JS;
+@inject IConfiguration Configuration;
 @inject SesionDemo Sesion;
 @inject ICitaService CitaService;
 @inject IServicioService ServicioService;
@@ -23,7 +23,7 @@
             <option value="@nombre">@nombre</option>
         }
     </select>
-    <button tabindex="3" class="btn btn-secondary btn-texto ms-auto" disabled="@Cargando" @onclick="() => Imprimir()"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
+    <a tabindex="3" class="btn btn-secondary btn-texto ms-auto @(Cargando ? "disabled" : "")" aria-disabled="@Cargando" target="_blank" rel="noopener" href="@UrlReporte"><Icono Nombre="file-text" /><span>Descargar PDF</span></a>
 </div>
 
 @if (MensajeError != null) {
@@ -119,6 +119,21 @@
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
     private HashSet<int> Atendidos { get; set; } = [];
     private List<string> Veterinarios { get; set; } = [];
+    private Dictionary<string, int> IdVeterinarios { get; set; } = [];
+
+    // RF13 con JasperReports: el navegador abre el PDF directo en el back (Reportes:BaseUrl, como el profesor)
+    // GET /reportes/agenda-diaria?fecha=AAAA-MM-DD[&veterinario={id}][&generadoPor={nombre}]
+    private string UrlReporte {
+        get {
+            string baseUrl = Configuration["Reportes:BaseUrl"]?.TrimEnd('/') ?? "";
+            string url = $"{baseUrl}/reportes/agenda-diaria?fecha={Fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
+                + $"&generadoPor={Uri.EscapeDataString(Sesion.NombreUsuario ?? "")}";
+            if (FiltroVeterinario != "Todos" && IdVeterinarios.TryGetValue(FiltroVeterinario, out int idVeterinario)) {
+                url += $"&veterinario={idVeterinario}";
+            }
+            return url;
+        }
+    }
 
     private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
     private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
@@ -135,7 +150,11 @@
             Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
             Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
             Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
-            Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
+            List<VeterinarioViewModel> listaVeterinarios = await veterinarios;
+            Veterinarios = listaVeterinarios.Select(v => v.NombreCompleto).ToList();
+            foreach (VeterinarioViewModel v in listaVeterinarios) {
+                IdVeterinarios.TryAdd(v.NombreCompleto, v.Id);
+            }
             Servicios = await servicios;
             Atendidos = (await atenciones).Keys.ToHashSet();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
@@ -168,10 +187,5 @@
 
     private int Contar(EstadoServicioAgenda estado) {
         return Agenda.Count(i => AgendaTexto.De(i, Atendidos) == estado);
-    }
-
-    // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF
-    private async Task Imprimir() {
-        await JS.InvokeVoidAsync("print");
     }
 }
