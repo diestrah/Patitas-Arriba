@@ -70,7 +70,8 @@
         }
 
         @* Sin servicios, ServiciosCita ya muestra «Agregue al menos un servicio» y la validación del ViewModel impide guardar *@
-        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos" />
+        <ServiciosCita Detalles="ViewModel.Detalles" Servicios="Servicios" Veterinarios="Veterinarios" Atendidos="Atendidos"
+                       IdServicioSugerido="IdServicioSugerido" />
 
         <div class="d-flex gap-2 mt-3">
             <button tabindex="5" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
@@ -97,6 +98,17 @@
     private bool Guardando { get; set; }
 
     private IEnumerable<MascotaViewModel> MascotasDelClienteElegido => Mascotas.Where(m => m.IdCliente == ViewModel.IdCliente);
+
+    // En una cita nueva de emergencia se sugiere el servicio de tipo EMERGENCIA (se busca por tipo, no por nombre)
+    private int IdServicioSugerido {
+        get {
+            if (Id != null || !ViewModel.EsEmergencia) {
+                return 0;
+            }
+            ServicioViewModel? emergencia = Servicios.Find(s => s.TipoServicio == TipoServicio.EMERGENCIA);
+            return emergencia != null ? emergencia.Id : 0;
+        }
+    }
 
     // GET /clientes, /mascotas, /servicios y /veterinarios para los selectores; al editar, GET /citas/{Id}
     // y GET /atenciones (un servicio ya atendido no se puede quitar)
