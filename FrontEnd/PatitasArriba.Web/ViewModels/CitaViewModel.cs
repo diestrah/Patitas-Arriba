@@ -34,6 +34,12 @@ namespace PatitasArriba.Web.ViewModels {
         // RN-CI-08: RECHAZADO, CANCELADO y COMPLETADO son estados finales
         public bool EsModificable => Estado == EstadoCita.PENDIENTE || Estado == EstadoCita.APROBADO;
 
+        // Una emergencia se atiende al llegar el paciente: toma la fecha y hora actual (sin segundos)
+        public void AsignarFechaEmergencia() {
+            DateTime ahora = DateTime.Now;
+            FechaHora = new DateTime(ahora.Year, ahora.Month, ahora.Day, ahora.Hour, ahora.Minute, 0);
+        }
+
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
             // RN-CI-03 y RN-CI-07: una cita nueva no puede estar en el pasado (emergencia: hasta 1 hora antes)
             if (Id == 0 && FechaHora != null) {

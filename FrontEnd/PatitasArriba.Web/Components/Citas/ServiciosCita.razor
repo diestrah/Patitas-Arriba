@@ -71,9 +71,22 @@ else {
     [Parameter]
     public HashSet<int> Atendidos { get; set; } = [];
 
+    // Servicio que se deja elegido en el selector (por ejemplo, el de emergencia); 0 si no hay sugerencia
+    [Parameter]
+    public int IdServicioSugerido { get; set; }
+
     private int IdServicioAgregar { get; set; }
+    private int SugerenciaAplicada { get; set; }
     private int IdVeterinarioAgregar { get; set; }
     private string? MensajeError { get; set; }
+
+    // La sugerencia se aplica solo cuando cambia: así no se pisa lo que el usuario eligió después
+    protected override void OnParametersSet() {
+        if (IdServicioSugerido != SugerenciaAplicada) {
+            IdServicioAgregar = IdServicioSugerido;
+            SugerenciaAplicada = IdServicioSugerido;
+        }
+    }
 
     private void AgregarServicio() {
         ServicioViewModel? servicio = Servicios.Find(s => s.Id == IdServicioAgregar);
