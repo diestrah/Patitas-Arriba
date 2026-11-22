@@ -60,7 +60,7 @@
             <div class="col-md-3 mb-3">
                 @* Una cita no pasa de normal a emergencia ni al revés (RN-CI-07) *@
                 <div class="form-check">
-                    <InputCheckbox tabindex="4" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" disabled="@(Id != null)" />
+                    <InputCheckbox tabindex="4" id="es-emergencia" class="form-check-input" @bind-Value="ViewModel.EsEmergencia" @bind-Value:after="CambiarEmergencia" disabled="@(Id != null)" />
                     <label class="form-check-label" for="es-emergencia">Es emergencia</label>
                 </div>
             </div>
@@ -137,6 +137,14 @@
     // Al cambiar de cliente se limpia la mascota elegida
     private void CambiarCliente() {
         ViewModel.IdMascota = 0;
+    }
+
+    // Al marcar una cita nueva como emergencia, la fecha y hora pasa a la actual.
+    // Al desmarcarla no se deshace nada
+    private void CambiarEmergencia() {
+        if (Id == null && ViewModel.EsEmergencia) {
+            ViewModel.AsignarFechaEmergencia();
+        }
     }
 
     // POST /citas (queda PENDIENTE) o PUT /citas/{Id}. El backend revisa el horario de cada veterinario
