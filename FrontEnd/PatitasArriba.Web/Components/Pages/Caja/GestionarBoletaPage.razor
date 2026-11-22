@@ -28,21 +28,21 @@
                 <div class="card-body">
                     @* Con muchos clientes una lista desplegable no es práctica: se busca por DNI (GET /clientes?dni=...) *@
                     <label class="form-label" for="dni-buscar">DNI del cliente</label>
-                    <div class="input-group">
-                        <input id="dni-buscar" tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
-                               @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
-                        <button tabindex="2" type="button" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => BuscarCliente()">
-                            <Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span>
+                    @* Junto a Buscar: si el cliente no está registrado se registra aquí mismo, sin salir de la boleta *@
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="input-group flex-grow-1 w-auto">
+                            <input id="dni-buscar" tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
+                                   @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
+                            <button tabindex="2" type="button" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => BuscarCliente()">
+                                <Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span>
+                            </button>
+                        </div>
+                        <button tabindex="3" type="button" class="btn btn-outline-primary btn-texto" @onclick="AbrirRegistro">
+                            <Icono Nombre="plus" /><span>Nuevo cliente</span>
                         </button>
                     </div>
                     @if (MensajeCliente != null) {
                         <div class="validation-message mt-1">@MensajeCliente</div>
-                    }
-                    @* Si el DNI no está registrado, se puede registrar al cliente aquí mismo sin salir de la boleta *@
-                    @if (DniNoEncontrado != null) {
-                        <button tabindex="3" type="button" class="btn btn-outline-primary btn-texto mt-2" @onclick="AbrirRegistro">
-                            <Icono Nombre="plus" /><span>Registrar cliente nuevo</span>
-                        </button>
                     }
                     @if (AvisoCliente != null) {
                         <div class="alert alert-warning mt-3 mb-0">@AvisoCliente</div>
@@ -149,7 +149,7 @@
 </EditForm>
 
 @* Fuera del EditForm de la boleta: el modal tiene su propio formulario y no se pueden anidar *@
-<RegistroClienteDialogo Visible="RegistrandoCliente" Dni="@(DniNoEncontrado ?? "")"
+<RegistroClienteDialogo Visible="RegistrandoCliente" Dni="@DniRegistro"
                         OnRegistrado="ClienteRegistrado" OnCancelar="CerrarRegistro" />
 
 @code {
@@ -165,8 +165,8 @@
 
     private string DniBuscar { get; set; } = "";
     private string? MensajeCliente { get; set; }
-    // DNI buscado que no está registrado (muestra el botón para registrarlo) y aviso tras registrarlo
-    private string? DniNoEncontrado { get; set; }
+    // Registro rápido de un cliente: DNI con el que se abre el modal y aviso tras registrarlo
+    private string DniRegistro { get; set; } = "";
     private string? AvisoCliente { get; set; }
     private bool RegistrandoCliente { get; set; }
     private int IdArticuloAgregar { get; set; }
@@ -206,7 +206,6 @@
     private async Task BuscarCliente() {
         if (Buscando) return;
         MensajeCliente = null;
-        DniNoEncontrado = null;
         AvisoCliente = null;
         string dni = DniBuscar.Trim();
         if (dni.Length != 8 || !dni.All(char.IsDigit)) {
@@ -217,8 +216,7 @@
         try {
             ClienteViewModel? cliente = await ClienteService.FindByDni(dni);
             if (cliente == null) {
-                MensajeCliente = $"No hay un cliente activo con el DNI {dni}.";
-                DniNoEncontrado = dni;
+                MensajeCliente = $"No hay un cliente activo con el DNI {dni}. Puede registrarlo con «Nuevo cliente».";
                 return;
             }
             await SeleccionarCliente(cliente);
@@ -251,7 +249,10 @@
         Contexto.NotifyValidationStateChanged();
     }
 
+    // Si ya se escribió un DNI válido, el modal se abre con él
     private void AbrirRegistro() {
+        string dni = DniBuscar.Trim();
+        DniRegistro = dni.Length == 8 && dni.All(char.IsDigit) ? dni : "";
         RegistrandoCliente = true;
     }
 
@@ -263,7 +264,6 @@
     private async Task ClienteRegistrado(RegistroClienteDialogo.Resultado resultado) {
         RegistrandoCliente = false;
         MensajeCliente = null;
-        DniNoEncontrado = null;
         AvisoCliente = resultado.Aviso;
         DniBuscar = resultado.Cliente.Dni;
         try {
