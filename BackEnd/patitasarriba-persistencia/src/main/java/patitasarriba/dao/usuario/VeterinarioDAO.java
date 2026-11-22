@@ -7,6 +7,10 @@ import java.sql.SQLException;
 
 public interface VeterinarioDAO extends DAO<Veterinario, Integer> {
     Veterinario findByDni(String dni) throws SQLException;
+    // telefono es UNIQUE: no filtra activo
+    Veterinario findByTelefono(String telefono) throws SQLException;
+    // numeroColegiatura es UNIQUE: no filtra activo
+    Veterinario findByColegiatura(String numeroColegiatura) throws SQLException;
     // RF01: persona duena de la cuenta (no filtra activo)
     Veterinario findByCuenta(Integer idCuenta) throws SQLException;
 }

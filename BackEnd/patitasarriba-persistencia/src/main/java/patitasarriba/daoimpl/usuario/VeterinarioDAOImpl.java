@@ -30,6 +30,42 @@ public class VeterinarioDAOImpl extends BaseDAOImpl<Veterinario> implements Vete
     }
 
     @Override
+    public Veterinario findByTelefono(String telefono) throws SQLException {
+        return ejecutarComando(conn -> {
+                if (telefono == null || telefono.isBlank()) {
+                    throw new IllegalArgumentException("El teléfono no puede ser nulo o vacío");
+                }
+
+                String sql = "{call buscar_veterinario_por_telefono(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_telefono", telefono);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
+    }
+
+    @Override
+    public Veterinario findByColegiatura(String numeroColegiatura) throws SQLException {
+        return ejecutarComando(conn -> {
+                if (numeroColegiatura == null || numeroColegiatura.isBlank()) {
+                    throw new IllegalArgumentException("El número de colegiatura no puede ser nulo o vacío");
+                }
+
+                String sql = "{call buscar_veterinario_por_colegiatura(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_numero_colegiatura", numeroColegiatura);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
+    }
+
+    @Override
     public Veterinario findByCuenta(Integer idCuenta) throws SQLException {
         return ejecutarComando(conn -> {
                 if (idCuenta == null) {
