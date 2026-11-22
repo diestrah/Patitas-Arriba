@@ -73,7 +73,7 @@
 
         <div class="d-flex gap-2">
             <button tabindex="9" type="submit" class="btn btn-primary btn-texto" disabled="@Guardando"><Icono Nombre="save" /><span>@(Guardando ? "Guardando..." : "Guardar")</span></button>
-            <a tabindex="10" class="btn btn-outline-primary" href="mascotas">Cancelar</a>
+            <a tabindex="10" class="btn btn-outline-primary" href="@Destino">Cancelar</a>
         </div>
     </EditForm>
     }
@@ -82,6 +82,24 @@
 @code {
     [Parameter]
     public int? Id { get; set; }
+
+    // Dueño elegido de antemano: llega desde la ficha del cliente (/mascotas/nuevo?cliente={id})
+    [SupplyParameterFromQuery(Name = "cliente")]
+    public int? IdClienteInicial { get; set; }
+
+    // Pantalla a la que se vuelve al guardar o cancelar; sin él se vuelve a la lista de mascotas
+    [SupplyParameterFromQuery(Name = "volver")]
+    public string? Volver { get; set; }
+
+    // Solo se acepta volver a la lista de clientes (con el dueño seleccionado), no a cualquier dirección
+    private string Destino {
+        get {
+            if (Volver != "clientes") {
+                return "/mascotas";
+            }
+            return ViewModel.IdCliente > 0 ? $"/clientes?cliente={ViewModel.IdCliente}" : "/clientes";
+        }
+    }
 
     private MascotaViewModel ViewModel { get; set; } = new();
     private List<ClienteViewModel> Clientes { get; set; } = [];
@@ -100,7 +118,9 @@
         try {
             Clientes = (await ClienteService.FindAll()).OrderBy(c => c.NombreCompleto).ToList();
             if (Id == null) {
-                ViewModel = new MascotaViewModel();
+                // Si llega un dueño que no está en la lista (dado de baja o inexistente), se deja sin elegir
+                bool clienteValido = IdClienteInicial != null && Clientes.Any(c => c.Id == IdClienteInicial);
+                ViewModel = new MascotaViewModel { IdCliente = clienteValido ? IdClienteInicial!.Value : 0 };
                 return;
             }
             MascotaViewModel? mascota = await MascotaService.FindById(Id.Value);
@@ -127,7 +147,7 @@
             } else {
                 await MascotaService.Update(ViewModel);
             }
-            Nav.NavigateTo("/mascotas");
+            Nav.NavigateTo(Destino);
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);
         } finally {
