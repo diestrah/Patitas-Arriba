@@ -46,6 +46,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
 
 ### 2.1 Una misma cuenta se puede asignar a personas de roles distintos
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. Al registrar o modificar un cliente, veterinario o administrador se revisa que la cuenta no sea de otra persona, de cualquier rol (`CuentaLibre`); responde 400 «La cuenta ya pertenece a otra persona», también en el caso del mismo rol. Regla nueva RN-CU-08.
 - **Origen:** pruebas REST (comprobado).
 - **Dónde:** `validarCuentaActiva` en `ClienteBLImpl`, `VeterinarioBLImpl` y `AdministradorBLImpl`. Solo revisa que la cuenta exista y esté activa, no que esté libre. El UNIQUE de `id_cuenta` es por tabla.
 - **Escenario:** `POST /veterinarios` con la cuenta de un cliente devuelve 201.

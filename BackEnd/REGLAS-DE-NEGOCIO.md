@@ -66,6 +66,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-CU-05 | Ante un acceso fallido el sistema responde siempre "Correo o contraseña incorrectos", sin indicar cuál de los dos falló. |
 | RN-CU-06 | No se puede dar de baja una cuenta que use un cliente, veterinario o administrador activo. Al dar de baja a la persona, su cuenta se da de baja con ella (RN-PE-05). |
 | RN-CU-07 | **[Rol]** Cerrar sesión y restringir los módulos según el rol lo hacen el frontend y la capa REST. Solo el administrador gestiona las cuentas. |
+| RN-CU-08 | Una cuenta pertenece a **una sola persona**, de cualquier rol: no se puede asignar a un cliente, veterinario o administrador la cuenta de otra persona, aunque esa persona esté dada de baja. |
 
 ### 4.1 Registro de clientes y recuperación de contraseña (RF01, RF02, RF04, RF05)
 
