@@ -146,8 +146,10 @@ else {
             .AsQueryable();
     }
 
+    // Deja la lista como al entrar: sin texto y con todos los tipos
     private void LimpiarFiltro() {
         Filtro = string.Empty;
+        RolFiltro = "Todos";
         Filtrar();
     }
 
