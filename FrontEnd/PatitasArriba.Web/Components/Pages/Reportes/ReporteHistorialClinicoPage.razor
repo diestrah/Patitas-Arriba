@@ -2,7 +2,8 @@
 @page "/reportes/historial-clinico/{IdMascota:int}"
 @attribute [Authorize(Policy = "ReporteHistorial")]
 @inject NavigationManager Nav;
-@inject IJSRuntime JS;
+@inject IConfiguration Configuration;
+@inject SesionDemo Sesion;
 @inject IMascotaService MascotaService;
 @inject IClienteService ClienteService;
 @inject IAtencionService AtencionService;
@@ -19,7 +20,7 @@
     <input id="hc-buscar" tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Nombre de la mascota o del dueño, o DNI del dueño"
            @bind="TextoBusqueda" @bind:event="oninput" @onkeydown="TeclaEnBusqueda" />
     <button tabindex="2" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => Buscar()"><Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span></button>
-    <button tabindex="3" class="btn btn-secondary btn-texto" @onclick="() => Imprimir()" disabled="@(Mascota == null)"><Icono Nombre="printer" /><span>Imprimir / exportar PDF</span></button>
+    <a tabindex="3" class="btn btn-secondary btn-texto @(Mascota == null ? "disabled" : "")" aria-disabled="@(Mascota == null)" target="_blank" rel="noopener" href="@UrlReporte"><Icono Nombre="file-text" /><span>Descargar PDF</span></a>
 </div>
 
 @if (Resultados != null) {
@@ -154,9 +155,17 @@ else {
         }
     }
 
-    // Abre el diálogo de impresión del navegador; desde ahí también se guarda como PDF
-    private async Task Imprimir() {
-        await JS.InvokeVoidAsync("print");
+    // RF15 con JasperReports: el navegador abre el PDF directo en el servlet del modulo patitasarriba-reportes
+    // (Reportes:BaseUrl, igual que la agenda diaria). GET /reportes/historial-clinico?mascota={id}[&generadoPor={nombre}]
+    private string UrlReporte {
+        get {
+            if (Mascota == null) {
+                return "#";
+            }
+            string baseUrl = Configuration["Reportes:BaseUrl"]?.TrimEnd('/') ?? "";
+            return $"{baseUrl}/reportes/historial-clinico?mascota={Mascota.Id}"
+                + $"&generadoPor={Uri.EscapeDataString(Sesion.NombreUsuario ?? "")}";
+        }
     }
 
     private async Task TeclaEnBusqueda(KeyboardEventArgs e) {

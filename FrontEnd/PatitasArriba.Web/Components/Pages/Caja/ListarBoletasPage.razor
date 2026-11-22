@@ -1,7 +1,8 @@
 @page "/boletas"
 @attribute [Authorize(Policy = "Boletas")]
 @inject NavigationManager Nav;
-@inject IJSRuntime JS;
+@inject IConfiguration Configuration;
+@inject SesionDemo Sesion;
 @inject IBoletaService BoletaService;
 
 @using Microsoft.AspNetCore.Components.QuickGrid
@@ -149,9 +150,9 @@ else {
                     <div class="d-flex flex-wrap gap-2 no-print">
                         @* RN-BO-12: una boleta anulada ya no se imprime ni se modifica *@
                         @if (BoletaSeleccionada.IsActivo) {
-                            <button class="btn btn-secondary btn-sm btn-texto" @onclick="() => Imprimir()">
+                            <a class="btn btn-secondary btn-sm btn-texto" target="_blank" rel="noopener" href="@UrlReporte(BoletaSeleccionada)">
                                 <Icono Nombre="printer" /><span>Imprimir</span>
-                            </button>
+                            </a>
                             <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => ModificarBoleta(BoletaSeleccionada)">
                                 <Icono Nombre="edit" /><span>Modificar</span>
                             </button>
@@ -267,9 +268,12 @@ else {
         Nav.NavigateTo($"/boletas/editar/{boleta.Id}");
     }
 
-    // Imprime solo la boleta: la tabla, los filtros y los botones tienen la clase no-print
-    private async Task Imprimir() {
-        await JS.InvokeVoidAsync("print");
+    // RF16 con JasperReports: el navegador abre el PDF de la boleta directo en el servlet del modulo
+    // patitasarriba-reportes (Reportes:BaseUrl, igual que la agenda diaria). GET /reportes/boleta?id={id}[&generadoPor={nombre}]
+    private string UrlReporte(BoletaViewModel boleta) {
+        string baseUrl = Configuration["Reportes:BaseUrl"]?.TrimEnd('/') ?? "";
+        return $"{baseUrl}/reportes/boleta?id={boleta.Id}"
+            + $"&generadoPor={Uri.EscapeDataString(Sesion.NombreUsuario ?? "")}";
     }
 
     private void PedirAnulacion(BoletaViewModel boleta) {
