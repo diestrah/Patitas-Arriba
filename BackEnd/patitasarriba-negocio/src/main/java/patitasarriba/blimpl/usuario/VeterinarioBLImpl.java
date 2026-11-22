@@ -161,25 +161,11 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     // dni, telefono y numero_colegiatura son UNIQUE en la base
     void validarUnicos(Veterinario vet) throws BLException {
         try {
-            Veterinario porDni;
-            try {
-                porDni = veterinarioDAO.findByDni(vet.getDni());
-            } catch (IllegalArgumentException e) {
-                // El DAO falla al leer un veterinario dado de baja cuya cuenta tambien se dio de baja
-                throw new ValidacionException("Ya existe un veterinario dado de baja con el DNI " + vet.getDni());
+            DatoUnico.verificarLibre(() -> veterinarioDAO.findByDni(vet.getDni()), vet.getId(), "El DNI " + vet.getDni());
+            if (DatoUnico.tieneValor(vet.getTelefono())) {
+                DatoUnico.verificarLibre(() -> veterinarioDAO.findByTelefono(vet.getTelefono()), vet.getId(), "El teléfono " + vet.getTelefono());
             }
-            if (porDni != null && porDni.getId() != vet.getId()) {
-                throw new ValidacionException("Ya existe un veterinario con el DNI " + vet.getDni());
-            }
-            for (Veterinario otro : veterinarioDAO.findAll()) {
-                if (otro.getId() == vet.getId()) continue;
-                if (otro.getTelefono().equals(vet.getTelefono())) {
-                    throw new ValidacionException("Ya existe un veterinario con el teléfono " + vet.getTelefono());
-                }
-                if (otro.getNumeroColegiatura().equalsIgnoreCase(vet.getNumeroColegiatura())) {
-                    throw new ValidacionException("Ya existe un veterinario con la colegiatura " + vet.getNumeroColegiatura());
-                }
-            }
+            DatoUnico.verificarLibre(() -> veterinarioDAO.findByColegiatura(vet.getNumeroColegiatura()), vet.getId(), "La colegiatura " + vet.getNumeroColegiatura());
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI, el teléfono o la colegiatura del veterinario", e);
         }

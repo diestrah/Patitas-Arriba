@@ -30,6 +30,24 @@ public class AdministradorDAOImpl extends BaseDAOImpl<Administrador> implements 
     }
 
     @Override
+    public Administrador findByTelefono(String telefono) throws SQLException {
+        return ejecutarComando(conn -> {
+                if (telefono == null || telefono.isBlank()) {
+                    throw new IllegalArgumentException("El teléfono no puede ser nulo o vacío");
+                }
+
+                String sql = "{call buscar_administrador_por_telefono(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_telefono", telefono);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
+    }
+
+    @Override
     public Administrador findByCuenta(Integer idCuenta) throws SQLException {
         return ejecutarComando(conn -> {
                 if (idCuenta == null) {

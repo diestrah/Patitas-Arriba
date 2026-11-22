@@ -27,6 +27,24 @@ public class ClienteDAOImpl extends BaseDAOImpl<Cliente> implements ClienteDAO {
     }
 
     @Override
+    public Cliente findByTelefono(String telefono) throws SQLException {
+        return ejecutarComando(conn -> {
+                if (telefono == null || telefono.isBlank()) {
+                    throw new IllegalArgumentException("El teléfono no puede ser nulo o vacío");
+                }
+
+                String sql = "{call buscar_cliente_por_telefono(?)}";
+                try (CallableStatement cmd = conn.prepareCall(sql)) {
+                    cmd.setString("p_telefono", telefono);
+
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        return rs.next() ? mapear(rs) : null;
+                    }
+                }
+            });
+    }
+
+    @Override
     public Cliente findByCuenta(Integer idCuenta) throws SQLException {
         return ejecutarComando(conn -> {
                 if (idCuenta == null) {

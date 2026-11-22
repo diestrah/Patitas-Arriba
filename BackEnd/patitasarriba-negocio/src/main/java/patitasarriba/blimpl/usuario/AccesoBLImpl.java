@@ -29,6 +29,7 @@ import patitasarriba.modelo.usuario.TokenRecuperacion;
 import patitasarriba.modelo.usuario.Veterinario;
 
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -38,6 +39,7 @@ public class AccesoBLImpl implements AccesoBL {
     private static final int ACTIVACION_HORAS = 48;
     private static final int PASSWORD_MINIMA = 8;
     private static final String ENLACE_INVALIDO = "El enlace no es válido o ya venció";
+    private static final String DATOS_EN_USO = "El DNI, el teléfono o el correo ya se encuentran en uso";
 
     private final CuentaDAO cuentaDAO = new CuentaDAOImpl();
     private final ClienteDAO clienteDAO = new ClienteDAOImpl();
@@ -168,6 +170,10 @@ public class AccesoBLImpl implements AccesoBL {
             clienteDAO.insert(cliente);
             registroPendienteDAO.delete(registro.getId());
             TransactionsManager.commit();
+        } catch (SQLIntegrityConstraintViolationException e) {
+            // Red de seguridad: otro registro ocupó el DNI, teléfono o correo entre la validación y el insert
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new ValidacionException(DATOS_EN_USO);
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo completar el registro", e);
@@ -286,6 +292,10 @@ public class AccesoBLImpl implements AccesoBL {
                 throw new IllegalArgumentException("Tipo de persona no soportado");
             }
             TransactionsManager.commit();
+        } catch (SQLIntegrityConstraintViolationException e) {
+            // Red de seguridad: otro registro ocupó el DNI, teléfono o correo entre la validación y el insert
+            if (TransactionsManager.activa()) TransactionsManager.rollback();
+            throw new ValidacionException(DATOS_EN_USO);
         } catch (SQLException | RuntimeException e) {
             if (TransactionsManager.activa()) TransactionsManager.rollback();
             throw new BLException("No se pudo registrar a la persona con su cuenta", e);

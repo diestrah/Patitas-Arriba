@@ -223,10 +223,10 @@ public class CuentaBLImpl implements CuentaBL {
             if (porUsuario != null && porUsuario.getId() != cuenta.getId()) {
                 throw new ValidacionException("El nombre de usuario '" + cuenta.getNombreUsuario() + "' ya está en uso");
             }
-            for (Cuenta otra : cuentaDAO.findAll()) {
-                if (otra.getId() != cuenta.getId() && otra.getCorreo().equalsIgnoreCase(cuenta.getCorreo())) {
-                    throw new ValidacionException("El correo '" + cuenta.getCorreo() + "' ya está registrado");
-                }
+            // buscar_cuenta_por_correo tampoco filtra activo (el indice UNIQUE incluye las cuentas dadas de baja)
+            Cuenta porCorreo = cuentaDAO.findByCorreo(cuenta.getCorreo());
+            if (porCorreo != null && porCorreo.getId() != cuenta.getId()) {
+                throw new ValidacionException("El correo '" + cuenta.getCorreo() + "' ya se encuentra en uso");
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el usuario o el correo", e);
