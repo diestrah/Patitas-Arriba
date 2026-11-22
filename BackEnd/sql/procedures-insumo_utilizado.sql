@@ -12,6 +12,7 @@ DROP PROCEDURE IF EXISTS buscar_insumo_utilizado_por_id;
 DROP PROCEDURE IF EXISTS listar_insumos_por_atencion;
 DROP PROCEDURE IF EXISTS listar_insumos_por_atencion_tratamiento;
 DROP PROCEDURE IF EXISTS listar_insumos_cobrables_pendientes_por_atencion;
+DROP PROCEDURE IF EXISTS listar_insumos_por_cobrar_por_cliente;
 
 DELIMITER //
 
@@ -99,21 +100,27 @@ BEGIN
       AND activo = 1;
 END //
 
--- Insumos cobrables de una atencion que todavia no estan en ninguna linea de boleta activa
--- (paso 2 del armado de la boleta)
-CREATE PROCEDURE listar_insumos_cobrables_pendientes_por_atencion (IN p_id_atencion INT)
+-- Insumos cobrables de las atenciones activas de un cliente que todavia no se cobran (RN-BO-08).
+-- Cobrado es aparecer en cualquier linea de boleta, aunque la boleta se haya anulado o la linea se
+-- haya quitado: por eso el NOT EXISTS no filtra activo
+CREATE PROCEDURE listar_insumos_por_cobrar_por_cliente (IN p_id_cliente INT)
 BEGIN
     SELECT iu.*
     FROM insumo_utilizado iu
-    WHERE iu.id_atencion = p_id_atencion
+    JOIN atencion a ON a.id_atencion = iu.id_atencion
+    JOIN detalle_cita dc ON dc.id_detalle_cita = a.id_detalle_cita
+    JOIN cita c ON c.id_cita = dc.id_cita
+    JOIN mascota m ON m.id_mascota = c.id_mascota
+    WHERE m.id_cliente = p_id_cliente
       AND iu.es_cobrable = 1
       AND iu.activo = 1
+      AND a.activo = 1
       AND NOT EXISTS (
           SELECT 1
           FROM detalle_boleta_art dba
           WHERE dba.id_insumo_utilizado = iu.id_insumo_utilizado
-            AND dba.activo = 1
-      );
+      )
+    ORDER BY a.fecha_hora, iu.id_insumo_utilizado;
 END //
 
 DELIMITER ;
