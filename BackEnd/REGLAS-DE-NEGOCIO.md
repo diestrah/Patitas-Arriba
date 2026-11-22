@@ -200,7 +200,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-CI-04 | Toda cita nueva se registra en estado **PENDIENTE**. |
 | RN-CI-05 | Los servicios deben estar activos en el catálogo. El veterinario de cada servicio debe existir, estar activo y **atender ese día durante todo el tiempo de sus servicios**: desde la hora de la cita hasta que termina el último, sumando la duración estimada de cada uno (30 minutos si no la tiene). |
 | RN-CI-06 | Un veterinario no puede tener servicios que se crucen en el tiempo con los de otra cita PENDIENTE o APROBADO (duraciones según RN-CI-05). |
-| RN-CI-07 | **Emergencias:** una cita de emergencia puede registrarse con una hora de hasta **1 hora en el pasado**, no exige el horario del veterinario (RN-CI-05) ni revisa cruces (RN-CI-06), y puede atenderse estando PENDIENTE (RN-AT-04). Una cita no puede pasar de normal a emergencia ni al revés. |
+| RN-CI-07 | **Emergencias:** una cita de emergencia se registra con una hora de entre **1 hora antes y 1 hora después** de la hora actual (ocurre ahora: no se agenda a futuro), no exige el horario del veterinario (RN-CI-05) ni revisa cruces (RN-CI-06), y puede atenderse estando PENDIENTE (RN-AT-04). Una cita no puede pasar de normal a emergencia ni al revés. |
 
 ### 9.2 Estados
 
