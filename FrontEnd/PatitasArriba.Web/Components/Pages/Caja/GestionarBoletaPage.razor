@@ -28,15 +28,24 @@
                 <div class="card-body">
                     @* Con muchos clientes una lista desplegable no es práctica: se busca por DNI (GET /clientes?dni=...) *@
                     <label class="form-label" for="dni-buscar">DNI del cliente</label>
-                    <div class="input-group">
-                        <input id="dni-buscar" tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
-                               @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
-                        <button tabindex="2" type="button" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => BuscarCliente()">
-                            <Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span>
+                    @* Junto a Buscar: si el cliente no está registrado se registra aquí mismo, sin salir de la boleta *@
+                    <div class="d-flex flex-wrap gap-2">
+                        <div class="input-group flex-grow-1 w-auto">
+                            <input id="dni-buscar" tabindex="1" class="form-control" maxlength="8" placeholder="Ingrese el DNI (8 dígitos)"
+                                   @bind="DniBuscar" @bind:event="oninput" @onkeydown="TeclaEnDni" />
+                            <button tabindex="2" type="button" class="btn btn-primary btn-texto" disabled="@Buscando" @onclick="() => BuscarCliente()">
+                                <Icono Nombre="search" /><span>@(Buscando ? "Buscando..." : "Buscar")</span>
+                            </button>
+                        </div>
+                        <button tabindex="3" type="button" class="btn btn-outline-primary btn-texto" @onclick="AbrirRegistro">
+                            <Icono Nombre="plus" /><span>Nuevo cliente</span>
                         </button>
                     </div>
                     @if (MensajeCliente != null) {
                         <div class="validation-message mt-1">@MensajeCliente</div>
+                    }
+                    @if (AvisoCliente != null) {
+                        <div class="alert alert-warning mt-3 mb-0">@AvisoCliente</div>
                     }
                     @if (ViewModel.IdCliente != 0) {
                         <div class="alert alert-success mt-3 mb-0">
@@ -139,6 +148,10 @@
     </div>
 </EditForm>
 
+@* Fuera del EditForm de la boleta: el modal tiene su propio formulario y no se pueden anidar *@
+<RegistroClienteDialogo Visible="RegistrandoCliente" Dni="@DniRegistro"
+                        OnRegistrado="ClienteRegistrado" OnCancelar="CerrarRegistro" />
+
 @code {
     private BoletaViewModel ViewModel { get; set; } = new();
     private EditContext Contexto { get; set; } = default!;
@@ -152,6 +165,10 @@
 
     private string DniBuscar { get; set; } = "";
     private string? MensajeCliente { get; set; }
+    // Registro rápido de un cliente: DNI con el que se abre el modal y aviso tras registrarlo
+    private string DniRegistro { get; set; } = "";
+    private string? AvisoCliente { get; set; }
+    private bool RegistrandoCliente { get; set; }
     private int IdArticuloAgregar { get; set; }
     private int CantidadAgregar { get; set; } = 1;
     private string? MensajeArticulo { get; set; }
@@ -189,6 +206,7 @@
     private async Task BuscarCliente() {
         if (Buscando) return;
         MensajeCliente = null;
+        AvisoCliente = null;
         string dni = DniBuscar.Trim();
         if (dni.Length != 8 || !dni.All(char.IsDigit)) {
             MensajeCliente = "El DNI debe tener 8 dígitos";
@@ -198,31 +216,60 @@
         try {
             ClienteViewModel? cliente = await ClienteService.FindByDni(dni);
             if (cliente == null) {
-                MensajeCliente = $"No hay un cliente activo con el DNI {dni}. Regístrelo primero en Clientes.";
+                MensajeCliente = $"No hay un cliente activo con el DNI {dni}. Puede registrarlo con «Nuevo cliente».";
                 return;
             }
-            List<LineaBoletaViewModel> pendientes = await CobrosPendientes.DelCliente(cliente.Id,
-                CitaService, AtencionService, BoletaService, ServicioService);
-
-            ViewModel.IdCliente = cliente.Id;
-            ViewModel.NombreCliente = cliente.NombreCompleto;
-            ViewModel.DniCliente = cliente.Dni;
-
-            // Al cambiar de cliente se descartan los pendientes del anterior (los vendidos en caja se mantienen)
-            foreach (LineaBoletaViewModel linea in Pendientes) {
-                ViewModel.Lineas.Remove(linea);
-            }
-            Marcadas.Clear();
-            Pendientes = pendientes;
-            foreach (LineaBoletaViewModel linea in Pendientes) {
-                Marcadas.Add(linea);
-                ViewModel.Lineas.Add(linea);
-            }
-            Contexto.NotifyValidationStateChanged();
+            await SeleccionarCliente(cliente);
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeCliente = ErrorServicio.Desde(ex);
         } finally {
             Buscando = false;
+        }
+    }
+
+    // Deja al cliente en el paso 1 y carga SOLO lo que tiene pendiente de cobro (RN-BO-04)
+    private async Task SeleccionarCliente(ClienteViewModel cliente) {
+        List<LineaBoletaViewModel> pendientes = await CobrosPendientes.DelCliente(cliente.Id,
+            CitaService, AtencionService, BoletaService, ServicioService);
+
+        ViewModel.IdCliente = cliente.Id;
+        ViewModel.NombreCliente = cliente.NombreCompleto;
+        ViewModel.DniCliente = cliente.Dni;
+
+        // Al cambiar de cliente se descartan los pendientes del anterior (los vendidos en caja se mantienen)
+        foreach (LineaBoletaViewModel linea in Pendientes) {
+            ViewModel.Lineas.Remove(linea);
+        }
+        Marcadas.Clear();
+        Pendientes = pendientes;
+        foreach (LineaBoletaViewModel linea in Pendientes) {
+            Marcadas.Add(linea);
+            ViewModel.Lineas.Add(linea);
+        }
+        Contexto.NotifyValidationStateChanged();
+    }
+
+    // Si ya se escribió un DNI válido, el modal se abre con él
+    private void AbrirRegistro() {
+        string dni = DniBuscar.Trim();
+        DniRegistro = dni.Length == 8 && dni.All(char.IsDigit) ? dni : "";
+        RegistrandoCliente = true;
+    }
+
+    private void CerrarRegistro() {
+        RegistrandoCliente = false;
+    }
+
+    // POST /clientes/con-cuenta ya lo hizo el modal: el cliente nuevo queda elegido y la boleta sigue (paso 3)
+    private async Task ClienteRegistrado(RegistroClienteDialogo.Resultado resultado) {
+        RegistrandoCliente = false;
+        MensajeCliente = null;
+        AvisoCliente = resultado.Aviso;
+        DniBuscar = resultado.Cliente.Dni;
+        try {
+            await SeleccionarCliente(resultado.Cliente);
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeCliente = ErrorServicio.Desde(ex);
         }
     }
 
