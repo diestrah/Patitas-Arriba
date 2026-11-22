@@ -285,8 +285,8 @@ Una boleta puede combinar tres tipos de línea:
 | RN-BO-04 | Si la boleta cobra servicios o insumos, el cliente debe ser **el dueño de la mascota** atendida. |
 | RN-BO-05 | **Los precios los fija el sistema**: el precio unitario es el precio base del servicio o artículo en el catálogo, que debe estar activo. Subtotal = precio × cantidad; el total es la suma de los subtotales. |
 | RN-BO-06 | Toda cantidad es de al menos 1; un servicio se cobra con cantidad 1. |
-| RN-BO-07 | Solo se cobra un DetalleCita que ya tiene su atención registrada (y no anulada). Cada DetalleCita se cobra una sola vez, aunque su boleta se haya anulado. **[BD]** |
-| RN-BO-08 | Un insumo solo se cobra si es **cobrable** y su atención está activa. El artículo de la línea debe coincidir con el del insumo y no se cobra más de lo usado. Cada insumo se cobra una sola vez, aunque su boleta se haya anulado. **[BD]** |
+| RN-BO-07 | Solo se cobra un DetalleCita que ya tiene su atención registrada (y no anulada). Cada DetalleCita se cobra una sola vez, aunque su boleta se haya anulado o se haya quitado de ella al modificarla: en ese caso solo puede volver a agregarse a esa misma boleta. **[BD]** |
+| RN-BO-08 | Un insumo solo se cobra si es **cobrable** y su atención está activa. El artículo de la línea debe coincidir con el del insumo y no se cobra más de lo usado. Cada insumo se cobra una sola vez, aunque su boleta se haya anulado o se haya quitado de ella al modificarla: en ese caso solo puede volver a agregarse a esa misma boleta. **[BD]** |
 | RN-BO-09 | **Venta en caja:** la cantidad pedida de un artículo, sumando todas sus líneas, no puede superar el stock disponible. |
 | RN-BO-10 | **Venta en caja:** al emitir la boleta se descuenta el stock. Al modificarla, se devuelve lo vendido antes y se descuenta lo nuevo. |
 | RN-BO-11 | Anular una boleta la da de baja y devuelve al stock lo vendido en caja (los insumos no, porque se usaron en la atención). Una boleta anulada no se vuelve a anular. |

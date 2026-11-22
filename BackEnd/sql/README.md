@@ -53,3 +53,8 @@
 ## Rendimiento (citas filtradas en la base)
 - Procedures nuevos en `procedures-cita.sql`: `listar_cita_por_cliente` (Mis citas) y `listar_cita_por_rango` (citas de un día, agenda del veterinario y revisión de cruces al registrar una cita). Antes el backend traía **todas** las citas y las filtraba en Java.
 - `actualizacion-rendimiento.sql` es para una base **ya instalada** (la local o la de AWS): ejecutarlo **una sola vez y antes de correr el backend nuevo**; sin él fallan Mis citas, Mi agenda y el registro de citas. Solo agrega procedures. Se genera a partir de `procedures-cita.sql`.
+
+## Pendientes de cobro (Caja, Nueva boleta)
+- Procedures nuevos: `listar_servicios_por_cobrar_por_cliente` (en `procedures-detalle_cita.sql`) y `listar_insumos_por_cobrar_por_cliente` (en `procedures-insumo_utilizado.sql`). Los usa `GET /boletas/pendientes?cliente={id}`. Algo que ya estuvo en una boleta no vuelve a quedar pendiente, aunque la boleta se haya anulado o la línea se haya quitado (RN-BO-07, RN-BO-08).
+- Se borró `listar_insumos_cobrables_pendientes_por_atencion`: nadie lo usaba y contaba como pendiente lo cobrado en boletas anuladas.
+- En una base **ya instalada** (la local o la de AWS), volver a ejecutar `procedures-detalle_cita.sql` y `procedures-insumo_utilizado.sql` antes de correr el backend nuevo; sin eso, Nueva boleta no carga los pendientes. Solo cambian procedures.

@@ -76,6 +76,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
 
 ### 2.4 Lo cobrado en una boleta anulada vuelve a aparecer como pendiente de cobro
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. Lo pendiente lo decide el backend con `GET /boletas/pendientes?cliente={id}` (procedures `listar_servicios_por_cobrar_por_cliente` y `listar_insumos_por_cobrar_por_cliente`), con la misma regla que valida al emitir: algo que ya estuvo en una boleta no vuelve a pendiente, aunque la boleta se haya anulado. También cubre un caso que no estaba en el hallazgo: una línea quitada al modificar una boleta. `CobrosPendientes.cs` ya no descarga `GET /atenciones`, `GET /boletas` ni `GET /servicios`. RN-BO-07 y RN-BO-08 actualizadas.
 - **Origen:** revisión de código del frontend (comprobado).
 - **Dónde:** `Servicios/CobrosPendientes.cs`. Arma lo ya cobrado a partir de `GET /boletas`, y el procedure `listar_boletas` solo devuelve boletas activas.
 - **Escenario:** se anula una boleta y después, en Caja, Cobrar, se busca al cliente.
