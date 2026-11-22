@@ -514,6 +514,15 @@ img.avatar-mascota { object-fit: cover; object-position: center 30%; display: bl
 .btn.btn-icono { width: 32px; height: 32px; padding: 0; }
 .barra-principal .nav-link { height: 38px; font-size: .9rem; }
 
+/* ---- Menú colapsable (debajo de 1400 px, navbar-expand-xxl) ---- */
+.barra-principal .navbar-toggler { border-color: rgba(255,255,255,.4); padding: .3rem .55rem; }
+.barra-principal .navbar-toggler:focus { box-shadow: 0 0 0 .2rem rgba(255,255,255,.25); }
+.barra-principal .navbar-toggler-icon { filter: brightness(0) invert(1); }
+@media (max-width: 1399.98px) {
+    .barra-principal .navbar-collapse.show { max-height: calc(100vh - 70px); overflow-y: auto; padding: .5rem 0; }
+    .barra-principal .navbar-nav .nav-link { width: 100%; }
+}
+
 /* ---- Tarjetas, etiquetas y chips del rediseño (se reutilizan en Categorías, Clientes, Mascotas, Servicios…) ---- */
 .grilla-tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1rem; }
 .tarjeta-info { background: #fff; border: 1px solid #e6dfd1; border-radius: 1rem; box-shadow: 0 6px 18px rgba(31,42,36,.06); padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .65rem; }
