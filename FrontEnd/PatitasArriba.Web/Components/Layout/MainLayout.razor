@@ -1,7 +1,10 @@
 @inherits LayoutComponentBase
+@implements IDisposable
 @inject SesionDemo Sesion;
+@inject NavigationManager Nav;
 
-<nav class="navbar navbar-expand barra-principal px-3 sticky-top">
+@* navbar-expand-xxl: el menú completo solo cabe en pantallas anchas; en las demás se colapsa en el botón ☰ *@
+<nav class="navbar navbar-expand-xxl barra-principal px-3 sticky-top">
     <a class="navbar-brand marca-barra" href="">
         <span class="marca-logo">
             <svg viewBox="0 0 64 64" width="20" height="20" fill="currentColor" aria-hidden="true">
@@ -14,6 +17,13 @@
         </span>
         <span>Patitas Arriba</span>
     </a>
+
+    <button class="navbar-toggler" type="button" aria-controls="menu-principal" aria-expanded="@(MenuAbierto ? "true" : "false")"
+            aria-label="@(MenuAbierto ? "Cerrar el menú" : "Abrir el menú")" @onclick="AlternarMenu">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div id="menu-principal" class="collapse navbar-collapse @(MenuAbierto ? "show" : "")">
 
     @* El menú muestra solo las opciones del rol que inició sesión (ver Seguridad/Permisos.cs) *@
     <ul class="navbar-nav me-auto">
@@ -66,6 +76,7 @@
             </li>
         }
     </ul>
+    </div>
 </nav>
 
 <main class="container mt-4 mb-5">
@@ -79,6 +90,28 @@
 </div>
 
 @code {
+    // Menú colapsado (pantallas angostas): se abre con el botón ☰ y se cierra al cambiar de página
+    private bool MenuAbierto { get; set; }
+
+    protected override void OnInitialized() {
+        Nav.LocationChanged += CerrarMenuAlNavegar;
+    }
+
+    private void AlternarMenu() {
+        MenuAbierto = !MenuAbierto;
+    }
+
+    private void CerrarMenuAlNavegar(object? sender, LocationChangedEventArgs e) {
+        if (MenuAbierto) {
+            MenuAbierto = false;
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    public void Dispose() {
+        Nav.LocationChanged -= CerrarMenuAlNavegar;
+    }
+
     // Hay otra opción del mismo grupo cuya ruta empieza con la de esta (por ejemplo "boletas" y "boletas/nueva")
     private static bool TieneOpcionHija(List<OpcionMenu> opciones, OpcionMenu opcion) {
         return opciones.Any(o => o.Href.StartsWith(opcion.Href + "/"));
