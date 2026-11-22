@@ -353,6 +353,7 @@ div:has(> .form-control.invalid, > .form-select.invalid, > .input-group > .form-
 .bloque-atendido { background: var(--pa-verde); color: #fff; }
 .bloque-por-atender { background: var(--pa-salvia); color: #24402f; border-color: #bcd0b0; }
 .bloque-por-aprobar { background: #fdf0d2; color: #7a5410; border: 2px dashed #c9922e; }
+.bloque-anulado { background: #e6e2da; color: #4a4a44; border-color: #cfc8bb; text-decoration: line-through; }
 .agenda-leyenda { display: flex; flex-wrap: wrap; gap: 1.2rem; font-weight: 700; font-size: .88rem; }
 .agenda-leyenda i { display: inline-block; width: 14px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: .35rem; }
 

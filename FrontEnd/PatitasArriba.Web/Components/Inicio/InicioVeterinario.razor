@@ -185,7 +185,7 @@
 @code {
     private List<ItemAgendaViewModel> AgendaHoy { get; set; } = [];
     private List<AtencionViewModel> AtencionesHoy { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
     private Dictionary<int, string?> Fotos { get; set; } = [];
     private Dictionary<int, RecetaViewModel> RecetasPorAtencion { get; set; } = [];
 
@@ -195,7 +195,7 @@
     private bool Cargando { get; set; } = true;
 
     private List<ItemAgendaViewModel> PorAtender => AgendaHoy.Where(i => AgendaVeterinario.EsPorAtender(i, Atendidos)).ToList();
-    private int AtendidosHoy => AgendaHoy.Count(i => Atendidos.Contains(i.IdDetalleCita));
+    private int AtendidosHoy => AgendaHoy.Count(i => Atendidos.Activa(i.IdDetalleCita));
 
     // Primero lo que ya se puede atender (y entre eso, las emergencias); si todavía no llega la hora de ninguno,
     // el próximo por hora. Así una emergencia de la tarde no tapa a un paciente que ya está esperando
@@ -248,6 +248,7 @@
             Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today), yo);
             Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
             Task<List<AtencionViewModel>> atenciones = AtencionService.FindAll();
+            Task<AtencionesDeCitas> estados = AtencionService.AtencionPorDetalleCita();
             Task<List<RecetaViewModel>> recetas = RecetaService.FindAll();
             Task<VeterinarioViewModel?> ficha = VeterinarioService.FindById(yo);
             Task<List<HorarioViewModel>> horarios = HorarioService.FindAll();
@@ -256,7 +257,7 @@
             List<AtencionViewModel> todas = await atenciones;
             AgendaHoy = AgendaVeterinario.DelVeterinario(yo, AgendaClinica.DelDia(DateTime.Today, citasDeHoy, await servicios));
             Fotos = citasDeHoy.GroupBy(c => c.IdMascota).ToDictionary(g => g.Key, g => g.First().FotoMascota);
-            Atendidos = todas.Select(a => a.IdDetalleCita).ToHashSet();
+            Atendidos = await estados;
             AtencionesHoy = todas
                 .Where(a => a.IdVeterinario == yo && a.FechaHora?.Date == DateTime.Today)
                 .OrderBy(a => a.FechaHora)

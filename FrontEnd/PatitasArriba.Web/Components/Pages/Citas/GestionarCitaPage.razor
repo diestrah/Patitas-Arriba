@@ -90,7 +90,7 @@
     private List<MascotaViewModel> Mascotas { get; set; } = [];
     private List<ServicioViewModel> Servicios { get; set; } = [];
     private List<VeterinarioViewModel> Veterinarios { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
 
     // Mensaje del backend cuando rechace la cita (por ejemplo, el veterinario no atiende a esa hora)
     private string? MensajeError { get; set; }
@@ -128,7 +128,7 @@
 
             if (Id == null) {
                 ViewModel = new CitaViewModel();
-                Atendidos = [];
+                Atendidos = AtencionesDeCitas.Ninguna;
                 return;
             }
             CitaViewModel? cita = await CitaService.FindById(Id.Value);
@@ -137,7 +137,7 @@
                 Nav.NavigateTo("/citas");
                 return;
             }
-            Atendidos = (await AtencionService.AtencionPorDetalleCita()).Keys.ToHashSet();
+            Atendidos = await AtencionService.AtencionPorDetalleCita();
             ViewModel = cita;
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);
