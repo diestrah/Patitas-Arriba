@@ -66,7 +66,9 @@ namespace PatitasArriba.Web.Seguridad {
                 new OpcionMenu { Texto = "Cuentas de usuario", Href = "cuentas-usuario", Permiso = "CuentasUsuario", Icono = "key" }
             ],
             ["Caja"] = [
-                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" }
+                new OpcionMenu { Texto = "Boletas", Href = "boletas", Permiso = "Boletas", Icono = "receipt" },
+                // Acceso directo para cobrar (Nueva boleta) sin pasar por la lista
+                new OpcionMenu { Texto = "Cobrar", Href = "boletas/nueva", Permiso = "Boletas", Icono = "wallet" }
             ],
             ["Reportes"] = [
                 new OpcionMenu { Texto = "Reporte de agenda diaria", Href = "reportes/agenda-diaria", Permiso = "ReporteAgenda", Icono = "bar-chart" },
