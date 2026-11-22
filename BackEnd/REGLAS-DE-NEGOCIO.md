@@ -338,6 +338,7 @@ Consultas de los requisitos:
 | RF10 | `GET /citas?cliente={id}` |
 | RF11, RF12 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
 | RF15 | `GET /atenciones?mascota={id}` y `GET /recetas?atencion={id}` |
+| RF10, RF13 | `GET /atenciones/estados` → `[{ idAtencion, idDetalleCita, activo }]`: qué servicios de cita tienen atención, activa o anulada (RN-CI-10, RN-AT-02) |
 | RF17 | `GET /boletas/pendientes?cliente={id}` → boleta sin guardar con los servicios e insumos que el cliente todavía no paga (RN-BO-07, RN-BO-08) |
 
 ---

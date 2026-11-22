@@ -3745,6 +3745,55 @@
         }
       }
     },
+    "/atenciones/estados": {
+      "get": {
+        "tags": [
+          "Atenciones"
+        ],
+        "summary": "Estados de las atenciones por servicio de cita",
+        "description": "Que servicios de cita tienen atencion y si sigue activa (activo = false: anulada), sin cargar las atenciones completas. Incluye las anuladas: un servicio con la atencion anulada cuenta como no realizado y no se vuelve a atender (RN-CI-10, RN-AT-02).",
+        "operationId": "estadosAtencion",
+        "responses": {
+          "200": {
+            "description": "Lista (puede estar vacia)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "idAtencion": {
+                        "type": "integer",
+                        "example": 4
+                      },
+                      "idDetalleCita": {
+                        "type": "integer",
+                        "example": 4
+                      },
+                      "activo": {
+                        "type": "boolean",
+                        "example": true
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Error de base de datos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/atenciones/{id}": {
       "parameters": [
         {

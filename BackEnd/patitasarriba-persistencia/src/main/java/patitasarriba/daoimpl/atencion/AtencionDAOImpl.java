@@ -6,6 +6,7 @@ import patitasarriba.dao.atencion.AtencionDAO;
 import patitasarriba.daoimpl.cita.DetalleCitaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 import patitasarriba.modelo.cita.DetalleCita;
 
 import java.sql.CallableStatement;
@@ -13,6 +14,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.List;
 
 public class AtencionDAOImpl extends BaseDAOImpl<Atencion> implements AtencionDAO {
@@ -30,6 +32,21 @@ public class AtencionDAOImpl extends BaseDAOImpl<Atencion> implements AtencionDA
                     try (ResultSet rs = cmd.executeQuery()) {
                         return rs.next() ? mapear(rs) : null;
                     }
+                }
+            });
+    }
+
+    @Override
+    public List<EstadoAtencion> listarEstados() throws SQLException {
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_estados_atencion()}");
+                     ResultSet rs = cmd.executeQuery()) {
+                    List<EstadoAtencion> estados = new ArrayList<>();
+                    while (rs.next()) {
+                        estados.add(new EstadoAtencion(rs.getInt("id_atencion"),
+                                rs.getInt("id_detalle_cita"), rs.getBoolean("activo")));
+                    }
+                    return estados;
                 }
             });
     }

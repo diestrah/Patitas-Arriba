@@ -17,6 +17,7 @@ import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.daoimpl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
 import patitasarriba.modelo.cita.Cita;
@@ -98,6 +99,15 @@ public class AtencionBLImpl implements AtencionBL {
             return atenciones;
         } catch (SQLException e) {
             throw new BLException("No se pudo listar el historial de la mascota", e);
+        }
+    }
+
+    @Override
+    public List<EstadoAtencion> findEstados() throws BLException {
+        try {
+            return atencionDAO.listarEstados();
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar los estados de las atenciones", e);
         }
     }
 
