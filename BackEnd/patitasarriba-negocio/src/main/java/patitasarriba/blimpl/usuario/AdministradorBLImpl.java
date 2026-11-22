@@ -141,10 +141,30 @@ public class AdministradorBLImpl implements AdministradorBL {
 
     // dni y telefono son UNIQUE en la base
     void validarUnicos(Administrador admin) throws BLException {
+        // Las busquedas por campo UNIQUE no filtran activo: tambien detectan registros dados de baja
         try {
-            DatoUnico.verificarLibre(() -> administradorDAO.findByDni(admin.getDni()), admin.getId(), "El DNI " + admin.getDni());
-            if (DatoUnico.tieneValor(admin.getTelefono())) {
-                DatoUnico.verificarLibre(() -> administradorDAO.findByTelefono(admin.getTelefono()), admin.getId(), "El teléfono " + admin.getTelefono());
+            Administrador porDni;
+            try {
+                porDni = administradorDAO.findByDni(admin.getDni());
+            } catch (IllegalArgumentException e) {
+                // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                throw new ValidacionException("El DNI " + admin.getDni() + " ya se encuentra en uso");
+            }
+            if (porDni != null && porDni.getId() != admin.getId()) {
+                throw new ValidacionException("El DNI " + admin.getDni() + " ya se encuentra en uso");
+            }
+            // El telefono es opcional: solo se busca si se ingreso
+            if (admin.getTelefono() != null && !admin.getTelefono().isBlank()) {
+                Administrador porTelefono;
+                try {
+                    porTelefono = administradorDAO.findByTelefono(admin.getTelefono());
+                } catch (IllegalArgumentException e) {
+                    // El DAO falla al leer una persona dada de baja cuya cuenta tambien se dio de baja: igual esta en uso
+                    throw new ValidacionException("El teléfono " + admin.getTelefono() + " ya se encuentra en uso");
+                }
+                if (porTelefono != null && porTelefono.getId() != admin.getId()) {
+                    throw new ValidacionException("El teléfono " + admin.getTelefono() + " ya se encuentra en uso");
+                }
             }
         } catch (SQLException e) {
             throw new BLException("No se pudo verificar el DNI o el teléfono del administrador", e);
