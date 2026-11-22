@@ -13,7 +13,7 @@
 <h3 class="mb-3">Atenciones</h3>
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
-    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
     <label class="text-nowrap" for="filtro-fecha">Fecha:</label>
     <input id="filtro-fecha" tabindex="2" type="date" class="form-control w-auto" @bind="FechaFiltro" @bind:format="yyyy-MM-dd" />
     <div class="form-check mb-0 text-nowrap">
@@ -197,6 +197,13 @@ else {
                 .ToHashSet();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             InsumosCobrados = [];
+        }
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
         }
     }
 

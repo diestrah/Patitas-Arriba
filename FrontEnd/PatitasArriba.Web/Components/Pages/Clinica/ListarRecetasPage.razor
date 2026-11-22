@@ -12,7 +12,7 @@
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
     <label class="text-nowrap">Mascota o dueño:</label>
-    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
     <div class="form-check mb-0 text-nowrap">
         <input id="filtro-mias" tabindex="2" type="checkbox" class="form-check-input" @bind="SoloMias" />
         <label class="form-check-label" for="filtro-mias">Solo mis recetas</label>
@@ -91,6 +91,13 @@ else {
             MensajeError = ErrorServicio.Desde(ex);
         } finally {
             Cargando = false;
+        }
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
         }
     }
 
