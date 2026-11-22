@@ -895,6 +895,7 @@ DROP PROCEDURE IF EXISTS buscar_atencion_por_id;
 DROP PROCEDURE IF EXISTS buscar_atencion_por_detalle_cita;
 DROP PROCEDURE IF EXISTS listar_atenciones;
 DROP PROCEDURE IF EXISTS listar_atenciones_por_mascota;
+DROP PROCEDURE IF EXISTS listar_estados_atencion;
 
 DELIMITER //
 
@@ -983,6 +984,14 @@ BEGIN
     INNER JOIN cita c ON c.id_cita = dc.id_cita
     WHERE c.id_mascota = p_id_mascota
       AND a.activo = 1;
+END //
+
+-- Que servicios de cita tienen atencion y si sigue activa, sin cargar el resto (RN-CI-10, RN-AT-02).
+-- Incluye las anuladas: un servicio con la atencion anulada cuenta como no realizado y no se vuelve a atender
+CREATE PROCEDURE listar_estados_atencion ()
+BEGIN
+    SELECT id_detalle_cita, id_atencion, activo
+    FROM atencion;
 END //
 
 DELIMITER ;
