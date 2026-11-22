@@ -7,7 +7,15 @@
             DNI: @Cliente.Dni · Teléfono: @Cliente.Telefono
         </p>
 
-        <h6 class="mb-2">Mascotas (@Mascotas.Count)</h6>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Mascotas (@Mascotas.Count)</h6>
+            @* Registra una mascota con este cliente ya elegido como dueño y luego vuelve a su ficha *@
+            @if (PermitirEditar) {
+                <a class="btn btn-warning btn-sm btn-texto" href="@($"mascotas/nuevo?cliente={Cliente.Id}&volver=clientes")">
+                    <Icono Nombre="plus" /><span>Agregar mascota</span>
+                </a>
+            }
+        </div>
 
         @if (Mascotas.Count == 0) {
             <div class="alert alert-info mb-0">El cliente no tiene mascotas registradas.</div>
@@ -21,7 +29,7 @@
                                 <Icono Nombre="clipboard" /><span>Historial</span>
                             </a>
                             @if (PermitirEditar) {
-                                <a class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" href="@($"mascotas/editar/{mascota.Id}")">
+                                <a class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" href="@($"mascotas/editar/{mascota.Id}?volver=clientes")">
                                     <Icono Nombre="edit" />
                                 </a>
                             }

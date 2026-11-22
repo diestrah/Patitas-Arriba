@@ -151,6 +151,10 @@ else {
     private string Vista { get; set; } = "tarjetas";
     private List<MascotaViewModel> TodasLasMascotas { get; set; } = [];
 
+    // Cliente que se deja seleccionado al cargar: llega al volver de registrar o editar una de sus mascotas
+    [SupplyParameterFromQuery(Name = "cliente")]
+    public int? IdClienteInicial { get; set; }
+
     private IEnumerable<MascotaViewModel> MascotasDe(ClienteViewModel cliente) => TodasLasMascotas.Where(m => m.IdCliente == cliente.Id);
 
     // GET /clientes. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
@@ -165,6 +169,11 @@ else {
             MensajeError = ErrorServicio.Desde(ex);
         } finally {
             Cargando = false;
+        }
+
+        ClienteViewModel? inicial = Todos.FirstOrDefault(c => c.Id == IdClienteInicial);
+        if (inicial != null) {
+            await SeleccionarCliente(inicial);
         }
     }
 
