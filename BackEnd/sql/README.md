@@ -6,7 +6,7 @@
 - Atajo: `instalar-desde-cero.sql` hace todo en un solo paso. **Borra** el esquema completo, así que no se corre en una base cuyos datos quieras conservar.
 - O, a mano, en este orden:
   1. `patitasarriba-mysql.sql`: esquema y tablas.
-  2. Todos los `procedures-*.sql` (el orden entre ellos no importa).
+  2. Todos los `procedures-*.sql` (el orden entre ellos no importa), **incluido `procedures-reportes.sql`**: sin él fallan los reportes de agenda diaria, historial clínico y boleta.
   3. `datos-iniciales.sql`: primer administrador (`admin@patitasarriba.pe` / `Admin123`).
   4. Opcional: `datos-prueba.sql`, una sola vez (todas sus cuentas con la contraseña `Patitas123`). Para recargarlo, primero `limpiar-tablas.sql`.
 
@@ -58,6 +58,10 @@
 - Procedures nuevos: `listar_servicios_por_cobrar_por_cliente` (en `procedures-detalle_cita.sql`) y `listar_insumos_por_cobrar_por_cliente` (en `procedures-insumo_utilizado.sql`). Los usa `GET /boletas/pendientes?cliente={id}`. Algo que ya estuvo en una boleta no vuelve a quedar pendiente, aunque la boleta se haya anulado o la línea se haya quitado (RN-BO-07, RN-BO-08).
 - Se borró `listar_insumos_cobrables_pendientes_por_atencion`: nadie lo usaba y contaba como pendiente lo cobrado en boletas anuladas.
 - En una base **ya instalada** (la local o la de AWS), volver a ejecutar `procedures-detalle_cita.sql` y `procedures-insumo_utilizado.sql` antes de correr el backend nuevo; sin eso, Nueva boleta no carga los pendientes. Solo cambian procedures.
+
+## Reportes
+- `procedures-reportes.sql` tiene los procedures de los reportes Jasper: `reporte_agenda_diaria`, `reporte_historial_clinico`, `reporte_detalle_historial`, `reporte_boleta` y `reporte_detalle_boleta`. Antes no estaba en `instalar-desde-cero.sql`; ya está incluido.
+- En una base **ya instalada** (la local o la de AWS), ejecutarlo una vez. También borra `reporte_receta` y `reporte_detalle_receta`, que ya no se usan.
 
 ## Atenciones anuladas (citas y agendas)
 - Procedure nuevo `listar_estados_atencion` (en `procedures-atencion.sql`): devuelve todas las atenciones, también las anuladas, con su `id_detalle_cita` y `activo`. Lo usa `GET /atenciones/estados`. Así el front sabe que un servicio con la atención anulada cuenta como no realizado (RN-CI-10, RN-AT-02).
