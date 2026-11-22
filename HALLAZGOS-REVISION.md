@@ -46,6 +46,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
 
 ### 2.1 Una misma cuenta se puede asignar a personas de roles distintos
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. Al registrar o modificar un cliente, veterinario o administrador se revisa que la cuenta no sea de otra persona, de cualquier rol (`CuentaLibre`); responde 400 «La cuenta ya pertenece a otra persona», también en el caso del mismo rol. Regla nueva RN-CU-08.
 - **Origen:** pruebas REST (comprobado).
 - **Dónde:** `validarCuentaActiva` en `ClienteBLImpl`, `VeterinarioBLImpl` y `AdministradorBLImpl`. Solo revisa que la cuenta exista y esté activa, no que esté libre. El UNIQUE de `id_cuenta` es por tabla.
 - **Escenario:** `POST /veterinarios` con la cuenta de un cliente devuelve 201.
@@ -62,9 +63,11 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
   - El botón «Completar» no aparece nunca y la cita queda APROBADA.
   - En «Mi agenda» el servicio anulado vuelve a mostrar «Atender», y el backend lo rechaza.
 - **Regla afectada:** RN-CI-10 y RN-AT-02. Un servicio con la atención anulada cuenta como no realizado y no impide completar la cita.
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. El front sabe qué servicios tienen atención, activa o anulada, con `GET /atenciones/estados` (procedure `listar_estados_atencion`, clase `AtencionesDeCitas`). «Completar» aparece cuando todos los servicios tienen atención y al menos una está activa. Si todas se anularon, aparece «Cancelar» aunque ya haya pasado la hora de la cita. En las agendas, el servicio anulado se ve como «Anulado» y ya no ofrece «Atender». El backend ya aplicaba bien la regla y no cambió.
 
 ### 2.3 Se puede anular una atención cuyo servicio ya fue cobrado
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. `AtencionBLImpl.delete` rechaza con 400 si el servicio aparece en una boleta (`boletaConServicio`), y la lista de atenciones (`ListarAtencionesPage.razor`) ya no muestra «Anular» en ese caso. RN-AT-10 actualizada.
 - **Origen:** revisión de código del backend (comprobado).
 - **Dónde:** `AtencionBLImpl.delete`. Revisa la receta y los insumos cobrados (`boletaConInsumo`), pero no el servicio (`boletaConServicio`).
 - **Escenario:** se emite la boleta con el servicio atendido y después se anula la atención.
@@ -74,6 +77,7 @@ Son errores que dejan datos incorrectos o bloquean un flujo.
 
 ### 2.4 Lo cobrado en una boleta anulada vuelve a aparecer como pendiente de cobro
 
+- **Estado:** resuelto en la rama `fix/hallazgos-revision`. Lo pendiente lo decide el backend con `GET /boletas/pendientes?cliente={id}` (procedures `listar_servicios_por_cobrar_por_cliente` y `listar_insumos_por_cobrar_por_cliente`), con la misma regla que valida al emitir: algo que ya estuvo en una boleta no vuelve a pendiente, aunque la boleta se haya anulado. También cubre un caso que no estaba en el hallazgo: una línea quitada al modificar una boleta. `CobrosPendientes.cs` ya no descarga `GET /atenciones`, `GET /boletas` ni `GET /servicios`. RN-BO-07 y RN-BO-08 actualizadas.
 - **Origen:** revisión de código del frontend (comprobado).
 - **Dónde:** `Servicios/CobrosPendientes.cs`. Arma lo ya cobrado a partir de `GET /boletas`, y el procedure `listar_boletas` solo devuelve boletas activas.
 - **Escenario:** se anula una boleta y después, en Caja, Cobrar, se busca al cliente.
@@ -89,12 +93,15 @@ Los puntos 2.2, 2.3 y 2.4 tratan el mismo tema (las anulaciones de atenciones y 
   - Origen: pruebas en el navegador (comprobado).
   - En Citas, Boletas y Artículos, y en la vista «Tabla» de Clientes, Mascotas, Veterinarios, Administradores y Horarios, la tabla QuickGrid se sale del ancho y arrastra toda la página (ancho de 870 a 992 px en una pantalla de 375 px).
   - Las tablas no están dentro de un contenedor con desplazamiento horizontal (`.table-responsive`).
+  - Estado: descartado. La aplicación no está orientada a móvil.
 - **Enter no filtra en Gestión de citas.**
   - Origen: pruebas en el navegador (comprobado).
   - En `ListarCitasPage.razor` el buscador «Mascota o dueño» no tiene `@onkeydown`. Es el único listado que faltó cuando se agregó Enter a los buscadores.
+  - Estado: resuelto en la rama `fix/hallazgos-revision`. El buscador filtra con Enter (`TeclaEnFiltro`), como el resto de listados.
 - **`procedures-reportes.sql` no figura en la instalación.**
   - Origen: revisión previa al merge (comprobado).
   - No aparece en `instalar-desde-cero.sql`, en `BackEnd/sql/README.md` ni en el README principal. Sin ese script, `GET /reportes/agenda-diaria` falla porque los procedures no existen.
+  - Estado: resuelto en la rama `fix/hallazgos-revision`. Se agregó su sección a `instalar-desde-cero.sql`, entre `registro_pendiente` y `servicio`, y se probó en un esquema temporal: se crean los 5 procedures `reporte_*`. Los dos README lo mencionan y advierten que sin él fallan los tres reportes: agenda diaria, historial clínico y boleta. Las bases ya instaladas deben ejecutarlo una vez; la base local de la revisión todavía tenía los procedures de receta, ya retirados.
 
 ---
 

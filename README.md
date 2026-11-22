@@ -86,7 +86,7 @@ Hay que levantar las tres piezas en este orden: **base de datos → API REST en 
 Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`BackEnd/sql/`](BackEnd/sql/). Atajo para una base nueva: [`instalar-desde-cero.sql`](BackEnd/sql/instalar-desde-cero.sql) hace los cuatro pasos de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
 
 1. [`patitasarriba-mysql.sql`](BackEnd/sql/patitasarriba-mysql.sql): crea el esquema `patitasarriba` y sus tablas.
-2. Todos los archivos `procedures-*.sql` (el orden entre ellos no importa).
+2. Todos los archivos `procedures-*.sql` (el orden entre ellos no importa), incluido [`procedures-reportes.sql`](BackEnd/sql/procedures-reportes.sql): sin él fallan los reportes de agenda diaria, historial clínico y boleta.
 3. [`datos-iniciales.sql`](BackEnd/sql/datos-iniciales.sql): crea el primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso).
 4. Opcional, para tener datos con qué probar: [`datos-prueba.sql`](BackEnd/sql/datos-prueba.sql). Se corre **una sola vez**; para recargarlo, primero `limpiar-tablas.sql`.
 

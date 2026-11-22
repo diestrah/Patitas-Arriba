@@ -5,8 +5,6 @@
 @inject IClienteService ClienteService;
 @inject IArticuloService ArticuloService;
 @inject ICitaService CitaService;
-@inject IAtencionService AtencionService;
-@inject IServicioService ServicioService;
 
 <PageTitle>Nueva boleta</PageTitle>
 
@@ -230,7 +228,7 @@
     // Deja al cliente en el paso 1 y carga SOLO lo que tiene pendiente de cobro (RN-BO-04)
     private async Task SeleccionarCliente(ClienteViewModel cliente) {
         List<LineaBoletaViewModel> pendientes = await CobrosPendientes.DelCliente(cliente.Id,
-            CitaService, AtencionService, BoletaService, ServicioService);
+            CitaService, BoletaService);
 
         ViewModel.IdCliente = cliente.Id;
         ViewModel.NombreCliente = cliente.NombreCompleto;

@@ -138,7 +138,7 @@ else {
 
     private PersonalClinica Personal { get; set; } = new();
     private List<CitaViewModel> CitasDeHoy { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
     private bool AgendaDisponible { get; set; }
 
     private List<VeterinarioViewModel> Filtrados => Veterinarios.ToList();
@@ -162,9 +162,9 @@ else {
         }
         try {
             Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today));
-            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
             CitasDeHoy = await citas;
-            Atendidos = (await atenciones).Keys.ToHashSet();
+            Atendidos = await atenciones;
             AgendaDisponible = true;
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             AgendaDisponible = false;

@@ -81,13 +81,13 @@ else {
                     }
                 </span>
                 <span class="slot-texto">
-                    @* RN-AT-10: no se anula si tiene recetas emitidas o insumos cobrados *@
+                    @* RN-AT-10: no se anula si tiene recetas emitidas, su servicio cobrado o insumos cobrados *@
                     @if (EsMia(context) && PuedeAnularse(context)) {
                         <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(context)">
                             <Icono Nombre="ban" /><span>Anular</span>
                         </button>
                     } else {
-                        <span class="slot-guion" title="@(EsMia(context) ? "Tiene receta o insumos ya cobrados" : "Atención de otro veterinario")">—</span>
+                        <span class="slot-guion" title="@(EsMia(context) ? "Tiene receta, o su servicio o insumos ya fueron cobrados" : "Atención de otro veterinario")">—</span>
                     }
                 </span>
             </div>
@@ -161,6 +161,7 @@ else {
     private IQueryable<AtencionViewModel> Atenciones { get; set; } = Enumerable.Empty<AtencionViewModel>().AsQueryable();
     private AtencionViewModel? AtencionSeleccionada { get; set; }
     private AtencionViewModel? AtencionAAnular { get; set; }
+    private HashSet<int> ServiciosCobrados { get; set; } = [];
     private HashSet<int> InsumosCobrados { get; set; } = [];
     private string? MensajeExito { get; set; }
     private string? MensajeError { get; set; }
@@ -173,7 +174,7 @@ else {
     private bool SoloMias { get; set; } = true;
 
     // GET /atenciones y GET /recetas (para "Ver receta" o "Emitir receta"). Las boletas (GET /boletas) solo
-    // sirven para avisar de antemano que una atención con insumos ya cobrados no se puede anular; si no cargan,
+    // sirven para avisar de antemano que una atención con su servicio o insumos ya cobrados no se puede anular; si no cargan,
     // la pantalla funciona igual y el backend decide al anular.
     protected override async Task OnInitializedAsync() {
         if (!RendererInfo.IsInteractive) return;
@@ -190,12 +191,17 @@ else {
         }
         Cargando = false;
         try {
-            InsumosCobrados = (await BoletaService.FindAll())
-                .SelectMany(b => b.Lineas)
+            List<LineaBoletaViewModel> cobradas = (await BoletaService.FindAll()).SelectMany(b => b.Lineas).ToList();
+            ServiciosCobrados = cobradas
+                .Where(l => l.IdDetalleCita != null)
+                .Select(l => l.IdDetalleCita!.Value)
+                .ToHashSet();
+            InsumosCobrados = cobradas
                 .Where(l => l.IdInsumoUtilizado != null)
                 .Select(l => l.IdInsumoUtilizado!.Value)
                 .ToHashSet();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            ServiciosCobrados = [];
             InsumosCobrados = [];
         }
     }
@@ -235,6 +241,7 @@ else {
 
     private bool PuedeAnularse(AtencionViewModel atencion) {
         return RecetaDe(atencion) == null
+            && !ServiciosCobrados.Contains(atencion.IdDetalleCita)
             && !atencion.Insumos.Any(i => InsumosCobrados.Contains(i.Id));
     }
 

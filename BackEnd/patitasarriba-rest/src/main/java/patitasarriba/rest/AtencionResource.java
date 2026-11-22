@@ -10,10 +10,14 @@ import patitasarriba.bl.excepciones.NoEncontradoException;
 import patitasarriba.bl.excepciones.ValidacionException;
 import patitasarriba.blimpl.atencion.AtencionBLImpl;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 import patitasarriba.rest.dto.AtencionDTO;
+import patitasarriba.rest.dto.EstadoAtencionDTO;
 import patitasarriba.rest.mapper.AtencionMapper;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Path("/atenciones")
@@ -40,6 +44,27 @@ public class AtencionResource {
         } catch (ValidacionException ex) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", ex.getMessage())).build();
+        } catch (BLException ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        }
+    }
+
+    // Que servicios de cita tienen atencion, activa o anulada, sin cargar las atenciones completas.
+    // El frontend lo usa para completar citas, la agenda y bloquear servicios ya atendidos (RN-CI-10, RN-AT-02)
+    @GET
+    @Path("/estados")
+    public Response estados() {
+        try {
+            List<EstadoAtencionDTO> dtos = new ArrayList<>();
+            for (EstadoAtencion estado : atencionBL.findEstados()) {
+                EstadoAtencionDTO dto = new EstadoAtencionDTO();
+                dto.setIdAtencion(estado.getIdAtencion());
+                dto.setIdDetalleCita(estado.getIdDetalleCita());
+                dto.setActivo(estado.isActivo());
+                dtos.add(dto);
+            }
+            return Response.ok(dtos).build();
         } catch (BLException ex) {
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                     .entity(Map.of("error", ex.getMessage())).build();

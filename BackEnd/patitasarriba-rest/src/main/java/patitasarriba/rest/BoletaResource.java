@@ -39,6 +39,24 @@ public class BoletaResource {
         }
     }
 
+    // Lo que el cliente todavia no paga (RN-BO-07, RN-BO-08): una boleta sin guardar con esas lineas
+    @GET
+    @Path("/pendientes")
+    public Response pendientes(@QueryParam("cliente") Integer idCliente) {
+        try {
+            return Response.ok(BoletaMapper.toDTO(boletaBL.pendientesPorCliente(idCliente))).build();
+        } catch (NoEncontradoException ex) {
+            return Response.status(Response.Status.NOT_FOUND)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (ValidacionException ex) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        } catch (BLException ex) {
+            return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(Map.of("error", ex.getMessage())).build();
+        }
+    }
+
     @GET
     @Path("/{id}")
     public Response findById(@PathParam("id") int id) {

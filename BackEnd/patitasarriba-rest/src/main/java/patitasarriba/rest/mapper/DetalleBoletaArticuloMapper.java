@@ -37,6 +37,9 @@ public final class DetalleBoletaArticuloMapper {
             InsumoUtilizadoRefDTO ref = new InsumoUtilizadoRefDTO();
             ref.setId(detalle.getInsumoUtilizado().getId());
             ref.setIdAtencion(detalle.getInsumoUtilizado().getAtencion().getId());
+            if (detalle.getInsumoUtilizado().getAtencion().getDetalleCita() != null) {
+                ref.setIdDetalleCita(detalle.getInsumoUtilizado().getAtencion().getDetalleCita().getId());
+            }
             dto.setInsumoUtilizado(ref);
         }
         return dto;

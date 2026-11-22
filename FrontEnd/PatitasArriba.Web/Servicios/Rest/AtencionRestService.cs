@@ -64,13 +64,18 @@ public class AtencionRestService : IAtencionService {
         return ToViewModels(dtos, citas);
     }
 
-    // Solo GET /atenciones, sin completar los nombres desde /citas como hace FindAll
-    public async Task<Dictionary<int, int>> AtencionPorDetalleCita() {
-        Dictionary<int, int> resultado = [];
-        foreach (AtencionDTO dto in await HttpUtils.DoGet<List<AtencionDTO>>(BaseUrlAtencion)) {
-            if (dto.DetalleCita != null) resultado[dto.DetalleCita.Id] = dto.Id;
+    // GET /atenciones/estados: solo qué servicio tiene atención y si sigue activa, incluidas las anuladas
+    public async Task<AtencionesDeCitas> AtencionPorDetalleCita() {
+        Dictionary<int, int> activas = [];
+        HashSet<int> anuladas = [];
+        foreach (EstadoAtencionDTO dto in await HttpUtils.DoGet<List<EstadoAtencionDTO>>($"{BaseUrlAtencion}/estados")) {
+            if (dto.Activo) {
+                activas[dto.IdDetalleCita] = dto.IdAtencion;
+            } else {
+                anuladas.Add(dto.IdDetalleCita);
+            }
         }
-        return resultado;
+        return new AtencionesDeCitas(activas, anuladas);
     }
 
     private List<AtencionViewModel> ToViewModels(List<AtencionDTO> dtos, List<CitaDTO> citas) {

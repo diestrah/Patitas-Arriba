@@ -17,7 +17,7 @@
 </div>
 
 <div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
-    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="TextoFiltro" />
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Mascota o dueño" aria-label="Buscar por mascota o dueño" @bind="TextoFiltro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
     <label class="text-nowrap" for="filtro-estado">Estado:</label>
     <select id="filtro-estado" tabindex="2" class="form-select w-auto" @bind="EstadoFiltro">
         <option value="">Todos</option>
@@ -148,7 +148,7 @@ else {
     private bool Cargando { get; set; } = true;
 
     // Servicios de cita que ya tienen su atención registrada
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
 
     // Rechazar y cancelar piden confirmación
     private CitaViewModel? CitaPorConfirmar { get; set; }
@@ -160,9 +160,9 @@ else {
         if (!RendererInfo.IsInteractive) return;
         try {
             Task<List<CitaViewModel>> citas = CitaService.FindAll();
-            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
             Todas = await citas;
-            Atendidos = (await atenciones).Keys.ToHashSet();
+            Atendidos = await atenciones;
             Mostrar();
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);
@@ -190,6 +190,13 @@ else {
         Mostrar();
     }
 
+    // Enter en el buscador filtra, como en el resto de listados
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
     private void VerTodas() {
         FechaFiltro = null;
         FechaFiltroAplicada = null;
@@ -202,12 +209,12 @@ else {
 
     // RN-CI-10: se completa cuando todos sus servicios tienen su atención
     private bool PuedeCompletarse(CitaViewModel cita) {
-        return cita.Detalles.All(d => Atendidos.Contains(d.Id));
+        return cita.Detalles.All(d => Atendidos.TieneAtencion(d.Id)) && cita.Detalles.Any(d => Atendidos.Activa(d.Id));
     }
 
     // RN-CI-11: no se cancela si algún servicio ya fue atendido; tampoco si la cita ya pasó
     private bool PuedeCancelarse(CitaViewModel cita) {
-        return !cita.Detalles.Any(d => Atendidos.Contains(d.Id)) && cita.FechaHora > DateTime.Now;
+        return !cita.Detalles.Any(d => Atendidos.Activa(d.Id)) && (cita.FechaHora > DateTime.Now || cita.Detalles.Any(d => Atendidos.Anulada(d.Id)));
     }
 
     private void SeleccionarCita(CitaViewModel cita) {

@@ -17,6 +17,7 @@ import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.daoimpl.receta.RecetaDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 import patitasarriba.modelo.atencion.AtencionDiagnostico;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
 import patitasarriba.modelo.cita.Cita;
@@ -98,6 +99,15 @@ public class AtencionBLImpl implements AtencionBL {
             return atenciones;
         } catch (SQLException e) {
             throw new BLException("No se pudo listar el historial de la mascota", e);
+        }
+    }
+
+    @Override
+    public List<EstadoAtencion> findEstados() throws BLException {
+        try {
+            return atencionDAO.listarEstados();
+        } catch (SQLException e) {
+            throw new BLException("No se pudo listar los estados de las atenciones", e);
         }
     }
 
@@ -205,6 +215,11 @@ public class AtencionBLImpl implements AtencionBL {
                 if (receta.getAtencion().getId() == id) {
                     throw new ValidacionException("No se puede anular la atención: tiene la receta " + receta.getId());
                 }
+            }
+            // Un servicio ya cobrado no puede pasar a no realizado (RN-AT-10, RN-BO-07)
+            if (boletaDAO.boletaConServicio(actual.getDetalleCita().getId()) != 0) {
+                throw new ValidacionException("No se puede anular la atención: el servicio "
+                        + actual.getDetalleCita().getServicio().getNombre() + " ya fue facturado");
             }
             // Un insumo ya cobrado no puede desaparecer de la atencion
             for (InsumoUtilizado insumo : actual.getInsumosUtilizados()) {

@@ -10,6 +10,7 @@ DROP PROCEDURE IF EXISTS buscar_detalle_cita_por_id;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_cita;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_veterinario;
 DROP PROCEDURE IF EXISTS listar_detalle_cita_por_servicio;
+DROP PROCEDURE IF EXISTS listar_servicios_por_cobrar_por_cliente;
 
 DELIMITER //
 
@@ -101,6 +102,28 @@ BEGIN
     FROM detalle_cita
     WHERE id_servicio = p_id_servicio
       AND activo = 1;
+END //
+
+-- Servicios de las citas de un cliente que ya se atendieron (atencion activa) y todavia no se cobran
+-- (RN-BO-07). Cobrado es aparecer en cualquier linea de boleta, aunque la boleta se haya anulado o la
+-- linea se haya quitado: por eso el NOT EXISTS no filtra activo (igual que el UNIQUE de id_detalle_cita)
+CREATE PROCEDURE listar_servicios_por_cobrar_por_cliente (IN p_id_cliente INT)
+BEGIN
+    SELECT dc.*
+    FROM detalle_cita dc
+    JOIN cita c ON c.id_cita = dc.id_cita
+    JOIN mascota m ON m.id_mascota = c.id_mascota
+    JOIN atencion a ON a.id_detalle_cita = dc.id_detalle_cita
+    WHERE m.id_cliente = p_id_cliente
+      AND dc.activo = 1
+      AND c.activo = 1
+      AND a.activo = 1
+      AND NOT EXISTS (
+          SELECT 1
+          FROM detalle_boleta_serv dbs
+          WHERE dbs.id_detalle_cita = dc.id_detalle_cita
+      )
+    ORDER BY a.fecha_hora;
 END //
 
 DELIMITER ;

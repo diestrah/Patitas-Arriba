@@ -2,10 +2,12 @@ package patitasarriba.daoimpl.atencion;
 
 import static patitasarriba.daoimpl.ConexionDAO.ejecutarComando;
 
+import patitasarriba.daoimpl.cita.DetalleCitaDAOImpl;
 import patitasarriba.daoimpl.producto.ArticuloDAOImpl;
 import patitasarriba.dao.transacciones.TransactionsManager;
 import patitasarriba.modelo.atencion.Atencion;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
+import patitasarriba.modelo.cita.DetalleCita;
 import patitasarriba.modelo.producto.Articulo;
 
 import java.sql.CallableStatement;
@@ -73,6 +75,29 @@ implements InsumoUtilizadoDAO {
                         List<InsumoUtilizado> insumos = new ArrayList<>();
                         while (rs.next()) {
                             insumos.add(mapear(rs));
+                        }
+                        return insumos;
+                    }
+                }
+            });
+    }
+
+    // Insumos cobrables de las atenciones activas de un cliente que todavia no aparecen en ninguna
+    // boleta, aunque esta se haya anulado (RN-BO-08). La atencion de cada insumo trae su DetalleCita
+    // (con la cita), para saber de que servicio y mascota viene.
+    public List<InsumoUtilizado> listarPorCobrarPorCliente(int idCliente) throws SQLException {
+        return ejecutarComando(conn -> {
+                try (CallableStatement cmd = conn.prepareCall("{call listar_insumos_por_cobrar_por_cliente(?)}")) {
+                    cmd.setInt("p_id_cliente", idCliente);
+                    try (ResultSet rs = cmd.executeQuery()) {
+                        List<InsumoUtilizado> insumos = new ArrayList<>();
+                        DetalleCitaDAOImpl detalleCitaDAO = new DetalleCitaDAOImpl();
+                        while (rs.next()) {
+                            InsumoUtilizado insumo = mapear(rs);
+                            DetalleCita detalle = detalleCitaDAO.buscarDetallePorId(rs.getInt("id_detalle_cita"));
+                            if (detalle == null) throw new SQLException("No existe el servicio de la cita del insumo " + insumo.getId());
+                            insumo.getAtencion().setDetalleCita(detalle);
+                            insumos.add(insumo);
                         }
                         return insumos;
                     }

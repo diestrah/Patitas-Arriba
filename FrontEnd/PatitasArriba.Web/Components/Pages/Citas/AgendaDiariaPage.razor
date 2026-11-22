@@ -83,6 +83,7 @@
     <span><i style="background: var(--pa-verde)"></i>Atendido</span>
     <span><i style="background: var(--pa-salvia); border: 1px solid #bcd0b0"></i>Por atender</span>
     <span><i style="background: #fdf0d2; border: 2px dashed #c9922e"></i>Por aprobar</span>
+    <span><i style="background: #e6e2da; border: 1px solid #cfc8bb"></i>Anulado (no realizado)</span>
 </div>
 
 @if (!Cargando && MensajeError == null && Agenda.Count == 0) {
@@ -132,7 +133,7 @@
 
     private List<CitaViewModel> Citas { get; set; } = [];
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
     private List<string> Veterinarios { get; set; } = [];
 
     private DateTime Fecha { get; set; } = DateTime.Today;
@@ -159,10 +160,10 @@
         try {
             Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
             Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
-            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
             Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
             Servicios = await servicios;
-            Atendidos = (await atenciones).Keys.ToHashSet();
+            Atendidos = await atenciones;
             if (VeterinarioInicial != null && Veterinarios.Contains(VeterinarioInicial)) {
                 FiltroVeterinario = VeterinarioInicial;
             }

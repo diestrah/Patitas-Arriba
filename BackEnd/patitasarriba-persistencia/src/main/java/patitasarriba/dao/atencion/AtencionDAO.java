@@ -2,6 +2,7 @@ package patitasarriba.dao.atencion;
 
 import patitasarriba.dao.DAO;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -12,4 +13,7 @@ public interface AtencionDAO extends DAO<Atencion, Integer> {
 
     // Atenciones activas de una mascota (historial clinico, RF15)
     List<Atencion> listarPorMascota(int idMascota) throws SQLException;
+
+    // De que servicios de cita hay atencion, activa o anulada, sin cargar la atencion completa
+    List<EstadoAtencion> listarEstados() throws SQLException;
 }

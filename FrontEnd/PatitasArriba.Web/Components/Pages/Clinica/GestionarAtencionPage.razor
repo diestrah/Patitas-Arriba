@@ -208,10 +208,10 @@
             return false;
         }
         Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
-        Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+        Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
         ItemAgendaViewModel? item = AgendaClinica.DelDia(cita.FechaHora.Value, [cita], await servicios)
             .FirstOrDefault(i => i.IdDetalleCita == IdDetalleCita);
-        HashSet<int> atendidos = (await atenciones).Keys.ToHashSet();
+        AtencionesDeCitas atendidos = await atenciones;
         // Solo el veterinario asignado al servicio puede atenderlo
         if (item == null || item.IdVeterinario != Sesion.IdPersona
                 || !AgendaVeterinario.PuedeAtenderse(item, atendidos, DateTime.Now)) {

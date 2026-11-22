@@ -67,6 +67,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
     public void insert(Veterinario vet) throws BLException {
         validar(vet);
         validarCuentaActiva (vet);
+        CuentaLibre.paraVeterinario(vet.getCuenta().getId(), null);
         validarUnicos(vet);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)
@@ -86,6 +87,7 @@ public class VeterinarioBLImpl implements VeterinarioBL {
         validar(vet);
         findById(vet.getId());
         validarCuentaActiva (vet);
+        CuentaLibre.paraVeterinario(vet.getCuenta().getId(), vet.getId());
         validarUnicos(vet);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)

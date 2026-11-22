@@ -66,6 +66,9 @@
         <div class="reporte-caja verde"><strong>@Contar(EstadoServicioAgenda.Atendido)</strong><span>Atendidos</span></div>
         <div class="reporte-caja"><strong>@Contar(EstadoServicioAgenda.PorAtender)</strong><span>Por atender</span></div>
         <div class="reporte-caja mostaza"><strong>@Contar(EstadoServicioAgenda.PorAprobar)</strong><span>Por aprobar</span></div>
+        @if (Contar(EstadoServicioAgenda.Anulado) > 0) {
+            <div class="reporte-caja"><strong>@Contar(EstadoServicioAgenda.Anulado)</strong><span>Anulados</span></div>
+        }
         <div class="reporte-caja terracota"><strong>@Agenda.Count(i => i.EsEmergencia)</strong><span>Emergencias</span></div>
     </div>
 
@@ -117,7 +120,7 @@
     private DateTime Fecha { get; set; } = DateTime.Today;
     private string FiltroVeterinario { get; set; } = "Todos";
     private List<ItemAgendaViewModel> Agenda { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
     private List<string> Veterinarios { get; set; } = [];
     private Dictionary<string, int> IdVeterinarios { get; set; } = [];
 
@@ -150,14 +153,14 @@
         try {
             Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
             Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
-            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
             List<VeterinarioViewModel> listaVeterinarios = await veterinarios;
             Veterinarios = listaVeterinarios.Select(v => v.NombreCompleto).ToList();
             foreach (VeterinarioViewModel v in listaVeterinarios) {
                 IdVeterinarios.TryAdd(v.NombreCompleto, v.Id);
             }
             Servicios = await servicios;
-            Atendidos = (await atenciones).Keys.ToHashSet();
+            Atendidos = await atenciones;
         } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
             MensajeError = ErrorServicio.Desde(ex);
             Cargando = false;

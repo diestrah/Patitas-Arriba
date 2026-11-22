@@ -66,6 +66,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-CU-05 | Ante un acceso fallido el sistema responde siempre "Correo o contraseña incorrectos", sin indicar cuál de los dos falló. |
 | RN-CU-06 | No se puede dar de baja una cuenta que use un cliente, veterinario o administrador activo. Al dar de baja a la persona, su cuenta se da de baja con ella (RN-PE-05). |
 | RN-CU-07 | **[Rol]** Cerrar sesión y restringir los módulos según el rol lo hacen el frontend y la capa REST. Solo el administrador gestiona las cuentas. |
+| RN-CU-08 | Una cuenta pertenece a **una sola persona**, de cualquier rol: no se puede asignar a un cliente, veterinario o administrador la cuenta de otra persona, aunque esa persona esté dada de baja. |
 
 ### 4.1 Registro de clientes y recuperación de contraseña (RF01, RF02, RF04, RF05)
 
@@ -240,7 +241,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 | RN-AT-07 | Cada diagnóstico indica una enfermedad activa del catálogo y su **nivel de gravedad**: Leve, Moderado, Grave o Crítico. Cada insumo indica el artículo, una cantidad mayor a 0 y si es **cobrable** o no. |
 | RN-AT-08 | Al registrar la atención, sus insumos **se descuentan del stock**; si no hay stock suficiente, la atención no se registra. Al modificarla, el stock se ajusta según la diferencia por artículo: si se usa más se descuenta y si se usa menos se devuelve. Los insumos retirados se dan de baja. |
 | RN-AT-09 | Un insumo que ya se cobró no puede quitarse ni cambiarse (artículo, cantidad ni si es cobrable). |
-| RN-AT-10 | No se puede anular una atención que tenga recetas emitidas o insumos cobrados. Al anular una atención, sus insumos se devuelven al stock. |
+| RN-AT-10 | No se puede anular una atención que tenga recetas emitidas, su servicio cobrado o insumos cobrados (también si la boleta se anuló, RN-BO-07 y RN-BO-08). Al anular una atención, sus insumos se devuelven al stock. |
 | RN-AT-11 | **[Rol]** Solo el veterinario registra, modifica y anula atenciones. |
 
 ---
@@ -284,8 +285,8 @@ Una boleta puede combinar tres tipos de línea:
 | RN-BO-04 | Si la boleta cobra servicios o insumos, el cliente debe ser **el dueño de la mascota** atendida. |
 | RN-BO-05 | **Los precios los fija el sistema**: el precio unitario es el precio base del servicio o artículo en el catálogo, que debe estar activo. Subtotal = precio × cantidad; el total es la suma de los subtotales. |
 | RN-BO-06 | Toda cantidad es de al menos 1; un servicio se cobra con cantidad 1. |
-| RN-BO-07 | Solo se cobra un DetalleCita que ya tiene su atención registrada (y no anulada). Cada DetalleCita se cobra una sola vez, aunque su boleta se haya anulado. **[BD]** |
-| RN-BO-08 | Un insumo solo se cobra si es **cobrable** y su atención está activa. El artículo de la línea debe coincidir con el del insumo y no se cobra más de lo usado. Cada insumo se cobra una sola vez, aunque su boleta se haya anulado. **[BD]** |
+| RN-BO-07 | Solo se cobra un DetalleCita que ya tiene su atención registrada (y no anulada). Cada DetalleCita se cobra una sola vez, aunque su boleta se haya anulado o se haya quitado de ella al modificarla: en ese caso solo puede volver a agregarse a esa misma boleta. **[BD]** |
+| RN-BO-08 | Un insumo solo se cobra si es **cobrable** y su atención está activa. El artículo de la línea debe coincidir con el del insumo y no se cobra más de lo usado. Cada insumo se cobra una sola vez, aunque su boleta se haya anulado o se haya quitado de ella al modificarla: en ese caso solo puede volver a agregarse a esa misma boleta. **[BD]** |
 | RN-BO-09 | **Venta en caja:** la cantidad pedida de un artículo, sumando todas sus líneas, no puede superar el stock disponible. |
 | RN-BO-10 | **Venta en caja:** al emitir la boleta se descuenta el stock. Al modificarla, se devuelve lo vendido antes y se descuenta lo nuevo. |
 | RN-BO-11 | Anular una boleta la da de baja y devuelve al stock lo vendido en caja (los insumos no, porque se usaron en la atención). Una boleta anulada no se vuelve a anular. |
@@ -337,6 +338,8 @@ Consultas de los requisitos:
 | RF10 | `GET /citas?cliente={id}` |
 | RF11, RF12 | `GET /citas?fecha=AAAA-MM-DD&veterinario={id}` (el veterinario es opcional) |
 | RF15 | `GET /atenciones?mascota={id}` y `GET /recetas?atencion={id}` |
+| RF10, RF13 | `GET /atenciones/estados` → `[{ idAtencion, idDetalleCita, activo }]`: qué servicios de cita tienen atención, activa o anulada (RN-CI-10, RN-AT-02) |
+| RF17 | `GET /boletas/pendientes?cliente={id}` → boleta sin guardar con los servicios e insumos que el cliente todavía no paga (RN-BO-07, RN-BO-08) |
 
 ---
 

@@ -189,7 +189,7 @@
     private List<CitaViewModel> Citas { get; set; } = [];
     private List<ArticuloViewModel> Articulos { get; set; } = [];
     private List<string> Veterinarios { get; set; } = [];
-    private HashSet<int> Atendidos { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
     private double CobradoHoy { get; set; }
     private int BoletasHoy { get; set; }
 
@@ -234,14 +234,14 @@
         try {
             Task<List<CitaViewModel>> citas = CitaService.FindAll();
             Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
-            Task<Dictionary<int, int>> atenciones = AtencionService.AtencionPorDetalleCita();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
             Task<List<ArticuloViewModel>> articulos = ArticuloService.FindAll();
             Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
             Task<List<BoletaViewModel>> boletas = BoletaService.FindAll();
 
             Citas = await citas;
             Servicios = await servicios;
-            Atendidos = (await atenciones).Keys.ToHashSet();
+            Atendidos = await atenciones;
             Articulos = await articulos;
             Veterinarios = (await veterinarios).Select(v => v.NombreCompleto).ToList();
             AgendaHoy = AgendaClinica.DelDia(DateTime.Today, Citas, Servicios);

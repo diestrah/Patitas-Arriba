@@ -3,6 +3,7 @@ package patitasarriba.bl.atencion;
 import patitasarriba.bl.excepciones.BLException;
 import patitasarriba.bl.RegistroBL;
 import patitasarriba.modelo.atencion.Atencion;
+import patitasarriba.modelo.atencion.EstadoAtencion;
 import patitasarriba.modelo.atencion.InsumoUtilizado;
 
 import java.util.List;
@@ -15,4 +16,7 @@ public interface AtencionBL extends RegistroBL<Atencion, Integer> {
 
     // RF15: historial clinico de una mascota, en orden cronologico
     List<Atencion> findByMascota(Integer idMascota) throws BLException;
+
+    // Que servicios de cita tienen atencion, activa o anulada (RN-CI-10, RN-AT-02)
+    List<EstadoAtencion> findEstados() throws BLException;
 }

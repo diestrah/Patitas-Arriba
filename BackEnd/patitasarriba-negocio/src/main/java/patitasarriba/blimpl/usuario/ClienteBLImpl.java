@@ -74,6 +74,7 @@ public class ClienteBLImpl implements ClienteBL {
     public void insert(Cliente cliente) throws BLException {
         validar(cliente);
         validarCuentaActiva (cliente);
+        CuentaLibre.paraCliente(cliente.getCuenta().getId(), null);
         validarUnicos(cliente);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)
@@ -93,6 +94,7 @@ public class ClienteBLImpl implements ClienteBL {
         validar(cliente);
         findById(cliente.getId());
         validarCuentaActiva (cliente);
+        CuentaLibre.paraCliente(cliente.getCuenta().getId(), cliente.getId());
         validarUnicos(cliente);
         // activo es el borrado logico: registrar o modificar siempre deja el registro activo,
         // aunque el cliente mande "activo": false (para dar de baja esta el delete)

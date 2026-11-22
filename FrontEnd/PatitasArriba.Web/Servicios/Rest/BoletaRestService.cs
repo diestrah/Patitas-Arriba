@@ -37,6 +37,32 @@ public class BoletaRestService : IBoletaService {
         return ToViewModel(dto);
     }
 
+    // El backend devuelve una boleta sin guardar (sin fecha ni método de pago): solo interesan sus líneas,
+    // con el precio del catálogo. Al emitir, el backend los vuelve a fijar (RN-BO-05)
+    public async Task<List<LineaPendiente>> Pendientes(int idCliente) {
+        string url = QueryHelpers.AddQueryString($"{BaseUrlBoleta}/pendientes", "cliente",
+            idCliente.ToString(CultureInfo.InvariantCulture));
+        BoletaDTO dto = await HttpUtils.DoGet<BoletaDTO>(url);
+        List<LineaPendiente> pendientes = [];
+        foreach (DetalleBoletaServicioDTO detalle in dto.DetallesServicio) {
+            int idDetalleCita = detalle.DetalleCita?.Id ?? 0;
+            pendientes.Add(new LineaPendiente(new LineaBoletaViewModel {
+                Tipo = "Servicio", IdDetalleCita = idDetalleCita,
+                Descripcion = detalle.DetalleCita?.Servicio?.Nombre ?? "",
+                Cantidad = detalle.Cantidad, PrecioUnitario = detalle.PrecioUnitario
+            }, idDetalleCita));
+        }
+        foreach (DetalleBoletaArticuloDTO detalle in dto.DetallesArticulo) {
+            pendientes.Add(new LineaPendiente(new LineaBoletaViewModel {
+                Tipo = "Insumo",
+                IdArticulo = detalle.Articulo?.Id, IdInsumoUtilizado = detalle.InsumoUtilizado?.Id,
+                Descripcion = detalle.Articulo?.Nombre ?? "",
+                Cantidad = detalle.Cantidad, PrecioUnitario = detalle.PrecioUnitario
+            }, detalle.InsumoUtilizado?.IdDetalleCita ?? 0));
+        }
+        return pendientes;
+    }
+
     public async Task Insert(BoletaViewModel modelo) {
         string url = BaseUrlBoleta;
         BoletaDTO dto = ToDto(modelo);
