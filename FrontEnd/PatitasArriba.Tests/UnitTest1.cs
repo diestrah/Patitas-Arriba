@@ -12,7 +12,7 @@ public class PruebasInterfaz : PageTest
 {
     private const string BaseUrl = "http://localhost:5118";
 
-    // Cuentas de BackEnd/sql/datos-prueba.sql (el login es real: requiere el backend en GlassFish con esos datos).
+    // Cuentas de BackEnd/sql/cargar-datos.sql (el login es real: requiere el backend en GlassFish con esos datos).
     // El rol no se elige, se deduce de la cuenta
     private const string ClavePrueba = "Patitas123";
     private static string UsuarioDelRol(string rol) => rol switch

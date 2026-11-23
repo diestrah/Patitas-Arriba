@@ -82,16 +82,20 @@ Hay que levantar las tres piezas en este orden: **base de datos → API REST en 
 
 ### 1. Base de datos
 
-Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr en este orden los scripts de [`BackEnd/sql/`](BackEnd/sql/). Atajo para una base nueva: [`instalar-desde-cero.sql`](BackEnd/sql/instalar-desde-cero.sql) hace los cuatro pasos de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
+Desde MySQL Workbench (o la consola de `mysql`), con un usuario que pueda crear esquemas, correr los scripts de [`BackEnd/sql/`](BackEnd/sql/). Para una base nueva, [`instalar-todo.sql`](BackEnd/sql/instalar-todo.sql) hace todo de una vez, pero **borra** el esquema `patitasarriba` si ya existía.
 
-1. [`patitasarriba-mysql.sql`](BackEnd/sql/patitasarriba-mysql.sql): crea el esquema `patitasarriba` y sus tablas.
-2. Todos los archivos `procedures-*.sql` (el orden entre ellos no importa), incluido [`procedures-reportes.sql`](BackEnd/sql/procedures-reportes.sql): sin él fallan los reportes de agenda diaria, historial clínico y boleta.
-3. [`datos-iniciales.sql`](BackEnd/sql/datos-iniciales.sql): crea el primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso).
-4. Opcional, para tener datos con qué probar: [`datos-prueba.sql`](BackEnd/sql/datos-prueba.sql). Se corre **una sola vez**; para recargarlo, primero `limpiar-tablas.sql`.
+| Script | Qué hace |
+|---|---|
+| [`instalar-todo.sql`](BackEnd/sql/instalar-todo.sql) | Todo en un solo paso: **borra el esquema** si existe, lo crea con tablas y procedures, y carga los datos. Al final muestra el conteo: 25 tablas, 175 procedures y 16 cuentas. |
+| [`crear-tablas-y-procedures.sql`](BackEnd/sql/crear-tablas-y-procedures.sql) | Crea el esquema `patitasarriba`, sus 25 tablas (con llaves, índices y restricciones) y sus 175 procedimientos almacenados. |
+| `procedures-*.sql` | Los mismos procedimientos, separados en un archivo por tabla, más `procedures-reportes.sql` para los reportes Jasper. Cada uno se puede volver a correr sin borrar datos. |
+| [`cargar-datos.sql`](BackEnd/sql/cargar-datos.sql) | El primer administrador (correo `admin@patitasarriba.pe`, contraseña `Admin123`; cámbiala después del primer ingreso), los datos de prueba y los de la semana de la exposición. Se corre **una sola vez** sobre tablas vacías. |
+| [`limpiar-datos.sql`](BackEnd/sql/limpiar-datos.sql) | Vacía todas las tablas y reinicia los `AUTO_INCREMENT`; conserva tablas y procedures. Después se puede volver a correr `cargar-datos.sql`. |
+| [`eliminar-tablas-y-procedures.sql`](BackEnd/sql/eliminar-tablas-y-procedures.sql) | Borra todas las tablas y todos los procedures; el esquema queda vacío. |
 
-Si la base ya estaba instalada de antes, en vez de reinstalar basta con correr una vez los scripts `actualizacion-*.sql` que falten (el último es `actualizacion-rendimiento.sql`: sin él fallan Mis citas, Mi agenda y el registro de citas). Para empezar de cero, `borrar-tablas.sql` elimina todas las tablas. Los detalles están en el [README de SQL](BackEnd/sql/README.md).
+Por partes, el orden es `crear-tablas-y-procedures.sql` y luego `cargar-datos.sql`. Las tablas siguen la estrategia *concrete table inheritance*: cada subclase (administrador, veterinario, cliente) tiene su propia tabla con todos sus atributos. El diagrama físico es [`diagrama-fisico_patitas-arriba.mwb`](BackEnd/sql/diagrama-fisico_patitas-arriba.mwb) (se abre en MySQL Workbench con *File > Open Model*).
 
-**Cuentas de `datos-prueba.sql`** (todas con la contraseña `Patitas123`):
+**Cuentas de `cargar-datos.sql`** (todas con la contraseña `Patitas123`):
 
 | Rol | Correo |
 |---|---|
@@ -235,5 +239,4 @@ Sigue la clase de despliegue: dos servidores EC2 con Windows Server, uno con Gla
 
 - [Reglas de negocio](BackEnd/REGLAS-DE-NEGOCIO.md): reglas `RN-XX-nn` y conceptos clave del dominio.
 - [Propuesta de login](BackEnd/PROPUESTA-LOGIN.md): registro, verificación de correo y recuperación de contraseña.
-- [Cambios del diagrama](BackEnd/sql/cambios-diagrama.md).
 - [Carpeta de Google Drive](https://drive.google.com/drive/folders/1DKZuonEXVqVJXOim5KmGmPvpVRSVrPI0?usp=sharing): listado de requerimientos y diagrama de clases.

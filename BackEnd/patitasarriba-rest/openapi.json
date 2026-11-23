@@ -70,7 +70,7 @@
         ],
         "summary": "Iniciar sesion",
         "operationId": "login",
-        "description": "Se inicia sesion con el CORREO de la cuenta (no con el nombre de usuario). La cuenta debe estar activa y pertenecer a una persona activa. Cuentas de datos-prueba.sql (password Patitas123): rosa.admin@patitas.pe (ADMINISTRADOR), ana.torres@gmail.com (CLIENTE), dra.lucia@patitas.pe (VETERINARIO)",
+        "description": "Se inicia sesion con el CORREO de la cuenta (no con el nombre de usuario). La cuenta debe estar activa y pertenecer a una persona activa. Cuentas de cargar-datos.sql (password Patitas123): rosa.admin@patitas.pe (ADMINISTRADOR), ana.torres@gmail.com (CLIENTE), dra.lucia@patitas.pe (VETERINARIO)",
         "requestBody": {
           "required": true,
           "content": {

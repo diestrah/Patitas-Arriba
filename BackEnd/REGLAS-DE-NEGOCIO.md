@@ -118,7 +118,7 @@ PENDIENTE ──┬──► RECHAZADO   (administrador)
 |---|---|
 | RN-AD-01 | El administrador es quien aprueba o rechaza las citas (RN-CI-09). |
 | RN-AD-02 | Siempre debe existir al menos un administrador activo: no se puede dar de baja al último. |
-| RN-AD-03 | El primer administrador lo registra la clínica al instalar el sistema (script `sql/datos-iniciales.sql`); los demás administradores y los veterinarios los crea un administrador (RN-AC-07); los clientes pueden registrarse solos (RN-AC-01). |
+| RN-AD-03 | El primer administrador lo registra la clínica al instalar el sistema (script `sql/cargar-datos.sql`, primera parte); los demás administradores y los veterinarios los crea un administrador (RN-AC-07); los clientes pueden registrarse solos (RN-AC-01). |
 | RN-AD-04 | **[Rol]** Solo el administrador gestiona el personal (veterinarios y administradores). |
 
 ---

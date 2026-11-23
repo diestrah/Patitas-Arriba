@@ -1,5 +1,6 @@
 -- Vacia todas las tablas (conserva la estructura y los procedures) y reinicia los AUTO_INCREMENT.
 -- Orden: primero las tablas hijas; las llaves foraneas se desactivan mientras se vacian.
+-- Despues se pueden volver a cargar los datos con cargar-datos.sql.
 
 USE patitasarriba;
 SET FOREIGN_KEY_CHECKS = 0;
