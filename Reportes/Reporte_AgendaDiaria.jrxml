@@ -1,0 +1,199 @@
+<!-- Created with Jaspersoft Studio version 7.0.8.final using JasperReports Library version 7.0.8-6f896111  -->
+<jasperReport name="Reporte_AgendaDiaria" language="java" pageWidth="595" pageHeight="842" whenNoDataType="NoDataSection" columnWidth="555" leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" uuid="94403d57-b3f6-471e-930c-05b34b3215b9">
+	<property name="com.jaspersoft.studio.data.defaultdataadapter" value="PatitasArriba"/>
+	<parameter name="fecha" class="java.sql.Date">
+		<defaultValueExpression><![CDATA[java.sql.Date.valueOf("2026-11-20")]]></defaultValueExpression>
+	</parameter>
+	<parameter name="id_veterinario" class="java.lang.Integer"/>
+	<parameter name="logo" class="java.awt.Image">
+		<description><![CDATA[Logo de la clinica. Lo envia el servlet; si no llega (vista previa de Studio) se usa imagenes/logo-patitas.png]]></description>
+	</parameter>
+	<parameter name="generado_por" class="java.lang.String">
+		<description><![CDATA[Nombre de quien genera el reporte (opcional)]]></description>
+	</parameter>
+	<query language="SQL"><![CDATA[CALL reporte_agenda_diaria($P{fecha}, $P{id_veterinario})]]></query>
+	<field name="veterinario" class="java.lang.String"/>
+	<field name="horario" class="java.lang.String"/>
+	<field name="mascota" class="java.lang.String"/>
+	<field name="cliente" class="java.lang.String"/>
+	<field name="servicio" class="java.lang.String"/>
+	<field name="estado" class="java.lang.String"/>
+	<field name="emergencia" class="java.lang.Boolean"/>
+	<variable name="TOTAL" calculation="Sum" class="java.lang.Integer">
+		<expression><![CDATA[$F{horario} != null ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="ATENDIDOS" calculation="Sum" class="java.lang.Integer">
+		<expression><![CDATA["Atendido".equals($F{estado}) ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="POR_ATENDER" calculation="Sum" class="java.lang.Integer">
+		<expression><![CDATA["Por atender".equals($F{estado}) ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="POR_APROBAR" calculation="Sum" class="java.lang.Integer">
+		<expression><![CDATA["Por aprobar".equals($F{estado}) ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="EMERGENCIAS" calculation="Sum" class="java.lang.Integer">
+		<expression><![CDATA[Boolean.TRUE.equals($F{emergencia}) ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<variable name="SERV_VET" resetType="Group" calculation="Sum" resetGroup="veterinario" class="java.lang.Integer">
+		<expression><![CDATA[$F{horario} != null ? 1 : 0]]></expression>
+		<initialValueExpression><![CDATA[0]]></initialValueExpression>
+	</variable>
+	<group name="veterinario">
+		<expression><![CDATA[$F{veterinario}]]></expression>
+		<groupHeader>
+			<band height="56">
+				<element kind="textField" uuid="a1d10010-0000-4000-8000-000000000001" x="0" y="4" width="380" height="22" fontSize="12.0" bold="true">
+					<expression><![CDATA[$F{veterinario}]]></expression>
+				</element>
+				<element kind="textField" uuid="a1d10010-0000-4000-8000-000000000009" x="380" y="4" width="175" height="22" forecolor="#8A8A8A" fontSize="10.0" evaluationTime="Group" evaluationGroup="veterinario" hTextAlign="Right" vTextAlign="Middle">
+					<expression><![CDATA[($V{SERV_VET} == 0 ? "" : $V{SERV_VET} + ($V{SERV_VET} == 1 ? " servicio" : " servicios"))]]></expression>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000002" x="0" y="30" width="95" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+					<text><![CDATA[Hora]]></text>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000003" x="95" y="30" width="125" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+					<text><![CDATA[Mascota]]></text>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000004" x="220" y="30" width="135" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+					<text><![CDATA[Dueño]]></text>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000005" x="355" y="30" width="120" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+					<text><![CDATA[Servicio]]></text>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000006" x="475" y="30" width="80" height="20" fontSize="10.0" bold="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+					<text><![CDATA[Estado]]></text>
+				</element>
+				<element kind="staticText" uuid="a1d10010-0000-4000-8000-000000000007" x="0" y="30" width="555" height="20" forecolor="#5B6B62" fontSize="10.0" italic="true" vTextAlign="Middle">
+					<printWhenExpression><![CDATA[$F{horario} == null]]></printWhenExpression>
+					<text><![CDATA[Sin servicios programados para esta fecha.]]></text>
+				</element>
+				<element kind="line" uuid="a1d10010-0000-4000-8000-000000000008" x="0" y="53" width="555" height="1" forecolor="#E4DFCB"/>
+			</band>
+		</groupHeader>
+		<groupFooter>
+			<band height="22"/>
+		</groupFooter>
+	</group>
+	<background splitType="Stretch"/>
+	<title height="148" splitType="Stretch">
+		<element kind="image" uuid="a1d10003-0000-4000-8000-000000000001" x="0" y="0" width="38" height="38" onErrorType="Blank">
+			<expression><![CDATA[$P{logo} != null ? (Object) $P{logo} : "imagenes/logo-patitas.png"]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000002" x="48" y="1" width="230" height="24" forecolor="#325642" fontSize="17.0" bold="true">
+			<text><![CDATA[Patitas Arriba]]></text>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000003" x="48" y="25" width="230" height="14" forecolor="#5B6B62" fontSize="9.0" bold="true">
+			<text><![CDATA[Clínica veterinaria]]></text>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000004" x="290" y="1" width="265" height="24" fontSize="15.0" bold="true" hTextAlign="Right">
+			<text><![CDATA[Reporte de agenda diaria]]></text>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000005" x="290" y="25" width="265" height="14" forecolor="#3F6B52" fontSize="10.0" bold="true" hTextAlign="Right">
+			<expression><![CDATA[new java.text.SimpleDateFormat("EEEE d 'de' MMMM 'de' yyyy", new java.util.Locale("es", "PE")).format($P{fecha})]]></expression>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000006" x="0" y="46" width="555" height="3" forecolor="#3F6B52" backcolor="#3F6B52" mode="Opaque">
+			<pen lineWidth="0.0"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000007" x="0" y="60" width="555" height="16" markup="html" fontSize="10.0">
+			<expression><![CDATA["<b>Fecha:</b> " + new java.text.SimpleDateFormat("dd/MM/yyyy").format($P{fecha})]]></expression>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000010" x="0" y="88" width="104" height="46" forecolor="#D8E3D2" radius="8">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000011" x="10" y="92" width="90" height="24" forecolor="#1F2A24" fontSize="18.0" evaluationTime="Report" bold="true">
+			<expression><![CDATA[$V{TOTAL}]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000012" x="10" y="116" width="90" height="14" forecolor="#1F2A24" fontSize="9.0" bold="true">
+			<text><![CDATA[Servicios]]></text>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000020" x="113" y="88" width="104" height="46" forecolor="#A9C8A9" radius="8">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000021" x="123" y="92" width="90" height="24" forecolor="#1F3A2A" fontSize="18.0" evaluationTime="Report" bold="true">
+			<expression><![CDATA[$V{ATENDIDOS}]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000022" x="123" y="116" width="90" height="14" forecolor="#1F3A2A" fontSize="9.0" bold="true">
+			<text><![CDATA[Atendidos]]></text>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000030" x="226" y="88" width="104" height="46" forecolor="#D8E3D2" radius="8">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000031" x="236" y="92" width="90" height="24" forecolor="#1F2A24" fontSize="18.0" evaluationTime="Report" bold="true">
+			<expression><![CDATA[$V{POR_ATENDER}]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000032" x="236" y="116" width="90" height="14" forecolor="#1F2A24" fontSize="9.0" bold="true">
+			<text><![CDATA[Por atender]]></text>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000040" x="339" y="88" width="104" height="46" forecolor="#EBD79A" radius="8">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000041" x="349" y="92" width="90" height="24" forecolor="#7A5A12" fontSize="18.0" evaluationTime="Report" bold="true">
+			<expression><![CDATA[$V{POR_APROBAR}]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000042" x="349" y="116" width="90" height="14" forecolor="#7A5A12" fontSize="9.0" bold="true">
+			<text><![CDATA[Por aprobar]]></text>
+		</element>
+		<element kind="rectangle" uuid="a1d10003-0000-4000-8000-000000000050" x="452" y="88" width="103" height="46" forecolor="#E3B4AA" radius="8">
+			<pen lineWidth="0.75"/>
+		</element>
+		<element kind="textField" uuid="a1d10003-0000-4000-8000-000000000051" x="462" y="92" width="90" height="24" forecolor="#8A3A2F" fontSize="18.0" evaluationTime="Report" bold="true">
+			<expression><![CDATA[$V{EMERGENCIAS}]]></expression>
+		</element>
+		<element kind="staticText" uuid="a1d10003-0000-4000-8000-000000000052" x="462" y="116" width="90" height="14" forecolor="#8A3A2F" fontSize="9.0" bold="true">
+			<text><![CDATA[Emergencias]]></text>
+		</element>
+	</title>
+	<detail>
+		<band height="28" splitType="Stretch">
+			<printWhenExpression><![CDATA[$F{horario} != null]]></printWhenExpression>
+			<element kind="textField" uuid="a1d10002-0000-4000-8000-000000000001" x="0" y="0" width="95" height="27" fontSize="10.5" bold="true" vTextAlign="Middle">
+				<expression><![CDATA[$F{horario}]]></expression>
+			</element>
+			<element kind="textField" uuid="a1d10002-0000-4000-8000-000000000002" x="95" y="0" width="125" height="27" fontSize="10.5" vTextAlign="Middle">
+				<expression><![CDATA[$F{mascota} + (Boolean.TRUE.equals($F{emergencia}) ? " (EMERGENCIA)" : "")]]></expression>
+			</element>
+			<element kind="textField" uuid="a1d10002-0000-4000-8000-000000000003" x="220" y="0" width="135" height="27" fontSize="10.5" vTextAlign="Middle">
+				<expression><![CDATA[$F{cliente}]]></expression>
+			</element>
+			<element kind="textField" uuid="a1d10002-0000-4000-8000-000000000004" x="355" y="0" width="120" height="27" fontSize="10.5" vTextAlign="Middle">
+				<expression><![CDATA[$F{servicio}]]></expression>
+			</element>
+			<element kind="textField" uuid="a1d10002-0000-4000-8000-000000000005" x="475" y="0" width="80" height="27" fontSize="10.5" bold="true" vTextAlign="Middle">
+				<expression><![CDATA[$F{estado}]]></expression>
+			</element>
+			<element kind="line" uuid="a1d10002-0000-4000-8000-000000000007" x="0" y="27" width="555" height="1" forecolor="#E4DFCB"/>
+		</band>
+	</detail>
+	<pageFooter height="26" splitType="Stretch">
+		<element kind="line" uuid="a1d10004-0000-4000-8000-000000000001" x="0" y="2" width="555" height="1" forecolor="#E4DFCB"/>
+		<element kind="textField" uuid="a1d10004-0000-4000-8000-000000000002" x="0" y="8" width="400" height="14" forecolor="#5B6B62" fontSize="9.0">
+			<expression><![CDATA["Generado" + ($P{generado_por} != null && !$P{generado_por}.isBlank() ? " por " + $P{generado_por} : "") + " · " + new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm").format(new java.util.Date())]]></expression>
+		</element>
+		<element kind="textField" uuid="a1d10004-0000-4000-8000-000000000003" x="455" y="8" width="80" height="14" forecolor="#5B6B62" fontSize="9.0" hTextAlign="Right">
+			<expression><![CDATA["Página " + $V{PAGE_NUMBER} + " de"]]></expression>
+		</element>
+		<element kind="textField" uuid="a1d10004-0000-4000-8000-000000000004" x="535" y="8" width="20" height="14" forecolor="#5B6B62" fontSize="9.0" evaluationTime="Report">
+			<expression><![CDATA[" " + $V{PAGE_NUMBER}]]></expression>
+		</element>
+	</pageFooter>
+	<summary height="40" splitType="Stretch">
+		<element kind="textField" uuid="a1d10005-0000-4000-8000-000000000001" x="0" y="8" width="555" height="20" markup="html" fontSize="11.0" hTextAlign="Right">
+			<expression><![CDATA["<font color='#5B6B62'>Total del día:</font> <b>" + $V{TOTAL} + ($V{TOTAL} == 1 ? " servicio" : " servicios") + "</b>"]]></expression>
+		</element>
+	</summary>
+	<noData height="60">
+		<element kind="staticText" uuid="a1d10006-0000-4000-8000-000000000001" x="0" y="20" width="555" height="22" fontSize="12.0" bold="true" hTextAlign="Center">
+			<text><![CDATA[Sin servicios programados para esta fecha.]]></text>
+		</element>
+	</noData>
+</jasperReport>

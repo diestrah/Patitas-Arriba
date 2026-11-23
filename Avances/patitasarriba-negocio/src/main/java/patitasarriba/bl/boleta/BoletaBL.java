@@ -1,7 +1,0 @@
-package patitasarriba.bl.boleta;
-
-import patitasarriba.bl.RegistroBL;
-import patitasarriba.modelo.boleta.Boleta;
-
-public interface BoletaBL extends RegistroBL<Boleta, Integer> {
-}

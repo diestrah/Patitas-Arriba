@@ -1,0 +1,150 @@
+@page "/diagnosticos"
+@attribute [Authorize(Policy = "Diagnosticos")]
+@inject NavigationManager Nav;
+@inject IDiagnosticoService DiagnosticoService;
+@inject SesionDemo Sesion;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Diagnósticos</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Catálogo de diagnósticos</h3>
+    @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
+    @if (Sesion.EsAdministrador) {
+        <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoDiagnostico()">
+            <Icono Nombre="plus" /><span>Nuevo diagnóstico</span>
+        </button>
+    }
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Enfermedad:</label>
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el nombre de la enfermedad..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando diagnósticos...</p>
+}
+else if (!Diagnosticos.Any()) {
+    <div class="alert alert-info">No se encontraron diagnósticos.</div>
+}
+else {
+    <div class="lista-letras">
+        @foreach (IGrouping<char, DiagnosticoViewModel> grupo in Diagnosticos.AsEnumerable().OrderBy(d => d.NombreEnfermedad).GroupBy(d => char.ToUpperInvariant(d.NombreEnfermedad[0]))) {
+            <div class="letra">@grupo.Key</div>
+            @foreach (DiagnosticoViewModel diagnostico in grupo) {
+                <div class="fila">
+                    <span class="ico-circ k-med" style="width: 40px; height: 40px; border-radius: 12px"><Icono Nombre="stethoscope" /></span>
+                    <div class="crece">
+                        <b>@diagnostico.NombreEnfermedad</b>
+                        <span>@diagnostico.Descripcion</span>
+                    </div>
+                    @if (Sesion.EsAdministrador) {
+                        <div class="acciones">
+                            <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarDiagnostico(diagnostico.Id)">
+                                <Icono Nombre="edit" />
+                            </button>
+                            <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(diagnostico)">
+                                <Icono Nombre="trash" />
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+        }
+    </div>
+}
+
+<ConfirmarDialogo Visible="DiagnosticoAEliminar != null"
+                  Titulo="¿Eliminar el diagnóstico?"
+                  Mensaje="@($"“{DiagnosticoAEliminar?.NombreEnfermedad}” dejará de aparecer en el catálogo. No se puede si se registró en alguna atención.")"
+                  OnConfirmar="EliminarDiagnostico" OnCancelar="CancelarEliminacion" />
+
+@code {
+    private List<DiagnosticoViewModel> Todos { get; set; } = [];
+    private IQueryable<DiagnosticoViewModel> Diagnosticos { get; set; } = Enumerable.Empty<DiagnosticoViewModel>().AsQueryable();
+    private DiagnosticoViewModel? DiagnosticoAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private string Filtro { get; set; } = string.Empty;
+    private bool Cargando { get; set; } = true;
+
+    // GET /diagnosticos. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todos = await DiagnosticoService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Diagnosticos = Todos
+            .Where(d => d.NombreEnfermedad.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
+    }
+
+    private void NuevoDiagnostico() {
+        Nav.NavigateTo("/diagnosticos/nuevo");
+    }
+
+    private void EditarDiagnostico(int id) {
+        Nav.NavigateTo($"/diagnosticos/editar/{id}");
+    }
+
+    private void PedirEliminar(DiagnosticoViewModel diagnostico) {
+        DiagnosticoAEliminar = diagnostico;
+    }
+
+    private void CancelarEliminacion() {
+        DiagnosticoAEliminar = null;
+    }
+
+    // DELETE /diagnosticos/{id}; si el backend lo rechaza (RN-DI-02: se usó en una atención) se muestra su mensaje
+    private async Task EliminarDiagnostico() {
+        if (DiagnosticoAEliminar == null) {
+            return;
+        }
+        DiagnosticoViewModel diagnostico = DiagnosticoAEliminar;
+        DiagnosticoAEliminar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await DiagnosticoService.Delete(diagnostico.Id);
+            Todos.Remove(diagnostico);
+            MensajeExito = $"Se eliminó el diagnóstico “{diagnostico.NombreEnfermedad}”.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+    }
+}

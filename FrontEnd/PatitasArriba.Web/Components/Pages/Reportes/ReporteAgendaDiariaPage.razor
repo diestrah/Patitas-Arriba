@@ -1,0 +1,195 @@
+@page "/reportes/agenda-diaria"
+@attribute [Authorize(Policy = "ReporteAgenda")]
+@inject IConfiguration Configuration;
+@inject SesionDemo Sesion;
+@inject ICitaService CitaService;
+@inject IServicioService ServicioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAtencionService AtencionService;
+
+@using System.Globalization
+
+<PageTitle>Reporte de agenda diaria</PageTitle>
+
+<h3 class="mb-3 no-print">Reporte de agenda diaria</h3>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
+    <label class="text-nowrap" for="rep-fecha">Fecha:</label>
+    <input id="rep-fecha" tabindex="1" type="date" class="form-control w-auto" @bind="Fecha" @bind:format="yyyy-MM-dd" @bind:after="Generar" />
+    <label class="text-nowrap ms-2" for="rep-vet">Veterinario:</label>
+    <select id="rep-vet" tabindex="2" class="form-select w-auto" @bind="FiltroVeterinario" @bind:after="Generar">
+        <option value="Todos">Todos</option>
+        @foreach (string nombre in Veterinarios) {
+            <option value="@nombre">@nombre</option>
+        }
+    </select>
+    <a tabindex="3" class="btn btn-secondary btn-texto ms-auto @(Cargando ? "disabled" : "")" aria-disabled="@Cargando" target="_blank" rel="noopener" href="@UrlReporte"><Icono Nombre="file-text" /><span>Descargar PDF</span></a>
+</div>
+
+@if (MensajeError != null) {
+    <div class="alert alert-danger no-print">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted no-print">Generando el reporte...</p>
+} else {
+<div class="reporte-doc">
+    <header class="reporte-cab">
+        <div class="reporte-marca">
+            <span class="reporte-logo">
+                <svg viewBox="0 0 64 64" width="24" height="24" fill="currentColor" aria-hidden="true">
+                    <ellipse cx="32" cy="42" rx="14" ry="12" />
+                    <ellipse cx="14" cy="26" rx="6" ry="8" transform="rotate(-18 14 26)" />
+                    <ellipse cx="25" cy="14" rx="6" ry="8" transform="rotate(-6 25 14)" />
+                    <ellipse cx="39" cy="14" rx="6" ry="8" transform="rotate(6 39 14)" />
+                    <ellipse cx="50" cy="26" rx="6" ry="8" transform="rotate(18 50 26)" />
+                </svg>
+            </span>
+            <span>
+                <strong class="fs-5" style="color: var(--pa-verde-oscuro)">Patitas Arriba</strong><br />
+                <span class="small text-muted fw-semibold">Clínica veterinaria</span>
+            </span>
+        </div>
+        <div class="text-end">
+            <div class="fw-bold fs-5">Reporte de agenda diaria</div>
+            <div class="fw-bold" style="color: var(--pa-verde)">@TextoFecha</div>
+        </div>
+    </header>
+
+    <div class="d-flex flex-wrap gap-4 small">
+        <span><strong>Fecha:</strong> @Fecha.ToString("dd/MM/yyyy")</span>
+        <span><strong>Veterinario:</strong> @FiltroVeterinario</span>
+    </div>
+
+    <div class="reporte-cajas">
+        <div class="reporte-caja"><strong>@Agenda.Count</strong><span>Servicios</span></div>
+        <div class="reporte-caja verde"><strong>@Contar(EstadoServicioAgenda.Atendido)</strong><span>Atendidos</span></div>
+        <div class="reporte-caja"><strong>@Contar(EstadoServicioAgenda.PorAtender)</strong><span>Por atender</span></div>
+        <div class="reporte-caja mostaza"><strong>@Contar(EstadoServicioAgenda.PorAprobar)</strong><span>Por aprobar</span></div>
+        @if (Contar(EstadoServicioAgenda.Anulado) > 0) {
+            <div class="reporte-caja"><strong>@Contar(EstadoServicioAgenda.Anulado)</strong><span>Anulados</span></div>
+        }
+        <div class="reporte-caja terracota"><strong>@Agenda.Count(i => i.EsEmergencia)</strong><span>Emergencias</span></div>
+    </div>
+
+    @foreach (string veterinario in VeterinariosVisibles) {
+        List<ItemAgendaViewModel> servicios = Agenda.Where(i => i.NombreVeterinario == veterinario).ToList();
+        <table class="reporte-tabla">
+            <caption>@veterinario <span class="fw-normal" style="opacity: .85">· @(servicios.Count == 0 ? "sin servicios" : $"{servicios.Count} servicio{(servicios.Count == 1 ? "" : "s")}")</span></caption>
+            @if (servicios.Count == 0) {
+                <tbody><tr><td class="text-muted">Sin servicios programados para esta fecha.</td></tr></tbody>
+            } else {
+                <thead>
+                    <tr><th>Hora</th><th>Mascota</th><th>Dueño</th><th>Servicio</th><th>Estado</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (ItemAgendaViewModel item in servicios) {
+                        EstadoServicioAgenda estado = AgendaTexto.De(item, Atendidos);
+                        <tr>
+                            <td class="fw-bold text-nowrap">@item.FechaHora.ToString("HH:mm") – @item.FechaHoraFin.ToString("HH:mm")</td>
+                            <td>
+                                @item.NombreMascota
+                                @if (item.EsEmergencia) {
+                                    <span class="badge text-bg-danger ms-1">Emergencia</span>
+                                }
+                            </td>
+                            <td>@item.NombreCliente</td>
+                            <td>@item.NombreServicio</td>
+                            <td class="fw-bold">@AgendaTexto.Texto(estado)</td>
+                        </tr>
+                    }
+                </tbody>
+            }
+        </table>
+    }
+
+    <div class="text-end">
+        <span class="text-muted fw-semibold">Total del día </span><strong>@Agenda.Count servicio@(Agenda.Count == 1 ? "" : "s")</strong>
+    </div>
+
+    <footer class="reporte-pie">
+        <span>Generado por @Sesion.NombreUsuario · @DateTime.Now.ToString("dd/MM/yyyy HH:mm")</span>
+        <span>Página 1 de 1</span>
+    </footer>
+</div>
+}
+
+@code {
+    private static readonly CultureInfo Peru = new("es-PE");
+
+    private DateTime Fecha { get; set; } = DateTime.Today;
+    private string FiltroVeterinario { get; set; } = "Todos";
+    private List<ItemAgendaViewModel> Agenda { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
+    private List<string> Veterinarios { get; set; } = [];
+    private Dictionary<string, int> IdVeterinarios { get; set; } = [];
+
+    // RF12 con JasperReports: el navegador abre el PDF directo en el servlet del modulo patitasarriba-reportes
+    // (Reportes:BaseUrl = contexto de ese .war, como en el proyecto del profesor)
+    // GET /reportes/agenda-diaria?fecha=AAAA-MM-DD[&veterinario={id}][&generadoPor={nombre}]
+    private string UrlReporte {
+        get {
+            string baseUrl = Configuration["Reportes:BaseUrl"]?.TrimEnd('/') ?? "";
+            string url = $"{baseUrl}/reportes/agenda-diaria?fecha={Fecha.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
+                + $"&generadoPor={Uri.EscapeDataString(Sesion.NombreUsuario ?? "")}";
+            if (FiltroVeterinario != "Todos" && IdVeterinarios.TryGetValue(FiltroVeterinario, out int idVeterinario)) {
+                url += $"&veterinario={idVeterinario}";
+            }
+            return url;
+        }
+    }
+
+    private List<string> VeterinariosVisibles => FiltroVeterinario == "Todos" ? Veterinarios : [FiltroVeterinario];
+    private string TextoFecha => Fecha.ToString("dddd d 'de' MMMM 'de' yyyy", Peru);
+
+    private List<ServicioViewModel> Servicios { get; set; } = [];
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+
+    // GET /veterinarios (secciones del reporte), /servicios (duración) y /atenciones (lo ya atendido);
+    // luego el reporte del día. Solo en la pasada interactiva: así el prerenderizado no repite las consultas
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Task<List<VeterinarioViewModel>> veterinarios = VeterinarioService.FindAll();
+            Task<List<ServicioViewModel>> servicios = ServicioService.FindAll();
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
+            List<VeterinarioViewModel> listaVeterinarios = await veterinarios;
+            Veterinarios = listaVeterinarios.Select(v => v.NombreCompleto).ToList();
+            foreach (VeterinarioViewModel v in listaVeterinarios) {
+                IdVeterinarios.TryAdd(v.NombreCompleto, v.Id);
+            }
+            Servicios = await servicios;
+            Atendidos = await atenciones;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Cargando = false;
+            return;
+        }
+        await Generar();
+    }
+
+    // GET /citas?fecha=AAAA-MM-DD del día elegido; el filtro de veterinario se aplica sobre esa agenda
+    private async Task Generar() {
+        Cargando = true;
+        MensajeError = null;
+        DateTime fecha = Fecha;
+        try {
+            List<CitaViewModel> citas = await CitaService.FindByFecha(DateOnly.FromDateTime(fecha));
+            // Si mientras tanto se eligió otra fecha, esta respuesta ya no corresponde
+            if (fecha != Fecha) return;
+            Agenda = AgendaClinica.DelDia(fecha, citas, Servicios)
+                .Where(i => FiltroVeterinario == "Todos" || i.NombreVeterinario == FiltroVeterinario)
+                .ToList();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+            Agenda = [];
+        } finally {
+            if (fecha == Fecha) Cargando = false;
+        }
+    }
+
+    private int Contar(EstadoServicioAgenda estado) {
+        return Agenda.Count(i => AgendaTexto.De(i, Atendidos) == estado);
+    }
+}

@@ -1,0 +1,253 @@
+@page "/veterinarios"
+@attribute [Authorize(Policy = "Personal")]
+@inject NavigationManager Nav;
+@inject IHorarioService HorarioService;
+@inject IVeterinarioService VeterinarioService;
+@inject IAdministradorService AdministradorService;
+@inject ICitaService CitaService;
+@inject IAtencionService AtencionService;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Veterinarios</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Veterinarios</h3>
+    <button tabindex="6" class="btn btn-warning btn-texto" @onclick="() => NuevoVeterinario()">
+        <Icono Nombre="plus" /><span>Nuevo veterinario</span>
+    </button>
+</div>
+
+@* Todo se calcula con los horarios asignados y la agenda de hoy: no hay datos nuevos *@
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-verde">
+            <span class="indicador-icono"><Icono Nombre="stethoscope" /></span>
+            <span class="indicador-valor">@Todos.Count</span>
+            <span class="indicador-texto">Veterinarios registrados</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-mostaza">
+            <span class="indicador-icono"><Icono Nombre="clock" /></span>
+            <span class="indicador-valor">@(EnTurno.Count == 0 ? "Ninguno" : $"{EnTurno.Count} en turno")</span>
+            <span class="indicador-texto">@(EnTurno.Count == 0 ? "Fuera de los horarios asignados" : string.Join(", ", EnTurno.Select(v => v.Nombres.Split(' ')[0])))</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-salvia">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">@ProximoRelevo</span>
+            <span class="indicador-texto">Próximo cambio de turno</span>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="indicador indicador-terracota">
+            <span class="indicador-icono"><Icono Nombre="paw" /></span>
+            @if (AgendaDisponible) {
+                <span class="indicador-valor">@ServiciosHoy servicio@(ServiciosHoy == 1 ? "" : "s") hoy</span>
+                <span class="indicador-texto">@AtendidosHoy atendido@(AtendidosHoy == 1 ? "" : "s") · @(ServiciosHoy - AtendidosHoy) pendiente@(ServiciosHoy - AtendidosHoy == 1 ? "" : "s")</span>
+            } else {
+                <span class="indicador-valor">—</span>
+                <span class="indicador-texto">No se pudo cargar la agenda de hoy</span>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap" for="filtro-vet">DNI, nombre o colegiatura:</label>
+    <input id="filtro-vet" tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el texto a buscar..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+    <div class="seg-pago ms-auto" role="group" aria-label="Vista">
+        <button type="button" tabindex="4" class="@(Vista == "tarjetas" ? "activo" : "")" aria-pressed="@(Vista == "tarjetas")" @onclick='() => Vista = "tarjetas"'>
+            <Icono Nombre="grid" /> Tarjetas
+        </button>
+        <button type="button" tabindex="5" class="@(Vista == "tabla" ? "activo" : "")" aria-pressed="@(Vista == "tabla")" @onclick='() => Vista = "tabla"'>
+            <Icono Nombre="list" /> Tabla
+        </button>
+    </div>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando veterinarios...</p>
+}
+else if (!Filtrados.Any()) {
+    <div class="alert alert-info">No se encontraron veterinarios.</div>
+}
+else if (Vista == "tarjetas") {
+    <div class="row g-3">
+        @foreach (VeterinarioViewModel veterinario in Filtrados) {
+            <div class="col-md-6 col-xl-4">
+                <TarjetaPersonal Persona="veterinario" Colegiatura="@veterinario.NumeroColegiatura"
+                                 HorariosAsignados="Personal.HorariosDe(veterinario)" Hoy="Hoy(veterinario)"
+                                 OnEditar="p => EditarVeterinario(p.Id)" OnEliminar="p => PedirEliminar((VeterinarioViewModel)p)" />
+            </div>
+        }
+    </div>
+}
+else {
+    <QuickGrid Items="Veterinarios" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
+        <PropertyColumn Title="DNI" Property="v => v.Dni" Sortable="true" />
+        <PropertyColumn Title="Nombre completo" Property="v => v.NombreCompleto" Sortable="true" />
+        <PropertyColumn Title="Colegiatura" Property="v => v.NumeroColegiatura" />
+        <PropertyColumn Title="Teléfono" Property="v => v.Telefono" />
+        <PropertyColumn Title="Horarios" Property="v => v.TextoHorarios" />
+        <TemplateColumn Title="Estado">
+            <span class="etiqueta @Estado(context).Clase">@Estado(context).Texto</span>
+        </TemplateColumn>
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarVeterinario(context.Id)">
+                    <Icono Nombre="edit" />
+                </button>
+                <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                    <Icono Nombre="trash" />
+                </button>
+            </div>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginador State="Paginacion" />
+}
+
+<ConfirmarDialogo Visible="VeterinarioAEliminar != null"
+                  Titulo="¿Eliminar al veterinario?"
+                  Mensaje="@($"{VeterinarioAEliminar?.NombreCompleto} y su cuenta de usuario se darán de baja. No se puede si está asignado a alguna cita.")"
+                  OnConfirmar="EliminarVeterinario" OnCancelar="CancelarEliminacion" />
+
+@code {
+    private List<VeterinarioViewModel> Todos { get; set; } = [];
+    private IQueryable<VeterinarioViewModel> Veterinarios { get; set; } = Enumerable.Empty<VeterinarioViewModel>().AsQueryable();
+    private VeterinarioViewModel? VeterinarioAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private string Filtro { get; set; } = string.Empty;
+    private string Vista { get; set; } = "tarjetas";
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 5 };
+
+    private PersonalClinica Personal { get; set; } = new();
+    private List<CitaViewModel> CitasDeHoy { get; set; } = [];
+    private AtencionesDeCitas Atendidos { get; set; } = AtencionesDeCitas.Ninguna;
+    private bool AgendaDisponible { get; set; }
+
+    private List<VeterinarioViewModel> Filtrados => Veterinarios.ToList();
+    private List<VeterinarioViewModel> EnTurno { get; set; } = [];
+    private string ProximoRelevo { get; set; } = "—";
+    private int ServiciosHoy { get; set; }
+    private int AtendidosHoy { get; set; }
+
+    // GET /horarios, /veterinarios y /administradores (para saber los horarios de cada uno).
+    // La agenda de hoy (GET /citas?fecha=hoy y GET /atenciones) se carga aparte: si falla, solo falta ese indicador.
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Personal = await PersonalClinica.Cargar(HorarioService, VeterinarioService, AdministradorService);
+            Todos = Personal.Veterinarios;
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+        try {
+            Task<List<CitaViewModel>> citas = CitaService.FindByFecha(DateOnly.FromDateTime(DateTime.Today));
+            Task<AtencionesDeCitas> atenciones = AtencionService.AtencionPorDetalleCita();
+            CitasDeHoy = await citas;
+            Atendidos = await atenciones;
+            AgendaDisponible = true;
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            AgendaDisponible = false;
+        }
+        Resumir();
+    }
+
+    private void Resumir() {
+        DateTime ahora = DateTime.Now;
+        EnTurno = Todos.Where(v => TurnosPersonal.EnTurno(Personal.HorariosDe(v), ahora) != null).ToList();
+        ProximoRelevo = TurnosPersonal.ProximoRelevo(Personal.Horarios, ahora);
+        ServiciosHoy = 0;
+        AtendidosHoy = 0;
+        foreach (VeterinarioViewModel veterinario in Todos) {
+            (int programados, int atendidos) = Hoy(veterinario);
+            ServiciosHoy += programados;
+            AtendidosHoy += atendidos;
+        }
+    }
+
+    private (int Programados, int Atendidos) Hoy(VeterinarioViewModel veterinario) {
+        return TurnosPersonal.ServiciosDeHoy(veterinario.Id, CitasDeHoy, Atendidos);
+    }
+
+    private (string Clase, string Texto) Estado(VeterinarioViewModel veterinario) {
+        return TurnosPersonal.Estado(Personal.HorariosDe(veterinario), DateTime.Now);
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Veterinarios = Todos
+            .Where(v => v.Dni.Contains(texto)
+                     || v.NombreCompleto.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || v.NumeroColegiatura.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        Filtrar();
+    }
+
+    private void NuevoVeterinario() {
+        Nav.NavigateTo("/veterinarios/nuevo");
+    }
+
+    private void EditarVeterinario(int id) {
+        Nav.NavigateTo($"/veterinarios/editar/{id}");
+    }
+
+    private void PedirEliminar(VeterinarioViewModel veterinario) {
+        VeterinarioAEliminar = veterinario;
+    }
+
+    private void CancelarEliminacion() {
+        VeterinarioAEliminar = null;
+    }
+
+    // DELETE /veterinarios/{id} (también da de baja su cuenta); si el backend lo rechaza
+    // (RN-VE-03: tiene citas asignadas) se muestra su mensaje
+    private async Task EliminarVeterinario() {
+        if (VeterinarioAEliminar == null) {
+            return;
+        }
+        VeterinarioViewModel veterinario = VeterinarioAEliminar;
+        VeterinarioAEliminar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await VeterinarioService.Delete(veterinario.Id);
+            Todos.Remove(veterinario);
+            MensajeExito = $"Se eliminó al veterinario {veterinario.NombreCompleto}.";
+            Filtrar();
+            Resumir();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+    }
+}

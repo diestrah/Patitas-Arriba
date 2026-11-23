@@ -1,0 +1,46 @@
+@* Datos personales del cliente (DNI, nombres, apellidos y teléfono). Los usan la pantalla de clientes y el registro
+   rápido desde la boleta. Debe usarse dentro de un EditForm cuyo modelo sea el mismo cliente. *@
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label" for="@($"{Prefijo}-dni")">DNI</label>
+        <PaInputText id="@($"{Prefijo}-dni")" tabindex="@TabIndexInicial" class="form-control" maxlength="8" @bind-Value="Cliente.Dni" />
+        <ValidationMessage For="() => Cliente.Dni" />
+    </div>
+    <div class="col-md-8 mb-3">
+        <label class="form-label" for="@($"{Prefijo}-nombres")">Nombres</label>
+        <PaInputText id="@($"{Prefijo}-nombres")" tabindex="@(TabIndexInicial + 1)" class="form-control" @bind-Value="Cliente.Nombres" />
+        <ValidationMessage For="() => Cliente.Nombres" />
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="@($"{Prefijo}-paterno")">Apellido paterno</label>
+        <PaInputText id="@($"{Prefijo}-paterno")" tabindex="@(TabIndexInicial + 2)" class="form-control" @bind-Value="Cliente.ApellidoPaterno" />
+        <ValidationMessage For="() => Cliente.ApellidoPaterno" />
+    </div>
+    <div class="col-md-6 mb-3">
+        <label class="form-label" for="@($"{Prefijo}-materno")">Apellido materno</label>
+        <PaInputText id="@($"{Prefijo}-materno")" tabindex="@(TabIndexInicial + 3)" class="form-control" @bind-Value="Cliente.ApellidoMaterno" />
+        <ValidationMessage For="() => Cliente.ApellidoMaterno" />
+    </div>
+</div>
+<div class="row">
+    <div class="col-md-4 mb-3">
+        <label class="form-label" for="@($"{Prefijo}-telefono")">Teléfono</label>
+        <PaInputText id="@($"{Prefijo}-telefono")" tabindex="@(TabIndexInicial + 4)" class="form-control" maxlength="9" @bind-Value="Cliente.Telefono" />
+        <ValidationMessage For="() => Cliente.Telefono" />
+    </div>
+</div>
+
+@code {
+    [Parameter, EditorRequired]
+    public ClienteViewModel Cliente { get; set; } = default!;
+
+    // Los campos usan tabindex desde este número (5 campos seguidos)
+    [Parameter]
+    public int TabIndexInicial { get; set; } = 1;
+
+    // Prefijo de los id de los campos, para que no se repitan si hay dos formularios en la misma página
+    [Parameter]
+    public string Prefijo { get; set; } = "cliente";
+}

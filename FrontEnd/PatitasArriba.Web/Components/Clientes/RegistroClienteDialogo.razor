@@ -1,0 +1,105 @@
+@* Registro rápido de un cliente desde otra pantalla (por ejemplo, la boleta). Usa el mismo alta que la pantalla de
+   clientes: POST /clientes/con-cuenta crea la persona y su cuenta, y el backend le envía el correo para que elija su
+   contraseña. Tiene su propio EditForm: debe colocarse FUERA del formulario de la página que lo abre. *@
+@inject IClienteService ClienteService;
+
+@if (Visible) {
+    <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="registro-cliente-titulo">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <EditForm Model="ViewModel" OnValidSubmit="Guardar">
+                    <DataAnnotationsValidator />
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title" id="registro-cliente-titulo">Registrar cliente nuevo</h5>
+                    </div>
+                    <div class="modal-body">
+                        @if (MensajeError != null) {
+                            <div class="alert alert-danger">@MensajeError</div>
+                        }
+                        <CamposCuenta Persona="ViewModel" EsNueva="true" TabIndexInicial="101" />
+                        <h6 class="mt-1 mb-3">Datos personales</h6>
+                        <CamposCliente Cliente="ViewModel" TabIndexInicial="102" Prefijo="registro-cliente" />
+                    </div>
+                    <div class="modal-footer border-0 pt-0">
+                        <button type="button" tabindex="108" class="btn btn-outline-primary btn-par" disabled="@Guardando" @onclick="Cancelar">Cancelar</button>
+                        <button type="submit" tabindex="107" class="btn btn-primary btn-texto btn-par" disabled="@Guardando">
+                            <Icono Nombre="save" /><span>@(Guardando ? "Registrando..." : "Registrar cliente")</span>
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    // Cliente registrado. Aviso: no null si el cliente quedó registrado pero el backend no pudo enviar el correo
+    public record Resultado(ClienteViewModel Cliente, string? Aviso);
+
+    public const string AvisoSinCorreo = "Cliente registrado. No se pudo enviar el correo de activación; si más adelante "
+        + "quiere usar el portal, puede entrar con «Olvidé mi contraseña».";
+
+    [Parameter]
+    public bool Visible { get; set; }
+
+    // DNI con el que se abre el formulario (el que se buscó y no se encontró)
+    [Parameter]
+    public string Dni { get; set; } = "";
+
+    [Parameter]
+    public EventCallback<Resultado> OnRegistrado { get; set; }
+
+    [Parameter]
+    public EventCallback OnCancelar { get; set; }
+
+    private ClienteViewModel ViewModel { get; set; } = new();
+    private string? MensajeError { get; set; }
+    private bool Guardando { get; set; }
+    private bool estabaVisible;
+
+    // Cada vez que se abre, el formulario empieza limpio con el DNI buscado
+    protected override void OnParametersSet() {
+        if (Visible && !estabaVisible) {
+            ViewModel = new ClienteViewModel { Dni = Dni };
+            MensajeError = null;
+        }
+        estabaVisible = Visible;
+    }
+
+    private async Task Guardar() {
+        if (Guardando) return;
+        MensajeError = null;
+        Guardando = true;
+        try {
+            await ClienteService.Insert(ViewModel);
+            await OnRegistrado.InvokeAsync(new Resultado(ViewModel, null));
+        } catch (HttpRequestException ex) when ((int?)ex.StatusCode >= 500) {
+            // Si el backend falla al enviar el correo de activación, el cliente y su cuenta ya se guardaron
+            // (responde 500 igual). Se comprueba buscándolo: si existe, la venta sigue con un aviso
+            ClienteViewModel? creado = await BuscarCreado();
+            if (creado != null) {
+                await OnRegistrado.InvokeAsync(new Resultado(creado, AvisoSinCorreo));
+            } else {
+                MensajeError = ErrorServicio.Desde(ex);
+            }
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            // 400: DNI, teléfono o correo repetidos, u otro dato que el backend rechaza
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Guardando = false;
+        }
+    }
+
+    private async Task<ClienteViewModel?> BuscarCreado() {
+        try {
+            return await ClienteService.FindByDni(ViewModel.Dni.Trim());
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            return null;
+        }
+    }
+
+    private async Task Cancelar() {
+        await OnCancelar.InvokeAsync();
+    }
+}

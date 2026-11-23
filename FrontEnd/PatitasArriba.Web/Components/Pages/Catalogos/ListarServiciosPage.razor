@@ -1,0 +1,199 @@
+@page "/servicios"
+@attribute [Authorize(Policy = "Servicios")]
+@inject NavigationManager Nav;
+@inject IServicioService ServicioService;
+@inject SesionDemo Sesion;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Servicios</PageTitle>
+
+<div class="d-flex justify-content-between mb-3">
+    <h3 class="mb-3">Catálogo de servicios</h3>
+    @* El veterinario solo consulta: no ve los botones para registrar, editar ni eliminar *@
+    @if (Sesion.EsAdministrador) {
+        <button tabindex="4" class="btn btn-warning btn-texto" @onclick="() => NuevoServicio()">
+            <Icono Nombre="plus" /><span>Nuevo servicio</span>
+        </button>
+    }
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Nombre:</label>
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Ingrese el nombre..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
+    <button tabindex="2" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="3" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+<div class="chips-filtro mb-3" role="group" aria-label="Filtrar por tipo">
+    @foreach (string tipo in Tipos) {
+        <button type="button" class="@(TipoFiltro == tipo ? "activo" : "")" aria-pressed="@(TipoFiltro == tipo)" @onclick="() => ElegirTipo(tipo)">
+            @tipo <span class="cuenta">@CuantosDe(tipo)</span>
+        </button>
+    }
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando servicios...</p>
+}
+else if (!Servicios.Any()) {
+    <div class="alert alert-info">No se encontraron servicios.</div>
+}
+else {
+    <div class="grilla-tarjetas" style="grid-template-columns: repeat(auto-fill, minmax(285px, 1fr))">
+        @foreach (ServicioViewModel servicio in Servicios) {
+            <article class="tarjeta-info">
+                <div class="tarjeta-enc">
+                    <span class="ico-circ @ClaseTipo(servicio.TipoServicio)"><Icono Nombre="@IconoTipo(servicio.TipoServicio)" /></span>
+                    <div>
+                        <h5>@servicio.Nombre</h5>
+                        <small>@TextoEnum.De(servicio.TipoServicio)</small>
+                    </div>
+                </div>
+                <p class="tarjeta-desc">@servicio.Descripcion</p>
+                <div class="d-flex justify-content-between align-items-end">
+                    <span class="precio-tarjeta">S/ @servicio.PrecioBase.ToString("N2")</span>
+                    @if (servicio.DuracionEstimada != null) {
+                        <span class="etq etq-gris"><Icono Nombre="clock" />@servicio.DuracionEstimada min</span>
+                    }
+                </div>
+                @if (Sesion.EsAdministrador) {
+                    <div class="tarjeta-pie">
+                        <div class="acciones ms-auto">
+                            <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarServicio(servicio.Id)">
+                                <Icono Nombre="edit" />
+                            </button>
+                            <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(servicio)">
+                                <Icono Nombre="trash" />
+                            </button>
+                        </div>
+                    </div>
+                }
+            </article>
+        }
+    </div>
+}
+
+<ConfirmarDialogo Visible="ServicioAEliminar != null"
+                  Titulo="¿Eliminar el servicio?"
+                  Mensaje="@($"“{ServicioAEliminar?.Nombre}” dejará de aparecer en el catálogo. No se puede si está incluido en alguna cita.")"
+                  OnConfirmar="EliminarServicio" OnCancelar="CancelarEliminacion" />
+
+@code {
+    private List<ServicioViewModel> Todos { get; set; } = [];
+    private IQueryable<ServicioViewModel> Servicios { get; set; } = Enumerable.Empty<ServicioViewModel>().AsQueryable();
+    private ServicioViewModel? ServicioAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private string Filtro { get; set; } = string.Empty;
+    private string TipoFiltro { get; set; } = "Todos";
+    private static readonly string[] Tipos = ["Todos", .. Enum.GetValues<TipoServicio>().Select(TextoEnum.De)];
+
+    private bool EsDeTipo(ServicioViewModel s, string tipo) => tipo == "Todos" || TextoEnum.De(s.TipoServicio) == tipo;
+
+    private int CuantosDe(string tipo) => Todos.Count(s => EsDeTipo(s, tipo));
+
+    private void ElegirTipo(string tipo) {
+        TipoFiltro = tipo;
+        Filtrar();
+    }
+
+    // Icono y color por tipo de servicio: se reconoce de un vistazo
+    private static string IconoTipo(TipoServicio tipo) => tipo switch {
+        TipoServicio.CONSULTA_MEDICA => "stethoscope",
+        TipoServicio.VACUNACION => "syringe",
+        TipoServicio.ESTETICA => "sparkle",
+        TipoServicio.OPERACION => "scalpel",
+        TipoServicio.EMERGENCIA => "zap",
+        _ => "box"
+    };
+
+    private static string ClaseTipo(TipoServicio tipo) => tipo switch {
+        TipoServicio.CONSULTA_MEDICA => "k-med",
+        TipoServicio.VACUNACION => "k-vac",
+        TipoServicio.ESTETICA => "k-est",
+        TipoServicio.OPERACION => "k-ope",
+        TipoServicio.EMERGENCIA => "k-eme",
+        _ => "k-gen"
+    };
+    private bool Cargando { get; set; } = true;
+
+    // GET /servicios. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todos = await ServicioService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    // Se filtra la lista ya cargada: así se encuentran también coincidencias parciales del nombre
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Servicios = Todos
+            .Where(s => EsDeTipo(s, TipoFiltro) && s.Nombre.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .AsQueryable();
+    }
+
+    // Deja la lista como al entrar: sin texto y con todos los tipos
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        TipoFiltro = "Todos";
+        Filtrar();
+    }
+
+    private void NuevoServicio() {
+        Nav.NavigateTo("/servicios/nuevo");
+    }
+
+    private void EditarServicio(int id) {
+        Nav.NavigateTo($"/servicios/editar/{id}");
+    }
+
+    private void PedirEliminar(ServicioViewModel servicio) {
+        ServicioAEliminar = servicio;
+    }
+
+    private void CancelarEliminacion() {
+        ServicioAEliminar = null;
+    }
+
+    // DELETE /servicios/{id}; si el backend lo rechaza (RN-SE-05: está en alguna cita) se muestra su mensaje
+    private async Task EliminarServicio() {
+        if (ServicioAEliminar == null) {
+            return;
+        }
+        ServicioViewModel servicio = ServicioAEliminar;
+        ServicioAEliminar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await ServicioService.Delete(servicio.Id);
+            Todos.Remove(servicio);
+            MensajeExito = $"Se eliminó el servicio “{servicio.Nombre}”.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+    }
+}

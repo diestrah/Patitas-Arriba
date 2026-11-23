@@ -1,0 +1,153 @@
+@page "/recetas"
+@attribute [Authorize(Policy = "Recetas")]
+@inject NavigationManager Nav;
+@inject SesionDemo Sesion;
+@inject IRecetaService RecetaService;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Recetas médicas</PageTitle>
+
+<h3 class="mb-3">Recetas médicas</h3>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3">
+    <label class="text-nowrap">Mascota o dueño:</label>
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 12rem" placeholder="Ingrese el nombre de la mascota o del dueño..." @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
+    <div class="form-check mb-0 text-nowrap">
+        <input id="filtro-mias" tabindex="2" type="checkbox" class="form-check-input" @bind="SoloMias" />
+        <label class="form-check-label" for="filtro-mias">Solo mis recetas</label>
+    </div>
+    <button tabindex="3" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="4" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando recetas...</p>
+}
+else if (!Recetas.Any()) {
+    <div class="alert alert-info">No se encontraron recetas.</div>
+}
+else {
+    <QuickGrid Items="Recetas" Pagination="Paginacion" Class="table table-striped table-hover align-middle">
+        <PropertyColumn Title="N.°" Property="r => r.Id" Sortable="true" />
+        <PropertyColumn Title="Emisión" Property="r => r.FechaEmision" Format="dd/MM/yyyy" Sortable="true" />
+        <PropertyColumn Title="Mascota" Property="r => r.NombreMascota" />
+        <PropertyColumn Title="Dueño" Property="r => r.NombreCliente" />
+        <PropertyColumn Title="Diagnóstico" Property="r => r.Diagnostico" />
+        <PropertyColumn Title="Veterinario" Property="r => r.NombreVeterinario" />
+        <TemplateColumn Title="Acciones" Align="Align.Center">
+            <div class="acciones">
+                <button class="btn btn-outline-primary btn-icono" title="Ver e imprimir" aria-label="Ver e imprimir" @onclick="() => VerReceta(context.Id)">
+                    <Icono Nombre="eye" />
+                </button>
+                @* Solo el veterinario que emitió la receta puede editarla o eliminarla (RF14) *@
+                @if (context.IdVeterinario == Sesion.IdPersona) {
+                    <button class="btn btn-outline-primary btn-icono" title="Editar" aria-label="Editar" @onclick="() => EditarReceta(context.Id)">
+                        <Icono Nombre="edit" />
+                    </button>
+                    <button class="btn btn-outline-danger btn-icono" title="Eliminar" aria-label="Eliminar" @onclick="() => PedirEliminar(context)">
+                        <Icono Nombre="trash" />
+                    </button>
+                }
+            </div>
+        </TemplateColumn>
+    </QuickGrid>
+    <Paginador State="Paginacion" />
+}
+
+<ConfirmarDialogo Visible="RecetaAEliminar != null"
+                  Titulo="¿Eliminar la receta?"
+                  Mensaje="@($"La receta N.° {RecetaAEliminar?.Id:D6} de {RecetaAEliminar?.NombreMascota} dejará de aparecer en su historial clínico.")"
+                  OnConfirmar="EliminarReceta" OnCancelar="CancelarEliminacion" />
+
+@code {
+    private List<RecetaViewModel> Todas { get; set; } = [];
+    private IQueryable<RecetaViewModel> Recetas { get; set; } = Enumerable.Empty<RecetaViewModel>().AsQueryable();
+    private RecetaViewModel? RecetaAEliminar { get; set; }
+    private string? MensajeExito { get; set; }
+    private string Filtro { get; set; } = string.Empty;
+    // Por defecto el veterinario ve las recetas que emitió él
+    private bool SoloMias { get; set; } = true;
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+
+    // GET /recetas. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todas = await RecetaService.FindAll();
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
+    private void Filtrar() {
+        string texto = Filtro.Trim();
+        Recetas = Todas
+            .Where(r => r.NombreMascota.Contains(texto, StringComparison.OrdinalIgnoreCase)
+                     || r.NombreCliente.Contains(texto, StringComparison.OrdinalIgnoreCase))
+            .Where(r => !SoloMias || r.IdVeterinario == Sesion.IdPersona)
+            .AsQueryable();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        SoloMias = true;
+        Filtrar();
+    }
+
+    private void VerReceta(int id) {
+        Nav.NavigateTo($"/recetas/{id}");
+    }
+
+    private void EditarReceta(int id) {
+        Nav.NavigateTo($"/recetas/editar/{id}");
+    }
+
+    private void PedirEliminar(RecetaViewModel receta) {
+        RecetaAEliminar = receta;
+    }
+
+    private void CancelarEliminacion() {
+        RecetaAEliminar = null;
+    }
+
+    // DELETE /recetas/{id}; si el backend lo rechaza se muestra su mensaje
+    private async Task EliminarReceta() {
+        if (RecetaAEliminar == null) {
+            return;
+        }
+        RecetaViewModel receta = RecetaAEliminar;
+        RecetaAEliminar = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await RecetaService.Delete(receta.Id);
+            Todas.Remove(receta);
+            MensajeExito = $"Se eliminó la receta N.° {receta.Id:D6}.";
+            Filtrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+    }
+}

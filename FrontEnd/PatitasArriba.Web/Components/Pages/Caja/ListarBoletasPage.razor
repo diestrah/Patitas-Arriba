@@ -1,0 +1,308 @@
+@page "/boletas"
+@attribute [Authorize(Policy = "Boletas")]
+@inject NavigationManager Nav;
+@inject IConfiguration Configuration;
+@inject SesionDemo Sesion;
+@inject IBoletaService BoletaService;
+
+@using Microsoft.AspNetCore.Components.QuickGrid
+
+<PageTitle>Boletas</PageTitle>
+
+<div class="d-flex justify-content-between mb-3 no-print">
+    <h3 class="mb-3">Boletas de venta</h3>
+    <button tabindex="6" class="btn btn-warning btn-texto" @onclick="() => NuevaBoleta()">
+        <Icono Nombre="plus" /><span>Nueva boleta</span>
+    </button>
+</div>
+
+@* Lo cobrado cuenta solo boletas emitidas: una boleta anulada no suma *@
+<div class="row g-3 mb-3 no-print">
+    <div class="col-md-4">
+        <div class="indicador indicador-verde">
+            <span class="indicador-icono"><Icono Nombre="wallet" /></span>
+            <span class="indicador-valor">S/ @CobradoHoy.ToString("N2")</span>
+            <span class="indicador-texto">Cobrado hoy · actualizado a las @Actualizado</span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="indicador indicador-salvia">
+            <span class="indicador-icono"><Icono Nombre="calendar" /></span>
+            <span class="indicador-valor">S/ @CobradoSemana.ToString("N2")</span>
+            <span class="indicador-texto">Cobrado en la semana</span>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="indicador indicador-mostaza">
+            <span class="indicador-icono"><Icono Nombre="bar-chart" /></span>
+            <span class="indicador-valor">S/ @CobradoMes.ToString("N2")</span>
+            <span class="indicador-texto">Cobrado en el mes · @BoletasMes boleta@(BoletasMes == 1 ? "" : "s")</span>
+        </div>
+    </div>
+</div>
+
+<div class="barra-filtros d-flex flex-wrap align-items-center gap-2 mb-3 no-print">
+    <input tabindex="1" class="form-control w-auto flex-grow-1" style="min-width: 14rem" placeholder="Cliente, DNI o N.° de boleta" aria-label="Buscar boleta" @bind="Filtro" @bind:event="oninput" @onkeydown="TeclaEnFiltro" />
+    <label class="text-nowrap" for="filtro-estado">Estado:</label>
+    <select id="filtro-estado" tabindex="2" class="form-select w-auto" @bind="EstadoFiltro">
+        <option value="">Todos</option>
+        <option value="Emitida">Emitida</option>
+        <option value="Anulada">Anulada</option>
+    </select>
+    <label class="text-nowrap" for="filtro-pago">Pago:</label>
+    <select id="filtro-pago" tabindex="3" class="form-select w-auto" @bind="PagoFiltro">
+        <option value="">Todos</option>
+        @foreach (MetodoPago metodo in Enum.GetValues<MetodoPago>()) {
+            <option value="@metodo">@TextoEnum.De(metodo)</option>
+        }
+    </select>
+    <button tabindex="4" class="btn btn-primary btn-texto" @onclick="() => Filtrar()">
+        <Icono Nombre="search" /><span>Filtrar</span>
+    </button>
+    <button tabindex="5" class="btn btn-secondary" @onclick="() => LimpiarFiltro()">Limpiar</button>
+</div>
+
+@if (MensajeExito != null) {
+    <div class="alert alert-success no-print">@MensajeExito</div>
+}
+@if (MensajeError != null) {
+    <div class="alert alert-danger no-print">@MensajeError</div>
+}
+
+@if (Cargando) {
+    <p class="text-muted">Cargando boletas...</p>
+}
+else if (!Boletas.Any()) {
+    <div class="alert alert-info">No se encontraron boletas.</div>
+}
+else {
+    <div class="row g-4">
+        @* Una fila por boleta sin partir el texto: la tabla necesita ~920 px. En pantallas anchas deja 1/4 al detalle;
+           en las demás ocupa todo el ancho y el detalle va debajo *@
+        <div class="col-xxl-9 no-print">
+            <QuickGrid Items="Boletas" Pagination="Paginacion" Class="table table-striped table-hover align-middle tabla-una-fila">
+                <PropertyColumn Title="N.° boleta" Property="b => b.SerieCorrelativo" Sortable="true" />
+                <PropertyColumn Title="Fecha" Property="b => b.Fecha" Format="dd/MM/yyyy HH:mm" Sortable="true" />
+                <PropertyColumn Title="Cliente" Property="b => b.NombreCliente" />
+                <PropertyColumn Title="Total (S/)" Property="b => b.Total" Format="N2" Align="Align.Right" />
+                <TemplateColumn Title="Estado">
+                    @if (context.IsActivo) {
+                        <span class="estado estado-aprobado mini">Emitida</span>
+                    } else {
+                        <span class="estado estado-rechazado mini">Anulada</span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="Acciones">
+                    @* Ver | modificar | anular. Una boleta anulada ya no se modifica ni se vuelve a anular (RN-BO-11) *@
+                    <div class="acciones-fija">
+                        <span class="slot-icono">
+                            <button class="btn btn-outline-primary btn-icono" title="Ver detalle" aria-label="Ver detalle" @onclick="() => SeleccionarBoleta(context)">
+                                <Icono Nombre="eye" />
+                            </button>
+                        </span>
+                        <span class="slot-icono">
+                            @if (context.IsActivo) {
+                                <button class="btn btn-outline-primary btn-icono" title="Modificar" aria-label="Modificar" @onclick="() => ModificarBoleta(context)">
+                                    <Icono Nombre="edit" />
+                                </button>
+                            } else {
+                                <span class="slot-guion">—</span>
+                            }
+                        </span>
+                        <span class="slot-icono">
+                            @if (context.IsActivo) {
+                                <button class="btn btn-outline-danger btn-icono" title="Anular boleta" aria-label="Anular boleta" @onclick="() => PedirAnulacion(context)">
+                                    <Icono Nombre="ban" />
+                                </button>
+                            } else {
+                                <span class="slot-guion">—</span>
+                            }
+                        </span>
+                    </div>
+                </TemplateColumn>
+            </QuickGrid>
+            <Paginador State="Paginacion" />
+        </div>
+        <div class="col-xxl-3 print-ancho">
+            <div class="card mb-4 no-print">
+                <div class="card-header fw-bold">Cobrado en el mes por método de pago</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    @foreach (MetodoPago metodo in Enum.GetValues<MetodoPago>()) {
+                        double monto = MontoDelMes(metodo);
+                        int porcentaje = CobradoMes > 0 ? (int)Math.Round(100 * monto / CobradoMes) : 0;
+                        <div>
+                            <div class="d-flex justify-content-between small fw-bold">
+                                <span>@TextoEnum.De(metodo)</span>
+                                <span>S/ @monto.ToString("N2") · @porcentaje%</span>
+                            </div>
+                            <div class="barra-progreso" role="img" aria-label="@($"{TextoEnum.De(metodo)} {porcentaje}%")">
+                                <i style="@($"width:{porcentaje}%;background:var(--pa-verde)")"></i>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (BoletaSeleccionada == null) {
+                <div class="alert alert-info no-print">Seleccione una boleta para ver su detalle.</div>
+            } else {
+                <DetalleBoleta Boleta="BoletaSeleccionada">
+                    <div class="d-flex flex-wrap gap-2 no-print">
+                        @* RN-BO-12: una boleta anulada ya no se imprime ni se modifica *@
+                        @if (BoletaSeleccionada.IsActivo) {
+                            <a class="btn btn-secondary btn-sm btn-texto" target="_blank" rel="noopener" href="@UrlReporte(BoletaSeleccionada)">
+                                <Icono Nombre="printer" /><span>Imprimir</span>
+                            </a>
+                            <button class="btn btn-outline-primary btn-sm btn-texto" @onclick="() => ModificarBoleta(BoletaSeleccionada)">
+                                <Icono Nombre="edit" /><span>Modificar</span>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm btn-texto" @onclick="() => PedirAnulacion(BoletaSeleccionada)">
+                                <Icono Nombre="ban" /><span>Anular boleta</span>
+                            </button>
+                        }
+                    </div>
+                </DetalleBoleta>
+            }
+        </div>
+    </div>
+}
+
+<ConfirmarDialogo Visible="BoletaAAnular != null"
+                  Titulo="¿Anular la boleta?"
+                  Mensaje="@($"La boleta {BoletaAAnular?.SerieCorrelativo} de {BoletaAAnular?.NombreCliente} quedará anulada y lo vendido en caja vuelve al stock. Su número no se puede volver a usar y ya no se podrá imprimir ni modificar.")"
+                  TextoConfirmar="Sí, anular"
+                  IconoConfirmar="ban"
+                  OnConfirmar="AnularBoleta" OnCancelar="CancelarAnulacion" />
+
+@code {
+    private List<BoletaViewModel> Todas { get; set; } = [];
+    private IQueryable<BoletaViewModel> Boletas { get; set; } = Enumerable.Empty<BoletaViewModel>().AsQueryable();
+    private BoletaViewModel? BoletaSeleccionada { get; set; }
+    private BoletaViewModel? BoletaAAnular { get; set; }
+    private string? MensajeExito { get; set; }
+    private string? MensajeError { get; set; }
+    private bool Cargando { get; set; } = true;
+    private string Filtro { get; set; } = string.Empty;
+    private string EstadoFiltro { get; set; } = string.Empty;
+    private string PagoFiltro { get; set; } = string.Empty;
+    private string FiltroAplicado { get; set; } = string.Empty;
+    private string EstadoAplicado { get; set; } = string.Empty;
+    private string PagoAplicado { get; set; } = string.Empty;
+    private string Actualizado { get; set; } = DateTime.Now.ToString("HH:mm");
+    private PaginationState Paginacion { get; } = new() { ItemsPerPage = 6 };
+
+    // Lo cobrado se calcula con las boletas emitidas de GET /boletas (no hay consulta por fechas)
+    private double CobradoHoy => Cobrado(DateTime.Today, DateTime.Today);
+    private double CobradoSemana => Cobrado(LunesDeEstaSemana, LunesDeEstaSemana.AddDays(6));
+    private List<BoletaViewModel> EmitidasDelMes => Todas
+        .Where(b => b.IsActivo && b.Fecha.Year == DateTime.Today.Year && b.Fecha.Month == DateTime.Today.Month)
+        .ToList();
+    private double CobradoMes => EmitidasDelMes.Sum(b => b.Total);
+    private int BoletasMes => EmitidasDelMes.Count;
+    private static DateTime LunesDeEstaSemana => DateTime.Today.AddDays(-(((int)DateTime.Today.DayOfWeek + 6) % 7));
+
+    // GET /boletas. El backend solo devuelve las boletas activas: una anulada aparece como "Anulada" solo
+    // en esta sesión, justo después de anularla. Solo en la pasada interactiva: así el prerenderizado no repite la consulta
+    protected override async Task OnInitializedAsync() {
+        if (!RendererInfo.IsInteractive) return;
+        try {
+            Todas = await BoletaService.FindAll();
+            Actualizado = DateTime.Now.ToString("HH:mm");
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        } finally {
+            Cargando = false;
+        }
+    }
+
+    private double Cobrado(DateTime desde, DateTime hasta) {
+        return Todas.Where(b => b.IsActivo && b.Fecha.Date >= desde.Date && b.Fecha.Date <= hasta.Date).Sum(b => b.Total);
+    }
+
+    private double MontoDelMes(MetodoPago metodo) {
+        return EmitidasDelMes.Where(b => b.MetodoPago == metodo).Sum(b => b.Total);
+    }
+
+    private void Mostrar() {
+        Boletas = Todas
+            .Where(b => b.NombreCliente.Contains(FiltroAplicado, StringComparison.OrdinalIgnoreCase)
+                     || b.DniCliente.Contains(FiltroAplicado)
+                     || b.SerieCorrelativo.Contains(FiltroAplicado, StringComparison.OrdinalIgnoreCase))
+            .Where(b => EstadoAplicado == "" || (EstadoAplicado == "Emitida") == b.IsActivo)
+            .Where(b => PagoAplicado == "" || b.MetodoPago.ToString() == PagoAplicado)
+            .AsQueryable();
+    }
+
+    // Enter en el buscador filtra igual que el botón «Filtrar»
+    private void TeclaEnFiltro(KeyboardEventArgs e) {
+        if (e.Key == "Enter") {
+            Filtrar();
+        }
+    }
+
+    private void Filtrar() {
+        FiltroAplicado = Filtro.Trim();
+        EstadoAplicado = EstadoFiltro;
+        PagoAplicado = PagoFiltro;
+        Mostrar();
+    }
+
+    private void LimpiarFiltro() {
+        Filtro = string.Empty;
+        EstadoFiltro = string.Empty;
+        PagoFiltro = string.Empty;
+        Filtrar();
+    }
+
+    // Maestro-detalle: al hacer clic en "Ver" se muestra la boleta a la derecha
+    private void SeleccionarBoleta(BoletaViewModel boleta) {
+        BoletaSeleccionada = boleta;
+    }
+
+    private void NuevaBoleta() {
+        Nav.NavigateTo("/boletas/nueva");
+    }
+
+    private void ModificarBoleta(BoletaViewModel boleta) {
+        Nav.NavigateTo($"/boletas/editar/{boleta.Id}");
+    }
+
+    // RF16 con JasperReports: el navegador abre el PDF de la boleta directo en el servlet del modulo
+    // patitasarriba-reportes (Reportes:BaseUrl, igual que la agenda diaria). GET /reportes/boleta?id={id}[&generadoPor={nombre}]
+    private string UrlReporte(BoletaViewModel boleta) {
+        string baseUrl = Configuration["Reportes:BaseUrl"]?.TrimEnd('/') ?? "";
+        return $"{baseUrl}/reportes/boleta?id={boleta.Id}"
+            + $"&generadoPor={Uri.EscapeDataString(Sesion.NombreUsuario ?? "")}";
+    }
+
+    private void PedirAnulacion(BoletaViewModel boleta) {
+        BoletaAAnular = boleta;
+    }
+
+    private void CancelarAnulacion() {
+        BoletaAAnular = null;
+    }
+
+    // DELETE /boletas/{id} (RN-BO-11): el backend la anula y devuelve al stock lo vendido en caja.
+    // Si lo rechaza se muestra su mensaje
+    private async Task AnularBoleta() {
+        if (BoletaAAnular == null) {
+            return;
+        }
+        BoletaViewModel boleta = BoletaAAnular;
+        BoletaAAnular = null;
+        MensajeExito = null;
+        MensajeError = null;
+        try {
+            await BoletaService.Delete(boleta.Id);
+            boleta.IsActivo = false;
+            MensajeExito = $"Se anuló la boleta {boleta.SerieCorrelativo}.";
+            BoletaSeleccionada = boleta;
+            Actualizado = DateTime.Now.ToString("HH:mm");
+            Mostrar();
+        } catch (Exception ex) when (ErrorServicio.EsDeServicio(ex)) {
+            MensajeError = ErrorServicio.Desde(ex);
+        }
+    }
+}
