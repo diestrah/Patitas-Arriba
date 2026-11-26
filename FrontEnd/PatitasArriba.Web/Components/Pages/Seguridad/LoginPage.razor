@@ -41,7 +41,7 @@
                     <label for="correo">Correo electrónico</label>
                     <div class="input-wrap">
                         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
-                        <InputText id="correo" tabindex="1" class="login-input" placeholder="nombre@correo.com" autocomplete="username" inputmode="email" @bind-Value="ViewModel.Correo" @oninput="e => AlEscribir(nameof(LoginViewModel.Correo), e)" @onblur="() => Tocar(nameof(LoginViewModel.Correo))" />
+                        <InputText id="correo" tabindex="1" class="login-input" placeholder="nombre@correo.com" autocomplete="username" inputmode="email" @bind-Value="ViewModel.Correo" @onblur="() => Tocar(nameof(LoginViewModel.Correo))" />
                     </div>
                     <ValidationMessage For="() => ViewModel.Correo" />
                 </div>
@@ -50,7 +50,7 @@
                     <label for="clave">Contraseña</label>
                     <div class="input-wrap">
                         <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-                        <InputText id="clave" tabindex="2" type="password" class="login-input" placeholder="••••••••" autocomplete="current-password" @bind-Value="ViewModel.Password" @oninput="e => AlEscribir(nameof(LoginViewModel.Password), e)" @onblur="() => Tocar(nameof(LoginViewModel.Password))" />
+                        <InputText id="clave" tabindex="2" type="password" class="login-input" placeholder="••••••••" autocomplete="current-password" @bind-Value="ViewModel.Password" @onblur="() => Tocar(nameof(LoginViewModel.Password))" />
                         @* Mostrar u ocultar la contraseña lo maneja login-patitas.js (los perritos espían con un ojo) *@
                         <button class="eye-btn" type="button" id="ver" aria-label="Mostrar contraseña" title="Mostrar contraseña">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></svg>
@@ -104,22 +104,7 @@
         };
     }
 
-    // Mientras se escribe, si el campo ya mostraba un aviso (por ejemplo "La contraseña es obligatoria") se vuelve a
-    // validar con lo escrito para que el aviso desaparezca al teclear y no recién al salir del campo.
-    // No se usa @bind-Value:event="oninput": en InputText hace caer el circuito de Blazor.
-    private void AlEscribir(string campo, ChangeEventArgs e) {
-        string texto = e.Value?.ToString() ?? "";
-        if (campo == nameof(LoginViewModel.Correo)) {
-            ViewModel.Correo = texto;
-        } else {
-            ViewModel.Password = texto;
-        }
-        FieldIdentifier campoActual = new FieldIdentifier(ViewModel, campo);
-        if (Contexto.GetValidationMessages(campoActual).Any()) {
-            Contexto.NotifyFieldChanged(campoActual);
-        }
-    }
-
+    // Lo escrito se envía al servidor recién al salir del campo o al enviar el formulario, no con cada tecla.
     // Al salir de un campo se valida, aunque no se haya escrito nada
     private void Tocar(string campo) {
         Contexto.NotifyFieldChanged(new FieldIdentifier(ViewModel, campo));
